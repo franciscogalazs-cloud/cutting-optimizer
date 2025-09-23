@@ -1,0 +1,14 @@
+﻿<svg id="logo-stencil-square" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placa cuadrada MO">
+  <defs><style>path,rect,text{ font-family: Inter, ui-sans-serif, system-ui; }</style></defs>
+  <rect x="16" y="16" width="248" height="248" rx="24" fill="none" stroke="#0f172a" stroke-width="8"/>
+  <g fill="#0f172a">
+    <circle cx="44" cy="44" r="4"/><circle cx="236" cy="44" r="4"/>
+    <circle cx="44" cy="236" r="4"/><circle cx="236" cy="236" r="4"/>
+  </g>
+  <g transform="translate(36, 48)">
+    <path d="M0 168 V8 L60 100 L120 8 V168" fill="none" stroke="#0f172a" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="52" y="56" width="16" height="32" fill="#ffffff"/>
+    <rect x="152" y="24" width="80" height="128" rx="32" ry="32" fill="none" stroke="#10b981" stroke-width="16"/>
+    <rect x="190" y="24" width="10" height="28" rx="3" fill="#10b981"/>
+  </g>
+</svg>
