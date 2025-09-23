@@ -1,0 +1,82 @@
+﻿@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: var(--radius);
+  --background: var(--bg);
+  --foreground: var(--text);
+  --card: var(--surface);
+  --card-foreground: var(--text);
+  --popover: var(--surface);
+  --popover-foreground: var(--text);
+  --primary: var(--primary);
+  --primary-foreground: #ffffff;
+  --secondary: color-mix(in srgb, var(--surface) 90%, var(--primary) 10%);
+  --secondary-foreground: var(--text);
+  --muted: color-mix(in srgb, var(--surface) 85%, #64748b 15%);
+  --muted-foreground: var(--muted);
+  --accent: var(--accent);
+  --accent-foreground: #ffffff;
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --border: var(--border);
+  --input: var(--border);
+  --ring: var(--primary);
+  --chart-1: var(--primary);
+  --chart-2: var(--accent);
+  --chart-3: var(--success);
+  --chart-4: var(--warning);
+  --chart-5: var(--danger);
+  --sidebar: var(--surface);
+  --sidebar-foreground: var(--text);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--accent);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--primary);
+}
+
+:root[data-theme="dark"] {
+  --primary-foreground: #0b1220;
+  --secondary: color-mix(in srgb, var(--surface) 80%, #1f2937 20%);
+  --secondary-foreground: #e5e7eb;
+  --muted: color-mix(in srgb, var(--surface) 75%, #475569 25%);
+  --muted-foreground: #94a3b8;
+  --accent-foreground: #0b1220;
+  --sidebar-primary-foreground: #0b1220;
+  --accent: var(--accent);
+}
+
+html[data-theme="dark"] body {
+  color-scheme: dark;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+    outline-color: color-mix(in srgb, var(--primary) 50%, transparent);
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+  }
+}
+
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}

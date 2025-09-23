@@ -1,0 +1,76 @@
+import { useState, useCallback } from 'react';
+import { BestFitDecreasing } from '../algorithms/bestFitDecreasing.js';
+
+export const useOptimization = () => {
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
+  const [progress, setProgress] = useState(0);
+
+  const optimize = useCallback(async (pieces, materials, config = {}) => {
+    if (pieces.length === 0) {
+      setError('No hay piezas para optimizar');
+      return;
+    }
+
+    if (materials.length === 0) {
+      setError('No hay materiales disponibles');
+      return;
+    }
+
+    setIsOptimizing(true);
+    setError(null);
+    setProgress(0);
+    setResult(null);
+
+    try {
+      // Simular progreso
+      const progressInterval = setInterval(() => {
+        setProgress(prev => Math.min(prev + 10, 90));
+      }, 100);
+
+      // Ejecutar optimización en un Web Worker simulado con setTimeout
+      const optimizationResult = await new Promise((resolve, reject) => {
+        setTimeout(() => {
+          try {
+            // Normalizar config para el algoritmo (usa 'kerf')
+            const normalizedConfig = {
+              ...config,
+              kerf: config.kerf ?? config.kerfWidth,
+            };
+            const optimizer = new BestFitDecreasing(normalizedConfig);
+            const result = optimizer.optimize(pieces, materials);
+            resolve(result);
+          } catch (err) {
+            reject(err);
+          }
+        }, 1000); // Simular tiempo de procesamiento
+      });
+
+      clearInterval(progressInterval);
+      setProgress(100);
+      setResult(optimizationResult);
+    } catch (err) {
+      setError(err.message || 'Error durante la optimización');
+      console.error('Error en optimización:', err);
+    } finally {
+      setIsOptimizing(false);
+    }
+  }, []);
+
+  const reset = useCallback(() => {
+    setResult(null);
+    setError(null);
+    setProgress(0);
+    setIsOptimizing(false);
+  }, []);
+
+  return {
+    optimize,
+    reset,
+    isOptimizing,
+    result,
+    error,
+    progress
+  };
+};
