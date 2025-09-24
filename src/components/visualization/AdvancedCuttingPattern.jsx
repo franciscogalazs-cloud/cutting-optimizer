@@ -470,6 +470,33 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
 
                 <g transform={`translate(${paddingX + panOffset.x}, ${topPadding + panOffset.y}) scale(${safeZoom})`}>
                   {renderGrid()}
+                  {/* Nombre del material centrado arriba del tablero */}
+                  <text
+                    x={boardWidth / 2}
+                    y={-18}
+                    textAnchor="middle"
+                    className="text-[13px] font-semibold fill-[var(--primary)]"
+                  >
+                    {currentPattern.materialName || 'Material'}
+                  </text>
+                  {/* Medidas del material en los bordes, letra pequeña */}
+                  <text
+                    x={boardWidth / 2}
+                    y={-4}
+                    textAnchor="middle"
+                    className="text-[8px] fill-gray-700 font-medium"
+                  >
+                    {formatDimension(boardWidth)} {units}
+                  </text>
+                  <text
+                    x={-4}
+                    y={boardHeight / 2}
+                    textAnchor="middle"
+                    className="text-[8px] fill-gray-700 font-medium"
+                    transform={`rotate(-90,-4,${boardHeight / 2})`}
+                  >
+                    {formatDimension(boardHeight)} {units}
+                  </text>
                   <rect
                     x="0"
                     y="0"
@@ -477,10 +504,9 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                     height={boardHeight}
                     fill={theme.background}
                     stroke={theme.border}
-                    strokeWidth="2"
-                    rx="4"
-                    ry="4"
+                    strokeWidth="1"
                   />
+                  {/* Sin sombra en el tablero */}
                   {renderWaste()}
                   {currentPattern.pieces.map((piece, index) => {
                     const palette = theme.palette;
@@ -497,21 +523,25 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                           width={piece.width}
                           height={piece.height}
                           fill={fillColor}
-                          fillOpacity={isHovered ? 0.95 : 0.78}
-                          stroke={theme.border}
-                          strokeWidth="1.5"
-                          className="cursor-pointer transition-opacity duration-200"
+                          fillOpacity={isHovered ? 0.98 : 0.82}
+                          stroke="#2563eb"
+                          strokeWidth="1"
+                          filter={isHovered ? "url(#pieceShadow)" : undefined}
+                          className="cursor-pointer transition-all duration-200"
                           onMouseEnter={() => setHoveredPiece(index)}
                           onMouseLeave={() => setHoveredPiece(null)}
                         />
+                        <filter id="pieceShadow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#2563eb" flood-opacity="0.25" />
+                        </filter>
                         {showLabels && piece.width > 40 && piece.height > 30 && (
                           <text
                             x={piece.x + piece.width / 2}
                             y={piece.y + piece.height / 2}
                             textAnchor="middle"
                             dominantBaseline="middle"
-                            className="font-medium fill-white pointer-events-none"
-                            style={{ fontSize }}
+                            className="font-semibold fill-white pointer-events-none"
+                            style={{ fontSize: fontSize * 0.6 }}
                           >
                             {piece.label}
                           </text>
@@ -522,28 +552,41 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                             <text x="-6" y="4" className="text-xs fill-white">↻</text>
                           </g>
                         )}
-                        {isHovered && showDimensions && (
-                          <text
-                            x={piece.x + piece.width / 2}
-                            y={piece.y - 6}
-                            textAnchor="middle"
-                            className="text-xs fill-gray-700 font-medium"
-                          >
-                            {formatDimension(piece.width)} × {formatDimension(piece.height)} {units}
-                          </text>
+                        {showDimensions && (
+                          <>
+                            {/* Medida horizontal (centro del borde superior) */}
+                            <text
+                              x={piece.x + piece.width / 2}
+                              y={piece.y + 6}
+                              textAnchor="middle"
+                              className="text-[6px] fill-gray-700 font-medium"
+                            >
+                              {formatDimension(piece.width)} {units}
+                            </text>
+                            {/* Medida vertical (centro del borde izquierdo, rotada) */}
+                            <text
+                              x={piece.x + 6}
+                              y={piece.y + piece.height / 2}
+                              textAnchor="middle"
+                              className="text-[6px] fill-gray-700 font-medium"
+                              transform={`rotate(-90,${piece.x + 6},${piece.y + piece.height / 2})`}
+                            >
+                              {formatDimension(piece.height)} {units}
+                            </text>
+                          </>
                         )}
                       </g>
                     );
                   })}
-                  {renderDimensions()}
+                  {/* Medidas del tablero sin flechas y más pequeñas */}
                   {showDimensions && (
                     <text
                       x={boardWidth / 2}
-                      y={boardHeight + 28}
+                      y={boardHeight + 18}
                       textAnchor="middle"
-                      className="text-xs fill-gray-600"
+                      className="text-[11px] fill-gray-600"
                     >
-                      Dimensiones del tablero: {formatDimension(boardWidth)} × {formatDimension(boardHeight)} {units}
+                      {formatDimension(boardWidth)} × {formatDimension(boardHeight)} {units}
                     </text>
                   )}
                 </g>

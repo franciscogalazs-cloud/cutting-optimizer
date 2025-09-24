@@ -2,7 +2,6 @@ import { TrendingUp, TrendingDown, Clock, Package, DollarSign, Scissors } from '
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-
 const formatCurrency = (value) => {
   if (typeof value !== 'number' || Number.isNaN(value)) return '--';
   return value.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
@@ -58,7 +57,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
       title: 'Desperdicio total',
       icon: TrendingDown,
       accent: 'bg-[var(--danger)]/10 text-[var(--danger)]',
-      value: `${result.totalWaste.toLocaleString()} ${units}²`,
+      value: `${(result.totalWaste / 10000).toLocaleString()} m²`,
     },
     {
       title: 'Costo estimado',

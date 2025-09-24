@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { BestFitDecreasing } from '../algorithms/bestFitDecreasing.js';
+import { BacktrackingOptimizer } from '../algorithms/backtrackingOptimizer.js';
 
 export const useOptimization = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -29,22 +30,22 @@ export const useOptimization = () => {
         setProgress(prev => Math.min(prev + 10, 90));
       }, 100);
 
-      // Ejecutar optimización en un Web Worker simulado con setTimeout
+      // Permitir elegir algoritmo: 'maxrects' o 'bfd' (best fit decreasing)
       const optimizationResult = await new Promise((resolve, reject) => {
         setTimeout(() => {
           try {
-            // Normalizar config para el algoritmo (usa 'kerf')
             const normalizedConfig = {
               ...config,
               kerf: config.kerf ?? config.kerfWidth,
             };
-            const optimizer = new BestFitDecreasing(normalizedConfig);
+            // Siempre usar Backtracking como algoritmo predeterminado
+            const optimizer = new BacktrackingOptimizer(normalizedConfig);
             const result = optimizer.optimize(pieces, materials);
             resolve(result);
           } catch (err) {
             reject(err);
           }
-        }, 1000); // Simular tiempo de procesamiento
+        }, 1000);
       });
 
       clearInterval(progressInterval);

@@ -11,10 +11,9 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
 export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, units = 'mm', materials = [] }) => {
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
-  const totalArea = pieces.reduce((sum, piece) => sum + piece.length * piece.width * piece.quantity, 0);
+  const totalArea = pieces.reduce((sum, piece) => sum + piece.length * piece.width * piece.quantity, 0) / 10000;
 
   const materialNames = Array.from(new Set(materials.map((material) => material.material))).filter(Boolean);
   const nameToSample = new Map();
@@ -44,7 +43,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, units = '
         <CardTitle className="flex flex-col gap-1 text-[var(--text)] sm:flex-row sm:items-center sm:justify-between">
           <span>Piezas a cortar</span>
           <span className="text-sm text-[var(--muted)]">
-            Total: {totalPieces} piezas · Área: {totalArea.toLocaleString()} {units}²
+            Total: {totalPieces} piezas · Área: {totalArea.toLocaleString()} m²
           </span>
         </CardTitle>
       </CardHeader>
@@ -58,7 +57,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, units = '
                 <TableHead>Ancho ({units})</TableHead>
                 <TableHead>Cantidad</TableHead>
                 <TableHead>Material</TableHead>
-                <TableHead>Área ({units}²)</TableHead>
+                <TableHead>Área (m²)</TableHead>
                 <TableHead>Opciones</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
@@ -98,7 +97,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, units = '
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell>{(piece.length * piece.width * piece.quantity).toLocaleString()}</TableCell>
+                  <TableCell>{((piece.length * piece.width * piece.quantity) / 10000).toLocaleString()}</TableCell>
                   <TableCell>
                     <Button
                       variant="outline"

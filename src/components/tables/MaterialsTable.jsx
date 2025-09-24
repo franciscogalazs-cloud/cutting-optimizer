@@ -9,10 +9,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
 export const MaterialsTable = ({ materials, onDelete, onEditRequest, units = 'mm' }) => {
   const totalMaterials = materials.reduce((sum, material) => sum + material.quantity, 0);
-  const totalArea = materials.reduce((sum, material) => sum + material.length * material.width * material.quantity, 0);
+  const totalArea = materials.reduce((sum, material) => sum + material.length * material.width * material.quantity, 0) / 10000;
 
   if (materials.length === 0) {
     return (
@@ -34,7 +33,7 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, units = 'mm
         <CardTitle className="flex flex-col gap-1 text-[var(--text)] sm:flex-row sm:items-center sm:justify-between">
           <span>Materiales disponibles</span>
           <span className="text-sm text-[var(--muted)]">
-            Total: {totalMaterials} tableros · Área: {totalArea.toLocaleString()} {units}²
+            Total: {totalMaterials} tableros · Área: {totalArea.toLocaleString()} m²
           </span>
         </CardTitle>
       </CardHeader>
@@ -50,7 +49,7 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, units = 'mm
                 <TableHead>Grosor sierra ({units})</TableHead>
                 <TableHead>Margen ({units})</TableHead>
                 <TableHead>Precio</TableHead>
-                <TableHead>Área ({units}²)</TableHead>
+                <TableHead>Área (m²)</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -64,7 +63,7 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, units = 'mm
                   <TableCell>{material.kerf}</TableCell>
                   <TableCell>{material.margin}</TableCell>
                   <TableCell>{material.price?.toLocaleString(undefined, { style: 'currency', currency: 'USD' }) || '--'}</TableCell>
-                  <TableCell>{(material.length * material.width * material.quantity).toLocaleString()}</TableCell>
+                  <TableCell>{((material.length * material.width * material.quantity) / 10000).toLocaleString()}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
