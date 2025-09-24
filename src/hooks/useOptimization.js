@@ -1,6 +1,27 @@
-import { useState, useCallback } from 'react';
+﻿import { useState, useCallback } from 'react';
 import { BestFitDecreasing } from '../algorithms/bestFitDecreasing.js';
 import { BacktrackingOptimizer } from '../algorithms/backtrackingOptimizer.js';
+import { MaxRectsOptimizer } from '../algorithms/maxRectsOptimizer.js';
+
+const ALGORITHM_FALLBACK = 'bfd';
+
+const createOptimizer = (config) => {
+  const key = String(config.algorithm ?? ALGORITHM_FALLBACK).toLowerCase();
+  switch (key) {
+    case 'bfd':
+    case 'bestfit':
+    case 'bestfitdecreasing':
+      return new BestFitDecreasing(config);
+    case 'maxrects':
+    case 'max-rects':
+      return new MaxRectsOptimizer(config);
+    case 'backtracking':
+    case 'bt':
+      return new BacktrackingOptimizer(config);
+    default:
+      return new BestFitDecreasing(config);
+  }
+};
 
 export const useOptimization = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
@@ -24,37 +45,39 @@ export const useOptimization = () => {
     setProgress(0);
     setResult(null);
 
+    let progressInterval;
+
     try {
-      // Simular progreso
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
+      const normalizedConfig = {
+        ...config,
+        kerf: config.kerf ?? config.kerfWidth,
+      };
+
+      const optimizer = createOptimizer(normalizedConfig);
+
+      progressInterval = window.setInterval(() => {
+        setProgress((prev) => Math.min(prev + 10, 90));
       }, 100);
 
-      // Permitir elegir algoritmo: 'maxrects' o 'bfd' (best fit decreasing)
       const optimizationResult = await new Promise((resolve, reject) => {
-        setTimeout(() => {
+        window.setTimeout(() => {
           try {
-            const normalizedConfig = {
-              ...config,
-              kerf: config.kerf ?? config.kerfWidth,
-            };
-            // Siempre usar Backtracking como algoritmo predeterminado
-            const optimizer = new BacktrackingOptimizer(normalizedConfig);
-            const result = optimizer.optimize(pieces, materials);
-            resolve(result);
+            resolve(optimizer.optimize(pieces, materials));
           } catch (err) {
             reject(err);
           }
         }, 1000);
       });
 
-      clearInterval(progressInterval);
       setProgress(100);
       setResult(optimizationResult);
     } catch (err) {
-      setError(err.message || 'Error durante la optimización');
-      console.error('Error en optimización:', err);
+      setError(err?.message || 'Error durante la optimizacion');
+      console.error('Error en optimizacion:', err);
     } finally {
+      if (progressInterval) {
+        clearInterval(progressInterval);
+      }
       setIsOptimizing(false);
     }
   }, []);
@@ -72,6 +95,8 @@ export const useOptimization = () => {
     isOptimizing,
     result,
     error,
-    progress
+    progress,
   };
 };
+
+

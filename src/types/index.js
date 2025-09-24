@@ -70,7 +70,7 @@ export const createOptimizationResult = (data = {}) => ({
 });
 
 export const createOptimizationConfig = (data = {}) => ({
-  algorithm: data.algorithm || 'bfd', // 'bfd' | 'genetic'
+  algorithm: data.algorithm || 'bfd', // 'bfd' | 'maxrects' | 'backtracking'
   allowRotation: data.allowRotation !== undefined ? data.allowRotation : true,
   kerf: data.kerf || 3,
   margin: data.margin || 5,
@@ -95,5 +95,10 @@ export const UNITS = {
 // Algoritmos disponibles
 export const ALGORITHMS = {
   BFD: 'bfd',
-  GENETIC: 'genetic',
+  BESTFIT: 'bestfit',
+  BESTFITDECREASING: 'bestfitdecreasing',
+  MAXRECTS: 'maxrects',
+  BACKTRACKING: 'backtracking',
+  BT: 'bt',
 };
+

@@ -1,4 +1,4 @@
-// Algoritmo Maximal Rectangles (MaxRects) para optimización de cortes 2D
+﻿// Algoritmo Maximal Rectangles (MaxRects) para optimización de cortes 2D
 // Versión inicial, soporta rotación y múltiples materiales
 import { createPlacedPiece, createCuttingPattern, PIECE_COLORS } from '../types/index.js';
 
@@ -12,6 +12,10 @@ export class MaxRectsOptimizer {
     };
   }
 
+  getMargin(pattern) {
+    return pattern.margin ?? this.config.margin;
+  }
+
   optimize(pieces, materials) {
     const startTime = Date.now();
     const expandedPieces = this.expandPieces(pieces);
@@ -20,7 +24,7 @@ export class MaxRectsOptimizer {
     const availableMaterials = materials.map(m => ({ ...m }));
 
     for (const piece of sortedPieces) {
-      const placed = this.placePiece(piece, patterns, availableMaterials);
+      const placed = this.placePiece(piece, patterns);
       if (!placed) {
         this.createNewPattern(piece, patterns, availableMaterials);
       }
@@ -54,7 +58,7 @@ export class MaxRectsOptimizer {
     return list.sort((a, b) => (b.length * b.width) - (a.length * a.width));
   }
 
-  placePiece(piece, patterns, availableMaterials) {
+  placePiece(piece, patterns) {
     for (const pattern of patterns) {
       if (pattern.materialName && piece.material && pattern.materialName !== piece.material) continue;
       const position = this.findMaxRectsPosition(piece, pattern);
@@ -68,7 +72,6 @@ export class MaxRectsOptimizer {
 
   findMaxRectsPosition(piece, pattern) {
     const margin = this.getMargin(pattern);
-    const kerf = this.getKerf(pattern);
     if (!pattern.freeRects) {
       pattern.freeRects = [
         {
@@ -81,6 +84,7 @@ export class MaxRectsOptimizer {
     }
     let bestRect = null;
     let bestWaste = Infinity;
+    let bestBalanceScore = Infinity;
     const tryOrientations = [
       { width: piece.length, height: piece.width, rotated: false },
     ];
@@ -91,13 +95,16 @@ export class MaxRectsOptimizer {
       for (const rect of pattern.freeRects) {
         if (orient.width <= rect.width && orient.height <= rect.height) {
           const waste = rect.width * rect.height - orient.width * orient.height;
-          if (waste < bestWaste) {
+          const balanceScore = Math.abs((rect.width - orient.width) - (rect.height - orient.height)) + (orient.rotated ? -0.001 : 0);
+          if (waste < bestWaste - 1e-6 || (Math.abs(waste - bestWaste) <= 1e-6 && balanceScore < bestBalanceScore)) {
             bestWaste = waste;
+            bestBalanceScore = balanceScore;
             bestRect = {
               x: rect.x,
               y: rect.y,
               width: orient.width,
               height: orient.height,
+              balanceScore: bestBalanceScore,
               rotated: orient.rotated,
               rectIndex: pattern.freeRects.indexOf(rect),
             };
@@ -147,7 +154,7 @@ export class MaxRectsOptimizer {
         height: rect.height - position.height - kerf,
       });
     }
-    // Resto del área no ocupada
+    // Resto del Ã¡rea no ocupada
     if (rect.width > position.width + kerf && rect.height > position.height + kerf) {
       newRects.push({
         x: rect.x + position.width + kerf,
@@ -156,9 +163,9 @@ export class MaxRectsOptimizer {
         height: rect.height - position.height - kerf,
       });
     }
-    // Eliminar el rectángulo original y agregar los nuevos
+    // Eliminar el rectÃ¡ngulo original y agregar los nuevos
     pattern.freeRects.splice(position.rectIndex, 1, ...newRects);
-    // Opcional: eliminar solapamientos y rectángulos degenerados
+    // Opcional: eliminar solapamientos y rectÃ¡ngulos degenerados
     pattern.freeRects = pattern.freeRects.filter(r => r.width > 2 && r.height > 2);
   }
 
@@ -200,7 +207,7 @@ export class MaxRectsOptimizer {
         height: pattern.materialWidth - pattern.margin * 2,
       },
     ];
-    // Colocar la pieza en el nuevo patrón
+    // Colocar la pieza en el nuevo patrÃ³n
     const position = this.findMaxRectsPosition(piece, pattern);
     if (position) this.addPieceToPattern(piece, pattern, position);
   }
@@ -216,10 +223,6 @@ export class MaxRectsOptimizer {
 
   getKerf(pattern) {
     return pattern?.kerf ?? this.config.kerf;
-  }
-
-  getMargin(pattern) {
-    return pattern?.margin ?? this.config.margin;
   }
 
   getMaterialArea(material) {
@@ -254,3 +257,10 @@ export class MaxRectsOptimizer {
     return { patterns, totalUtilization, totalWaste, totalCost, materialsUsed, executionTime: 0 };
   }
 }
+
+
+
+
+
+
+

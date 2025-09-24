@@ -1,22 +1,6 @@
-﻿import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-
-const ThemeContext = createContext({
-  theme: 'light',
-  toggle: () => {},
-  set: () => {},
-});
-
-const storageKey = 'cutting-optimizer-theme';
-
-const getPreferredTheme = () => {
-  if (typeof window === 'undefined') return 'light';
-  const stored = localStorage.getItem(storageKey);
-  if (stored === 'light' || stored === 'dark') return stored;
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
-  }
-  return 'light';
-};
+﻿import { useEffect, useMemo, useState } from 'react';
+import { getPreferredTheme, THEME_STORAGE_KEY } from './theme-utils.js';
+import { ThemeContext } from './theme-context.js';
 
 export const ThemeProvider = ({ children }) => {
   const [theme, setTheme] = useState(getPreferredTheme);
@@ -24,7 +8,7 @@ export const ThemeProvider = ({ children }) => {
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const handleChange = (event) => {
-      if (!localStorage.getItem(storageKey)) {
+      if (!localStorage.getItem(THEME_STORAGE_KEY)) {
         setTheme(event.matches ? 'dark' : 'light');
       }
     };
@@ -34,7 +18,7 @@ export const ThemeProvider = ({ children }) => {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    localStorage.setItem(storageKey, theme);
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
   const value = useMemo(() => ({
@@ -45,6 +29,3 @@ export const ThemeProvider = ({ children }) => {
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };
-
-export const useTheme = () => useContext(ThemeContext);
-

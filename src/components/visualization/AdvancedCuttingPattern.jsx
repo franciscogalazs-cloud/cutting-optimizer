@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+﻿import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ChevronLeft,
   ChevronRight,
@@ -31,7 +31,7 @@ const formatDimension = (value) =>
 const formatArea = (value, units) => {
   const numeric = Number.isFinite(Number(value)) ? Number(value) : 0;
   const formatted = numeric.toLocaleString(undefined, { maximumFractionDigits: 2 });
-  return `${formatted} ${units}²`;
+  return `${formatted} ${units}Â²`;
 };
 
 const loadPreferences = () => {
@@ -42,7 +42,7 @@ const loadPreferences = () => {
     const parsed = JSON.parse(raw);
     if (parsed && typeof parsed === 'object') return parsed;
   } catch (error) {
-    console.warn('No se pudo cargar la configuración de patrones', error);
+    console.warn('No se pudo cargar la configuraciÃ³n de patrones', error);
   }
   return null;
 };
@@ -51,7 +51,7 @@ const savePreferences = (prefs) => {
   try {
     window.localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs));
   } catch (error) {
-    console.warn('No se pudo guardar la configuración de patrones', error);
+    console.warn('No se pudo guardar la configuraciÃ³n de patrones', error);
   }
 };
 
@@ -142,7 +142,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
         </CardHeader>
         <CardContent className="py-10 text-center text-[var(--muted)]">
           <p>No hay patrones generados.</p>
-          <p className="text-xs">Ejecuta la optimización para visualizar los cortes.</p>
+          <p className="text-xs">Ejecuta la optimizaciÃ³n para visualizar los cortes.</p>
         </CardContent>
       </Card>
     );
@@ -217,56 +217,6 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
         fillOpacity="0.08"
         pointerEvents="none"
       />
-    );
-  };
-
-  const renderDimensions = () => {
-    if (!showDimensions) return null;
-    const offset = 24;
-    return (
-      <g className="text-gray-700">
-        <g>
-          <line
-            x1={0}
-            y1={-offset}
-            x2={boardWidth}
-            y2={-offset}
-            stroke="#374151"
-            strokeWidth="1"
-            markerEnd="url(#arrowhead)"
-            markerStart="url(#arrowhead)"
-          />
-          <text
-            x={boardWidth / 2}
-            y={-offset - 6}
-            textAnchor="middle"
-            className="text-xs fill-gray-700"
-          >
-            {formatDimension(boardWidth)} {units}
-          </text>
-        </g>
-        <g>
-          <line
-            x1={-offset}
-            y1={0}
-            x2={-offset}
-            y2={boardHeight}
-            stroke="#374151"
-            strokeWidth="1"
-            markerEnd="url(#arrowhead)"
-            markerStart="url(#arrowhead)"
-          />
-          <text
-            x={-offset - 6}
-            y={boardHeight / 2}
-            textAnchor="middle"
-            className="text-xs fill-gray-700"
-            transform={`rotate(-90, ${-offset - 6}, ${boardHeight / 2})`}
-          >
-            {formatDimension(boardHeight)} {units}
-          </text>
-        </g>
-      </g>
     );
   };
 
@@ -379,11 +329,11 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
               <div className="text-xs text-[var(--muted)] uppercase">Dimensiones</div>
               <div className="text-sm font-semibold text-[var(--text)]">
-                {formatDimension(currentPattern.materialLength)} × {formatDimension(currentPattern.materialWidth)} {units}
+                {formatDimension(currentPattern.materialLength)} Ã— {formatDimension(currentPattern.materialWidth)} {units}
               </div>
             </div>
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
-              <div className="text-xs text-[var(--muted)] uppercase">Utilización</div>
+              <div className="text-xs text-[var(--muted)] uppercase">UtilizaciÃ³n</div>
               <div className="text-sm font-semibold text-[var(--text)]">{currentPattern.utilization.toFixed(1)}%</div>
             </div>
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
@@ -422,7 +372,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                   size="icon"
                   className={`h-8 w-8 ${mode === 'pan' ? 'text-[var(--primary)]' : 'text-[var(--text)]'}`}
                   onClick={toggleMode}
-                  title={mode === 'pan' ? 'Cambiar a selección' : 'Cambiar a modo panorámica'}
+                  title={mode === 'pan' ? 'Cambiar a selecciÃ³n' : 'Cambiar a modo panorÃ¡mica'}
                 >
                   {mode === 'pan' ? <Hand className="h-4 w-4" /> : <Pointer className="h-4 w-4" />}
                 </Button>
@@ -442,7 +392,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                   <Switch checked={showLabels} onCheckedChange={(checked) => setPref('showLabels', checked)} />
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-4">
-                  <Label className="text-[var(--muted)]">Áreas de desperdicio</Label>
+                  <Label className="text-[var(--muted)]">Ãreas de desperdicio</Label>
                   <Switch checked={showWaste} onCheckedChange={(checked) => setPref('showWaste', checked)} />
                 </div>
               </div>
@@ -479,7 +429,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                   >
                     {currentPattern.materialName || 'Material'}
                   </text>
-                  {/* Medidas del material en los bordes, letra pequeña */}
+                  {/* Medidas del material en los bordes, letra pequeÃ±a */}
                   <text
                     x={boardWidth / 2}
                     y={-4}
@@ -549,7 +499,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                         {piece.rotated && (
                           <g transform={`translate(${piece.x + 6}, ${piece.y + 6})`}>
                             <circle r="9" fill="rgba(15, 23, 42, 0.75)" />
-                            <text x="-6" y="4" className="text-xs fill-white">↻</text>
+                            <text x="-6" y="4" className="text-xs fill-white">â†»</text>
                           </g>
                         )}
                         {showDimensions && (
@@ -578,7 +528,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                       </g>
                     );
                   })}
-                  {/* Medidas del tablero sin flechas y más pequeñas */}
+                  {/* Medidas del tablero sin flechas y mÃ¡s pequeÃ±as */}
                   {showDimensions && (
                     <text
                       x={boardWidth / 2}
@@ -586,7 +536,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                       textAnchor="middle"
                       className="text-[11px] fill-gray-600"
                     >
-                      {formatDimension(boardWidth)} × {formatDimension(boardHeight)} {units}
+                      {formatDimension(boardWidth)} Ã— {formatDimension(boardHeight)} {units}
                     </text>
                   )}
                 </g>
@@ -595,7 +545,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
           </div>
 
           <div className="space-y-3">
-            <h4 className="text-sm font-medium text-[var(--text)]">Piezas en este patrón</h4>
+            <h4 className="text-sm font-medium text-[var(--text)]">Piezas en este patrÃ³n</h4>
             <div className="grid max-h-48 grid-cols-1 gap-3 overflow-y-auto md:grid-cols-2 lg:grid-cols-3">
               {currentPattern.pieces.map((piece, index) => {
                 const palette = theme.palette;
@@ -618,14 +568,14 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
                     <div className="flex min-w-0 flex-1 flex-col text-xs text-[var(--muted)]">
                       <span className="truncate text-sm font-medium text-[var(--text)]">{piece.label}</span>
                       <span>
-                        {formatDimension(piece.width)} × {formatDimension(piece.height)} {units}
+                        {formatDimension(piece.width)} Ã— {formatDimension(piece.height)} {units}
                       </span>
-                      <span>Posición: ({formatDimension(piece.x)}, {formatDimension(piece.y)})</span>
+                      <span>PosiciÃ³n: ({formatDimension(piece.x)}, {formatDimension(piece.y)})</span>
                     </div>
                     {piece.rotated && (
                       <Badge variant="outline" className="text-xs">
-                        <span className="mr-1">↻</span>
-                        90°
+                        <span className="mr-1">â†»</span>
+                        90Â°
                       </Badge>
                     )}
                   </div>
@@ -638,3 +588,4 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm' }) => {
     </Card>
   );
 };
+

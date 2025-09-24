@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Download, Grid3X3, Play, Scissors, TrendingUp, Calculator, BarChart3 } from "lucide-react";
+import { toast } from "sonner";
 import { Header } from "./components/layout/Header";
 import { PieceForm } from "./components/forms/PieceForm";
 import { MaterialForm } from "./components/forms/MaterialForm";
@@ -115,19 +116,20 @@ function App() {
   };
   const handleOptimize = async () => {
     if (pieces.length === 0) {
-      alert("Agrega al menos una pieza para optimizar");
+      toast.error("Agrega al menos una pieza para optimizar");
       return;
     }
     if (materials.length === 0) {
-      alert("Agrega al menos un material para optimizar");
+      toast.error("Agrega al menos un material para optimizar");
       return;
     }
     setIsOptimizing(true);
     try {
       await optimize(pieces, materials, config);
       setActiveTab("patterns");
+      toast.success("Optimización completada exitosamente");
     } catch (err) {
-      alert(`Error durante la optimización: ${err.message}`);
+      toast.error(`Error durante la optimización: ${err.message}`);
     } finally {
       setIsOptimizing(false);
     }
@@ -162,7 +164,6 @@ function App() {
     });
   };
   const handleExportPattern = (pattern, index) => {
-    console.log("Exportando patrÃ³n:", pattern, index);
     console.log("Exportando patrón:", pattern, index);
   };
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
@@ -258,11 +259,11 @@ function App() {
                   Panel de optimización
                 </h3>
                 <p>
-                  Usa el botÃ³n â€œOptimizarâ€ en la barra superior para generar patrones. Cada tablero utiliza su propio
+                  Usa el botón "Optimizar" en la barra superior para generar patrones. Cada tablero utiliza su propio
                   grosor de sierra y margen.
                 </p>
                 <div className="flex items-center justify-between text-xs">
-                  <span>RotaciÃ³n global</span>
+                  <span>Rotación global</span>
                   <span className="font-medium text-[var(--text)]">{config.allowRotation ? "Permitida" : "Bloqueada"}</span>
                 </div>
                 <div className="space-y-1 text-xs">
@@ -393,13 +394,13 @@ function App() {
                   <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
                     <CardContent className="space-y-3 py-12">
                       <TrendingUp className="mx-auto h-12 w-12 text-[var(--muted)]" />
-                      <h3 className="text-lg font-medium text-[var(--text)]">Sin estadÃ­sticas todavÃ­a</h3>
+                      <h3 className="text-lg font-medium text-[var(--text)]">Sin estadísticas todavía</h3>
                       <p className="text-sm text-[var(--muted)]">
                         Ejecuta la optimización para analizar el uso de materiales y el desperdicio.
                       </p>
                       <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
                         <Calculator className="h-4 w-4" />
-                        Generar estadÃ­sticas
+                        Generar estadísticas
                       </Button>
                     </CardContent>
                   </Card>

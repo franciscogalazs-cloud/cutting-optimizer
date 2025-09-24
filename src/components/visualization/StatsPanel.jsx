@@ -1,4 +1,4 @@
-import { TrendingUp, TrendingDown, Clock, Package, DollarSign, Scissors } from 'lucide-react';
+﻿import { TrendingUp, TrendingDown, Clock, Package, DollarSign, Scissors } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -30,11 +30,11 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
     return (
       <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
         <CardHeader>
-          <CardTitle className="text-[var(--text)]">Estadísticas de optimización</CardTitle>
+          <CardTitle className="text-[var(--text)]">EstadÃ­sticas de optimizaciÃ³n</CardTitle>
         </CardHeader>
         <CardContent className="py-10 text-center text-[var(--muted)]">
-          <p>No hay estadísticas disponibles.</p>
-          <p className="text-xs">Ejecuta la optimización para analizar el desempeño de los tableros.</p>
+          <p>No hay estadÃ­sticas disponibles.</p>
+          <p className="text-xs">Ejecuta la optimizaciÃ³n para analizar el desempeÃ±o de los tableros.</p>
         </CardContent>
       </Card>
     );
@@ -48,7 +48,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
       value: result.materialsUsed,
     },
     {
-      title: 'Utilización promedio',
+      title: 'UtilizaciÃ³n promedio',
       icon: TrendingUp,
       accent: 'bg-[var(--success)]/10 text-[var(--success)]',
       value: `${result.totalUtilization.toFixed(1)} %`,
@@ -57,7 +57,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
       title: 'Desperdicio total',
       icon: TrendingDown,
       accent: 'bg-[var(--danger)]/10 text-[var(--danger)]',
-      value: `${(result.totalWaste / 10000).toLocaleString()} m²`,
+      value: `${(result.totalWaste / 10000).toLocaleString()} mÂ²`,
     },
     {
       title: 'Costo estimado',
@@ -72,29 +72,32 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
       <CardHeader className="flex flex-col gap-2">
         <CardTitle className="flex items-center gap-2 text-[var(--text)]">
           <TrendingUp className="h-5 w-5 text-[var(--primary)]" />
-          Estadísticas de optimización
+          EstadÃ­sticas de optimizaciÃ³n
           <Badge variant="outline" className="border-[var(--border)] text-[var(--muted)]">
             {result.algorithm}
           </Badge>
         </CardTitle>
         <p className="text-xs text-[var(--muted)]">
-          Resumen de desempeño para los tableros procesados en la última optimización.
+          Resumen de desempeÃ±o para los tableros procesados en la Ãºltima optimizaciÃ³n.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {metrics.map(({ title, icon: Icon, accent, value }) => (
-            <div
-              key={title}
-              className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
-            >
-              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${accent}`}>
-                <Icon className="h-5 w-5" />
+          {metrics.map(({ title, icon, accent, value }) => {
+            const IconComponent = icon;
+            return (
+              <div
+                key={title}
+                className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
+              >
+                <div className={`flex h-10 w-10 items-center justify-center rounded-full ${accent}`}>
+                  <IconComponent className="h-5 w-5" />
+                </div>
+                <div className="mt-3 text-xs text-[var(--muted)]">{title}</div>
+                <div className="text-lg font-semibold text-[var(--text)]">{value}</div>
               </div>
-              <div className="mt-3 text-xs text-[var(--muted)]">{title}</div>
-              <div className="text-lg font-semibold text-[var(--text)]">{value}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="space-y-2">
@@ -116,7 +119,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
           <div className="flex items-center gap-3">
             <Clock className="h-5 w-5 text-[var(--muted)]" />
             <div>
-              <div className="font-medium text-[var(--text)]">Tiempo de ejecución</div>
+              <div className="font-medium text-[var(--text)]">Tiempo de ejecuciÃ³n</div>
               <div>{formatTime(result.executionTime)}</div>
             </div>
           </div>
@@ -145,7 +148,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
                     </Badge>
                   )}
                   <span>
-                    {pattern.materialLength} × {pattern.materialWidth} {units}
+                    {pattern.materialLength} Ã— {pattern.materialWidth} {units}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
@@ -166,13 +169,13 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
           <h4 className="text-sm font-semibold text-[var(--text)]">Recomendaciones</h4>
           <ul className="list-disc space-y-1 pl-4">
             {result.totalUtilization < 60 && (
-              <li>Considera usar tableros más pequeños o reacomodar piezas para reducir desperdicio.</li>
+              <li>Considera usar tableros mÃ¡s pequeÃ±os o reacomodar piezas para reducir desperdicio.</li>
             )}
             {result.totalUtilization > 90 && (
-              <li>Excelente aprovechamiento del material. Procura reutilizar esta configuración.</li>
+              <li>Excelente aprovechamiento del material. Procura reutilizar esta configuraciÃ³n.</li>
             )}
             {result.patterns.length > 5 && (
-              <li>Agrupa pedidos similares para disminuir el número de tableros necesarios.</li>
+              <li>Agrupa pedidos similares para disminuir el nÃºmero de tableros necesarios.</li>
             )}
             <li>Verifica que las dimensiones sean compatibles con el equipo de corte disponible.</li>
           </ul>
@@ -181,3 +184,4 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
     </Card>
   );
 };
+

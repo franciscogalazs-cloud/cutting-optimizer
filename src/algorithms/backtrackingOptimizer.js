@@ -1,5 +1,5 @@
-// Algoritmo de optimización 2D con backtracking (versión inicial)
-// Busca la mejor disposición global de piezas en el material
+﻿// Algoritmo de optimizacion 2D con backtracking
+// Busca la mejor disposicion global de piezas en el material
 import { createPlacedPiece, createCuttingPattern, PIECE_COLORS } from '../types/index.js';
 
 export class BacktrackingOptimizer {
@@ -8,31 +8,78 @@ export class BacktrackingOptimizer {
       kerf: config.kerf ?? 3,
       margin: config.margin ?? 5,
       allowRotation: config.allowRotation ?? true,
+      maxPatterns: config.maxPatterns ?? null,
       ...config,
     };
   }
 
-  optimize(pieces, materials) {
+  optimize(pieces, materials, options = {}) {
+    const { initialResult = null } = options;
     const expandedPieces = this.expandPieces(pieces);
     const sortedPieces = this.sortPiecesByArea(expandedPieces);
-    const availableMaterials = materials.map(m => ({ ...m }));
-    const bestResult = { patterns: [], totalWaste: Infinity };
-    this.backtrack(sortedPieces, availableMaterials, [], bestResult);
-    bestResult.totalUtilization = bestResult.patterns.length > 0
-      ? bestResult.patterns.reduce((sum, p) => sum + p.utilization, 0) / bestResult.patterns.length
+    const availableMaterials = materials.map((material) => ({ ...material }));
+    const bestState = this.createInitialState(initialResult);
+
+    if (sortedPieces.length === 0) {
+      return this.buildResult(bestState.patterns, materials, 'Backtracking');
+    }
+
+    this.backtrack(sortedPieces, availableMaterials, [], bestState);
+    return this.buildResult(bestState.patterns, materials, 'Backtracking');
+  }
+
+  createInitialState(initialResult) {
+    if (!initialResult || !Array.isArray(initialResult.patterns) || initialResult.patterns.length === 0) {
+      return {
+        patterns: [],
+        totalWaste: Infinity,
+      };
+    }
+    const clonedPatterns = this.clonePatterns(initialResult.patterns);
+    const totalWaste = this.computeTotalWaste(clonedPatterns);
+    return {
+      patterns: clonedPatterns,
+      totalWaste: Number.isFinite(initialResult.totalWaste) ? initialResult.totalWaste : totalWaste,
+    };
+  }
+
+  buildResult(patterns, materials, algorithmName) {
+    if (!patterns || patterns.length === 0) {
+      return {
+        patterns: [],
+        totalUtilization: 0,
+        totalWaste: 0,
+        totalCost: 0,
+        materialsUsed: 0,
+        executionTime: 0,
+        algorithm: algorithmName,
+      };
+    }
+
+    const evaluatedPatterns = patterns.map((pattern) => this.evaluatePattern(pattern, materials));
+    const totalWaste = evaluatedPatterns.reduce((sum, pattern) => sum + pattern.waste, 0);
+    const totalUtilization = evaluatedPatterns.length
+      ? evaluatedPatterns.reduce((sum, pattern) => sum + pattern.utilization, 0) / evaluatedPatterns.length
       : 0;
-    bestResult.totalCost = bestResult.patterns.reduce((sum, p) => sum + (p.cost || 0), 0);
-    bestResult.materialsUsed = bestResult.patterns.length;
-    bestResult.executionTime = 0;
-    bestResult.algorithm = 'Backtracking';
-    return bestResult;
+    const totalCost = evaluatedPatterns.reduce((sum, pattern) => sum + (pattern.cost || 0), 0);
+
+    return {
+      patterns: evaluatedPatterns,
+      totalUtilization,
+      totalWaste,
+      totalCost,
+      materialsUsed: evaluatedPatterns.length,
+      executionTime: 0,
+      algorithm: algorithmName,
+    };
   }
 
   expandPieces(pieces) {
     const expanded = [];
     let colorIndex = 0;
-    pieces.forEach(piece => {
-      for (let i = 0; i < piece.quantity; i++) {
+    pieces.forEach((piece) => {
+      const quantity = Math.max(1, Number(piece.quantity) || 1);
+      for (let i = 0; i < quantity; i++) {
         expanded.push({
           ...piece,
           id: `${piece.id}_${i}`,
@@ -50,79 +97,92 @@ export class BacktrackingOptimizer {
     return list.sort((a, b) => (b.length * b.width) - (a.length * a.width));
   }
 
-  backtrack(pieces, materials, currentPatterns, bestResult) {
+  backtrack(pieces, materials, currentPatterns, bestState) {
+    if (bestState.totalWaste === 0) {
+      return;
+    }
+
     if (pieces.length === 0) {
-      // Todas las piezas colocadas, calcular desperdicio
-      const totalWaste = currentPatterns.reduce((sum, p) => sum + (p.materialLength * p.materialWidth - p.pieces.reduce((s, pc) => s + pc.width * pc.height, 0)), 0);
-      if (totalWaste < bestResult.totalWaste) {
-        bestResult.patterns = JSON.parse(JSON.stringify(currentPatterns));
-        bestResult.totalWaste = totalWaste;
+      const totalWaste = this.computeTotalWaste(currentPatterns);
+      if (totalWaste < bestState.totalWaste) {
+        bestState.patterns = this.clonePatterns(currentPatterns);
+        bestState.totalWaste = totalWaste;
       }
       return;
     }
-    // Limitar profundidad para evitar explosión combinatoria (opcional)
-    if (currentPatterns.length > 3) return;
-    const piece = pieces[0];
-    // Probar en todos los patrones existentes
-    for (let i = 0; i < currentPatterns.length; i++) {
-      const pattern = currentPatterns[i];
+
+    const [piece, ...remainingPieces] = pieces;
+
+    currentPatterns.forEach((pattern, patternIndex) => {
       const positions = this.generatePossiblePositions(pattern, piece);
       for (const pos of positions) {
         const placedPiece = this.tryPlacePiece(piece, pattern, pos);
-        if (placedPiece) {
-          pattern.pieces.push(placedPiece);
-          this.backtrack(pieces.slice(1), materials, currentPatterns, bestResult);
-          pattern.pieces.pop();
-        }
+        if (!placedPiece) continue;
+        const updatedPattern = {
+          ...pattern,
+          pieces: [...pattern.pieces, placedPiece],
+        };
+        const nextPatterns = [...currentPatterns];
+        nextPatterns[patternIndex] = updatedPattern;
+        this.backtrack(remainingPieces, materials, nextPatterns, bestState);
       }
+    });
+
+    if (this.config.maxPatterns && currentPatterns.length >= this.config.maxPatterns) {
+      return;
     }
-    // Probar en un nuevo patrón/material
-    for (let i = 0; i < materials.length; i++) {
-      const material = materials[i];
-      if (material.quantity > 0 && (!piece.material || piece.material === material.material)) {
-        const pattern = createCuttingPattern({
-          materialId: material.id,
-          materialName: material.material,
-          materialLength: material.length,
-          materialWidth: material.width,
-          kerf: material.kerf ?? this.config.kerf,
-          margin: material.margin ?? this.config.margin,
-          pieces: [],
-        });
-        const positions = this.generatePossiblePositions(pattern, piece);
-        for (const pos of positions) {
-          const placedPiece = this.tryPlacePiece(piece, pattern, pos);
-          if (placedPiece) {
-            pattern.pieces.push(placedPiece);
-            material.quantity--;
-            currentPatterns.push(pattern);
-            this.backtrack(pieces.slice(1), materials, currentPatterns, bestResult);
-            currentPatterns.pop();
-            material.quantity++;
-            pattern.pieces.pop();
-          }
-        }
+
+    materials.forEach((material, materialIndex) => {
+      if ((material.quantity ?? 0) <= 0) return;
+      if (piece.material && material.material && piece.material !== material.material) return;
+
+      const basePattern = createCuttingPattern({
+        materialId: material.id,
+        materialName: material.material,
+        materialLength: material.length,
+        materialWidth: material.width,
+        kerf: material.kerf ?? this.config.kerf,
+        margin: material.margin ?? this.config.margin,
+        pieces: [],
+      });
+
+      const positions = this.generatePossiblePositions(basePattern, piece);
+      for (const pos of positions) {
+        const placedPiece = this.tryPlacePiece(piece, basePattern, pos);
+        if (!placedPiece) continue;
+        const updatedPattern = {
+          ...basePattern,
+          pieces: [placedPiece],
+        };
+        const nextMaterials = materials.map((mat, idx) => (
+          idx === materialIndex
+            ? { ...mat, quantity: Math.max(0, (mat.quantity ?? 0) - 1) }
+            : { ...mat }
+        ));
+        const nextPatterns = [...currentPatterns, updatedPattern];
+        this.backtrack(remainingPieces, nextMaterials, nextPatterns, bestState);
       }
-    }
+    });
   }
 
   generatePossiblePositions(pattern, piece) {
     const margin = this.getMargin(pattern);
     const kerf = this.getKerf(pattern);
+    const canRotatePiece = this.config.allowRotation && (piece.canRotate ?? true);
     const positions = [{ x: margin, y: margin, rotated: false }];
-    if (this.config.allowRotation) {
+    if (canRotatePiece) {
       positions.push({ x: margin, y: margin, rotated: true });
     }
+
     for (const placedPiece of pattern.pieces) {
-      // Esquinas de cada pieza
       positions.push({ x: placedPiece.x + placedPiece.width + kerf, y: placedPiece.y, rotated: false });
       positions.push({ x: placedPiece.x, y: placedPiece.y + placedPiece.height + kerf, rotated: false });
-      if (this.config.allowRotation) {
+      if (canRotatePiece) {
         positions.push({ x: placedPiece.x + placedPiece.height + kerf, y: placedPiece.y, rotated: true });
         positions.push({ x: placedPiece.x, y: placedPiece.y + placedPiece.width + kerf, rotated: true });
       }
     }
-    // Eliminar duplicados
+
     const unique = [];
     const seen = new Set();
     for (const pos of positions) {
@@ -140,9 +200,13 @@ export class BacktrackingOptimizer {
     const kerf = this.getKerf(pattern);
     const materialLength = pattern.materialLength - margin * 2;
     const materialWidth = pattern.materialWidth - margin * 2;
-    let length = pos.rotated ? piece.width : piece.length;
-    let width = pos.rotated ? piece.length : piece.width;
+    const canRotate = this.config.allowRotation && (piece.canRotate ?? true);
+    const length = pos.rotated && canRotate ? piece.width : piece.length;
+    const width = pos.rotated && canRotate ? piece.length : piece.width;
+
+    if (length <= 0 || width <= 0) return null;
     if (pos.x + length > materialLength + margin || pos.y + width > materialWidth + margin) return null;
+
     for (const placedPiece of pattern.pieces) {
       if (this.rectanglesOverlap(
         pos.x, pos.y, length, width,
@@ -150,15 +214,18 @@ export class BacktrackingOptimizer {
         placedPiece.y - kerf / 2,
         placedPiece.width + kerf,
         placedPiece.height + kerf,
-      )) return null;
+      )) {
+        return null;
+      }
     }
+
     return createPlacedPiece({
       pieceId: piece.id,
       x: pos.x,
       y: pos.y,
       width: length,
       height: width,
-      rotated: pos.rotated,
+      rotated: pos.rotated && canRotate,
       label: piece.label,
       color: piece.color,
     });
@@ -175,4 +242,78 @@ export class BacktrackingOptimizer {
   getMargin(pattern) {
     return pattern?.margin ?? this.config.margin;
   }
+
+  clonePatterns(patterns) {
+    return patterns.map((pattern) => ({
+      ...pattern,
+      pieces: (pattern.pieces || []).map((piece) => ({ ...piece })),
+    }));
+  }
+
+  computeTotalWaste(patterns) {
+    return patterns.reduce((sum, pattern) => {
+      const usedArea = (pattern.pieces || []).reduce((acc, piece) => acc + (piece.width * piece.height), 0);
+      const materialArea = pattern.materialLength * pattern.materialWidth;
+      return sum + Math.max(0, materialArea - usedArea);
+    }, 0);
+  }
+
+  positionScore(pattern, piece, pos) {
+    const margin = this.getMargin(pattern);
+    const canRotate = this.config.allowRotation && (piece.canRotate ?? true);
+    const length = pos.rotated && canRotate ? piece.width : piece.length;
+    const width = pos.rotated && canRotate ? piece.length : piece.width;
+    const usableLength = pattern.materialLength - margin * 2;
+    const usableWidth = pattern.materialWidth - margin * 2;
+    const edgeGapX = Math.max(0, usableLength - (pos.x - margin + length));
+    const edgeGapY = Math.max(0, usableWidth - (pos.y - margin + width));
+    const centerBias = pos.rotated ? -0.5 : 0;
+    return edgeGapX + edgeGapY + pos.x * 0.01 + pos.y * 0.01 + centerBias;
+  }
+
+  shouldReplace(currentBest, candidate) {
+    if (!candidate || candidate.length === 0) return false;
+    if (!currentBest || currentBest.length === 0) return true;
+    const bestScore = this.patternArrangementScore(currentBest);
+    const candidateScore = this.patternArrangementScore(candidate);
+    if (candidateScore.edgeGap < bestScore.edgeGap - 1e-6) return true;
+    if (Math.abs(candidateScore.edgeGap - bestScore.edgeGap) <= 1e-6 && candidateScore.rotatedPieces > bestScore.rotatedPieces) {
+      return true;
+    }
+    return false;
+  }
+
+  patternArrangementScore(patterns) {
+    return patterns.reduce((acc, pattern) => {
+      const margin = this.getMargin(pattern);
+      const pieces = pattern.pieces || [];
+      const maxX = pieces.reduce((max, piece) => Math.max(max, piece.x + piece.width), margin);
+      const maxY = pieces.reduce((max, piece) => Math.max(max, piece.y + piece.height), margin);
+      const gapX = Math.max(0, pattern.materialLength - maxX);
+      const gapY = Math.max(0, pattern.materialWidth - maxY);
+      acc.edgeGap += gapX + gapY;
+      acc.rotatedPieces += pieces.filter((piece) => piece.rotated).length;
+      return acc;
+    }, { edgeGap: 0, rotatedPieces: 0 });
+  }
+  evaluatePattern(pattern, materials) {
+    const materialArea = pattern.materialLength * pattern.materialWidth;
+    const pieces = (pattern.pieces || []).map((piece) => ({ ...piece }));
+    const usedArea = pieces.reduce((sum, piece) => sum + (piece.width * piece.height), 0);
+    const waste = Math.max(0, materialArea - usedArea);
+    const utilization = materialArea > 0 ? (usedArea / materialArea) * 100 : 0;
+    const sourceMaterial = materials.find((mat) => mat.id === pattern.materialId);
+
+    return {
+      ...pattern,
+      pieces,
+      utilization,
+      waste,
+      cost: sourceMaterial?.price ?? pattern.cost ?? 0,
+    };
+  }
 }
+
+
+
+
