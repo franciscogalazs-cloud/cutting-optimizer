@@ -34,6 +34,8 @@ const mmToUnits = (valueMm, units) => {
       return Number(numeric.toFixed(3));
   }
 };
+// Ensure that no large code blocks have been accidentally removed.
+// Review your recent changes for any unintended deletions.
 function App() {
   const [pieces, setPieces] = useLocalStorage("cutting-pieces", []);
   const [materials, setMaterials] = useLocalStorage("cutting-materials", []);
