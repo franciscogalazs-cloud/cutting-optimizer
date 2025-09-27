@@ -37,6 +37,24 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
   }
 
   const _totalWasteM2 = formatSquareMeters(areaToSquareMeters(result.totalWaste ?? 0, units));
+  // Utilización promedio en m²: promedio del área usada por hoja
+  const avgUsedM2 = (() => {
+    const patterns = result?.patterns || [];
+    if (!Array.isArray(patterns) || patterns.length === 0) return 0;
+    let totalUsedArea = 0; // en unidades cuadradas de `units`
+    for (const pat of patterns) {
+      const pieces = pat?.pieces || pat?.placedPieces || [];
+      for (const p of pieces) {
+        const w = Number(p?.width ?? p?.w ?? 0);
+        const h = Number(p?.height ?? p?.h ?? 0);
+        if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+          totalUsedArea += w * h;
+        }
+      }
+    }
+    const avgArea = totalUsedArea / patterns.length;
+    return areaToSquareMeters(avgArea, units);
+  })();
   const totalCostCLP = formatCLP(result.totalCost ?? 0);
   const metrics = [
     {
@@ -49,7 +67,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
       title: 'Utilizacion promedio',
       icon: TrendingUp,
       accent: 'bg-[var(--success)]/10 text-[var(--success)]',
-      value: `${result.totalUtilization.toFixed(1)} %`,
+      value: `${formatSquareMeters(avgUsedM2)} m2`,
     },
     {
       title: 'Desperdicio total',

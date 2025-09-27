@@ -22,6 +22,7 @@ import { EdgeBandingPanel } from "./features/edgebanding/EdgeBandingPanel.jsx";
 import { BudgetPanel } from "./components/visualization/BudgetPanel.jsx";
 import { AIDemo } from "./components/ai/AIDemo.jsx";
 import { normalizePiece, toMillimeters, cloneEdges, defaultEdges } from "./types/pieces.js";
+import { areaToSquareMeters, formatSquareMeters } from "./lib/format.js";
 import { useOptimization } from "./hooks/useOptimization";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 const mmToUnits = (valueMm, units) => {
@@ -335,6 +336,23 @@ function App() {
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
   const totalMaterials = materials.reduce((sum, material) => sum + material.quantity, 0);
   const utilization = typeof result?.totalUtilization === "number" ? result.totalUtilization : null;
+  const avgUsedM2 = (() => {
+    const patterns = result?.patterns || [];
+    if (!Array.isArray(patterns) || patterns.length === 0) return null;
+    let totalUsedArea = 0;
+    for (const pat of patterns) {
+      const pieces = pat?.pieces || pat?.placedPieces || [];
+      for (const p of pieces) {
+        const w = Number(p?.width ?? p?.w ?? 0);
+        const h = Number(p?.height ?? p?.h ?? 0);
+        if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+          totalUsedArea += w * h;
+        }
+      }
+    }
+    const avgArea = totalUsedArea / patterns.length;
+    return areaToSquareMeters(avgArea, config.units);
+  })();
   const wasteAmount = typeof result?.totalWaste === "number" ? result.totalWaste : null;
   const optimizedBoards = result?.patterns?.length ?? 0;
   const kpiItems = [
@@ -346,8 +364,8 @@ function App() {
     },
     {
       label: "Utilizacion promedio",
-      value: utilization !== null ? `${utilization.toFixed(1)} %` : "--",
-      subtitle: result ? "Promedio sobre tableros optimizados" : "Ejecuta la optimizacion",
+      value: avgUsedM2 !== null ? `${formatSquareMeters(avgUsedM2, 2)} m2` : "--",
+      subtitle: result ? "Promedio m2 usados por hoja" : "Ejecuta la optimizacion",
       intent: "success",
     },
     {
