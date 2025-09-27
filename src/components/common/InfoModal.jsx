@@ -35,10 +35,10 @@ export const InfoModal = ({ isOpen, onClose }) => {
               <CardContent className="space-y-4">
                 <div className="space-y-3">
                   <div className="flex items-start space-x-3">
-                    <div className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
+                    <div className="bg-[var(--primary)] text-[var(--surface)] rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</div>
                     <div>
-                      <h4 className="font-medium">Agregar Piezas</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-[var(--text)]">Agregar Piezas</h4>
+                      <p className="text-sm text-[var(--muted)]">
                         Usa el formulario "Agregar Pieza" para introducir las dimensiones, cantidad y etiqueta de cada pieza que necesitas cortar.
                         Puedes especificar si la pieza puede rotarse para optimizar el corte.
                       </p>
@@ -46,10 +46,10 @@ export const InfoModal = ({ isOpen, onClose }) => {
                   </div>
 
                   <div className="flex items-start space-x-3">
-                    <div className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
+                    <div className="bg-[var(--primary)] text-[var(--surface)] rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</div>
                     <div>
-                      <h4 className="font-medium">Agregar Materiales</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-[var(--text)]">Agregar Materiales</h4>
+                      <p className="text-sm text-[var(--muted)]">
                         Define los tableros disponibles usando el formulario "Agregar Material". Puedes usar los presets comunes o introducir dimensiones personalizadas.
                         Incluye el precio para calcular costos automáticamente.
                       </p>
@@ -57,30 +57,30 @@ export const InfoModal = ({ isOpen, onClose }) => {
                   </div>
 
                   <div className="flex items-start space-x-3">
-                    <div className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
+                    <div className="bg-[var(--primary)] text-[var(--surface)] rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</div>
                     <div>
-                      <h4 className="font-medium">Configurar Parámetros</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-[var(--text)]">Configurar Parámetros</h4>
+                      <p className="text-sm text-[var(--muted)]">
                         Ajusta el grosor de sierra (kerf) y márgenes según tu equipo de corte. Estos parámetros afectan la precisión de la optimización.
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start space-x-3">
-                    <div className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</div>
+                    <div className="bg-[var(--primary)] text-[var(--surface)] rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</div>
                     <div>
-                      <h4 className="font-medium">Optimizar</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-[var(--text)]">Optimizar</h4>
+                      <p className="text-sm text-[var(--muted)]">
                         Haz clic en "Optimizar Cortes" para generar los patrones de corte. El algoritmo calculará la mejor distribución para minimizar el desperdicio.
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-start space-x-3">
-                    <div className="bg-blue-100 text-blue-800 rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">5</div>
+                    <div className="bg-[var(--primary)] text-[var(--surface)] rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">5</div>
                     <div>
-                      <h4 className="font-medium">Revisar Resultados</h4>
-                      <p className="text-sm text-gray-600">
+                      <h4 className="font-medium text-[var(--text)]">Revisar Resultados</h4>
+                      <p className="text-sm text-[var(--muted)]">
                         Explora las pestañas "Patrones" y "Estadísticas" para ver los resultados. Puedes navegar entre diferentes hojas y exportar los datos.
                       </p>
                     </div>
@@ -172,8 +172,8 @@ export const InfoModal = ({ isOpen, onClose }) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h4 className="font-medium text-green-700 mb-2">✅ Mejores Prácticas</h4>
-                  <ul className="space-y-1 text-sm">
+                  <h4 className="font-medium text-[var(--success)] mb-2">✅ Mejores Prácticas</h4>
+                  <ul className="space-y-1 text-sm text-[var(--text)]">
                     <li>• <strong>Permite la rotación</strong> cuando sea posible para mayor eficiencia</li>
                     <li>• <strong>Agrupa piezas similares</strong> para reducir el número de tableros</li>
                     <li>• <strong>Usa etiquetas descriptivas</strong> para identificar fácilmente las piezas</li>
@@ -183,8 +183,8 @@ export const InfoModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-yellow-700 mb-2">⚠️ Consideraciones Importantes</h4>
-                  <ul className="space-y-1 text-sm">
+                  <h4 className="font-medium text-[var(--warning)] mb-2">⚠️ Consideraciones Importantes</h4>
+                  <ul className="space-y-1 text-sm text-[var(--text)]">
                     <li>• Verifica que las dimensiones de corte sean factibles en tu equipo</li>
                     <li>• Ten en cuenta la dirección de la veta para materiales como melamina</li>
                     <li>• Considera el orden de corte para evitar piezas inestables</li>
@@ -193,8 +193,8 @@ export const InfoModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <h4 className="font-medium text-blue-700 mb-2">💡 Trucos Avanzados</h4>
-                  <ul className="space-y-1 text-sm">
+                  <h4 className="font-medium text-[var(--primary)] mb-2">💡 Trucos Avanzados</h4>
+                  <ul className="space-y-1 text-sm text-[var(--text)]">
                     <li>• Usa tableros de diferentes tamaños para optimizar costos</li>
                     <li>• Agrupa proyectos pequeños para aprovechar mejor el material</li>
                     <li>• Guarda configuraciones frecuentes como presets personalizados</li>
@@ -212,15 +212,15 @@ export const InfoModal = ({ isOpen, onClose }) => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h4 className="font-medium mb-2">Acerca de esta aplicación</h4>
-                  <p className="text-sm text-gray-600">
+                  <h4 className="font-medium mb-2 text-[var(--text)]">Acerca de esta aplicación</h4>
+                  <p className="text-sm text-[var(--muted)]">
                     Esta aplicación web profesional está diseñada para optimizar el corte de tableros de melamina y otros materiales en láminas.
                     Utiliza algoritmos avanzados de optimización para minimizar el desperdicio de material y reducir costos.
                   </p>
                 </div>
 
                 <div>
-                  <h4 className="font-medium mb-2">Tecnologías utilizadas</h4>
+                  <h4 className="font-medium mb-2 text-[var(--text)]">Tecnologías utilizadas</h4>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="outline">React</Badge>
                     <Badge variant="outline">TypeScript</Badge>
@@ -232,8 +232,8 @@ export const InfoModal = ({ isOpen, onClose }) => {
                 </div>
 
                 <div>
-                  <h4 className="font-medium mb-2">Características técnicas</h4>
-                  <ul className="space-y-1 text-sm text-gray-600">
+                  <h4 className="font-medium mb-2 text-[var(--text)]">Características técnicas</h4>
+                  <ul className="space-y-1 text-sm text-[var(--muted)]">
                     <li>• Algoritmo Best Fit Decreasing con optimizaciones personalizadas</li>
                     <li>• Visualización SVG interactiva de patrones de corte</li>
                     <li>• Persistencia de datos en localStorage del navegador</li>
@@ -242,9 +242,9 @@ export const InfoModal = ({ isOpen, onClose }) => {
                   </ul>
                 </div>
 
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-2">Ventajas sobre Cutting Optimization Pro</h4>
-                  <ul className="space-y-1 text-sm text-blue-700">
+                <div className="bg-[var(--accent)]/10 border border-[var(--accent)]/20 p-4 rounded-lg">
+                  <h4 className="font-medium text-[var(--primary)] mb-2">Ventajas sobre Cutting Optimization Pro</h4>
+                  <ul className="space-y-1 text-sm text-[var(--text)]">
                     <li>✅ Interfaz web moderna y responsive</li>
                     <li>✅ No requiere instalación de software</li>
                     <li>✅ Visualización interactiva mejorada</li>

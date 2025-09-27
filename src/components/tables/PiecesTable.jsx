@@ -1,4 +1,4 @@
-import { Edit2, RotateCcw, Trash2 } from 'lucide-react';
+import { Edit2, RotateCcw, Trash2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, units = 'mm', materials = [] }) => {
+export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplicate, units = 'mm', materials = [] }) => {
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
   const totalArea = pieces.reduce((sum, piece) => sum + piece.length * piece.width * piece.quantity, 0) / 10000;
 
@@ -43,7 +43,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, units = '
         <CardTitle className="flex flex-col gap-1 text-[var(--text)] sm:flex-row sm:items-center sm:justify-between">
           <span>Piezas a cortar</span>
           <span className="text-sm text-[var(--muted)]">
-            Total: {totalPieces} piezas · Área: {totalArea.toLocaleString()} m²
+            Total: {totalPieces} piezas - Area: {totalArea.toLocaleString()} m2
           </span>
         </CardTitle>
       </CardHeader>
@@ -57,7 +57,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, units = '
                 <TableHead>Ancho ({units})</TableHead>
                 <TableHead>Cantidad</TableHead>
                 <TableHead>Material</TableHead>
-                <TableHead>Área (m²)</TableHead>
+                <TableHead>Area (m2)</TableHead>
                 <TableHead>Opciones</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
@@ -86,7 +86,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, units = '
                         {materialNames.map((name) => {
                           const sample = nameToSample.get(name);
                           const label = sample && sample.length && sample.width
-                            ? `${name} — ${sample.length}x${sample.width} ${units}`
+                            ? `${name} - ${sample.length}x${sample.width} ${units}`
                             : name;
                           return (
                             <SelectItem key={name} value={name}>
@@ -112,6 +112,15 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, units = '
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onDuplicate?.(piece)}
+                        className="h-8 w-8 p-0 text-[var(--text)]"
+                        title="Duplicar pieza"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"

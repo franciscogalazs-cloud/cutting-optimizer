@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, RotateCcw } from 'lucide-re
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { areaToSquareMeters, formatSquareMeters } from '@/lib/format.js';
 
 export const CuttingPattern = ({ patterns, units = 'mm' }) => {
   const [currentPatternIndex, setCurrentPatternIndex] = useState(0);
@@ -81,8 +82,13 @@ export const CuttingPattern = ({ patterns, units = 'mm' }) => {
               <div>{currentPattern.materialLength} × {currentPattern.materialWidth} {units}</div>
             </div>
             <div className="bg-blue-50 p-3 rounded">
-              <div className="font-medium text-blue-700">Utilización</div>
-              <div>{currentPattern.utilization.toFixed(1)}%</div>
+              <div className="font-medium text-blue-700">Área utilizada</div>
+              <div>
+                {(() => {
+                  const usedArea = currentPattern.pieces.reduce((sum, piece) => sum + (piece.width * piece.height), 0);
+                  return `${formatSquareMeters(areaToSquareMeters(usedArea, units))} m²`;
+                })()}
+              </div>
             </div>
             <div className="bg-red-50 p-3 rounded">
               <div className="font-medium text-red-700">Desperdicio</div>

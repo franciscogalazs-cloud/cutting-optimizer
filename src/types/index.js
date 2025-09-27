@@ -25,7 +25,7 @@ export const createMaterial = (data = {}) => ({
   width: data.width || 0,
   quantity: data.quantity || 1,
   material: data.material || 'Melamina',
-  price: data.price || 0,
+  // price removido del flujo de Materiales; se define en Presupuesto si aplica
   kerf: data.kerf || 3, // grosor de sierra en mm
   margin: data.margin || 5, // margen en mm
   ...data,

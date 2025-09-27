@@ -38,7 +38,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
       materialNames.map((name) => {
         const sample = nameToSample.get(name);
         if (sample && sample.length && sample.width) {
-          return { name, label: `${name} — ${sample.length}x${sample.width} ${units}` };
+          return { name, label: `${name} - ${sample.length}x${sample.width} ${units}` };
         }
         return { name, label: name };
       }),
@@ -58,6 +58,10 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
   const [errors, setErrors] = useState({});
   const prevUnits = useRef(units);
   const prevMaterialKey = useRef(materialNames.join('|'));
+
+  useEffect(() => {
+    setFormData((prev) => ({ ...prev, canRotate: allowRotation }));
+  }, [allowRotation]);
 
   useEffect(() => {
     if (prevUnits.current !== units) {
@@ -303,3 +307,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
     </Card>
   );
 };
+
+
+
+

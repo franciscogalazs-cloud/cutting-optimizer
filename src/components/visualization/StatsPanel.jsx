@@ -1,12 +1,8 @@
-﻿import { TrendingUp, TrendingDown, Clock, Package, DollarSign, Scissors } from 'lucide-react';
+import { TrendingUp, TrendingDown, Clock, Package, DollarSign, Scissors } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-const formatCurrency = (value) => {
-  if (typeof value !== 'number' || Number.isNaN(value)) return '--';
-  return value.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
-};
-
+import { areaToSquareMeters, formatSquareMeters, formatCLP } from '@/lib/format.js';
 const formatTime = (ms) => {
   if (typeof ms !== 'number' || Number.isNaN(ms)) return '--';
   if (ms < 1000) return `${ms} ms`;
@@ -30,16 +26,18 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
     return (
       <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
         <CardHeader>
-          <CardTitle className="text-[var(--text)]">EstadÃ­sticas de optimizaciÃ³n</CardTitle>
+          <CardTitle className="text-[var(--text)]">Estadisticas de optimizacion</CardTitle>
         </CardHeader>
         <CardContent className="py-10 text-center text-[var(--muted)]">
-          <p>No hay estadÃ­sticas disponibles.</p>
-          <p className="text-xs">Ejecuta la optimizaciÃ³n para analizar el desempeÃ±o de los tableros.</p>
+          <p>No hay estadisticas disponibles.</p>
+          <p className="text-xs">Ejecuta la optimizacion para analizar el desempeno de los tableros.</p>
         </CardContent>
       </Card>
     );
   }
 
+  const _totalWasteM2 = formatSquareMeters(areaToSquareMeters(result.totalWaste ?? 0, units));
+  const totalCostCLP = formatCLP(result.totalCost ?? 0);
   const metrics = [
     {
       title: 'Tableros usados',
@@ -48,7 +46,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
       value: result.materialsUsed,
     },
     {
-      title: 'UtilizaciÃ³n promedio',
+      title: 'Utilizacion promedio',
       icon: TrendingUp,
       accent: 'bg-[var(--success)]/10 text-[var(--success)]',
       value: `${result.totalUtilization.toFixed(1)} %`,
@@ -57,13 +55,13 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
       title: 'Desperdicio total',
       icon: TrendingDown,
       accent: 'bg-[var(--danger)]/10 text-[var(--danger)]',
-      value: `${(result.totalWaste / 10000).toLocaleString()} mÂ²`,
+      value: `${formatSquareMeters(areaToSquareMeters(result.totalWaste ?? 0, units))} m2`,
     },
     {
       title: 'Costo estimado',
       icon: DollarSign,
       accent: 'bg-[var(--warning)]/15 text-[var(--warning)]',
-      value: formatCurrency(result.totalCost),
+      value: totalCostCLP,
     },
   ];
 
@@ -72,13 +70,13 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
       <CardHeader className="flex flex-col gap-2">
         <CardTitle className="flex items-center gap-2 text-[var(--text)]">
           <TrendingUp className="h-5 w-5 text-[var(--primary)]" />
-          EstadÃ­sticas de optimizaciÃ³n
+          Estadisticas de optimizacion
           <Badge variant="outline" className="border-[var(--border)] text-[var(--muted)]">
             {result.algorithm}
           </Badge>
         </CardTitle>
         <p className="text-xs text-[var(--muted)]">
-          Resumen de desempeÃ±o para los tableros procesados en la Ãºltima optimizaciÃ³n.
+          Resumen de desempeno para los tableros procesados en la ultima optimizacion.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -119,7 +117,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
           <div className="flex items-center gap-3">
             <Clock className="h-5 w-5 text-[var(--muted)]" />
             <div>
-              <div className="font-medium text-[var(--text)]">Tiempo de ejecuciÃ³n</div>
+              <div className="font-medium text-[var(--text)]">Tiempo de ejecucion</div>
               <div>{formatTime(result.executionTime)}</div>
             </div>
           </div>
@@ -148,7 +146,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
                     </Badge>
                   )}
                   <span>
-                    {pattern.materialLength} Ã— {pattern.materialWidth} {units}
+                    {pattern.materialLength} × {pattern.materialWidth} {units}
                   </span>
                 </div>
                 <div className="flex flex-wrap items-center gap-4">
@@ -158,7 +156,7 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
                   <span>{pattern.pieces.length} piezas</span>
                   {pattern.kerf != null && <span>Kerf: {(pattern.kerf ?? 0).toFixed(2)} {units}</span>}
                   {pattern.margin != null && <span>Margen: {(pattern.margin ?? 0).toFixed(2)} {units}</span>}
-                  <span className="text-[var(--success)] font-medium">{formatCurrency(pattern.cost)}</span>
+                  <span className="text-[var(--success)] font-medium">{formatCLP(pattern.cost ?? 0)}</span>
                 </div>
               </div>
             ))}
@@ -169,13 +167,13 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
           <h4 className="text-sm font-semibold text-[var(--text)]">Recomendaciones</h4>
           <ul className="list-disc space-y-1 pl-4">
             {result.totalUtilization < 60 && (
-              <li>Considera usar tableros mÃ¡s pequeÃ±os o reacomodar piezas para reducir desperdicio.</li>
+              <li>Considera usar tableros mas pequenos o reacomodar piezas para reducir Desperdicio.</li>
             )}
             {result.totalUtilization > 90 && (
-              <li>Excelente aprovechamiento del material. Procura reutilizar esta configuraciÃ³n.</li>
+              <li>Excelente aprovechamiento del material. Procura reutilizar esta configuracion.</li>
             )}
             {result.patterns.length > 5 && (
-              <li>Agrupa pedidos similares para disminuir el nÃºmero de tableros necesarios.</li>
+              <li>Agrupa pedidos similares para disminuir el numero de tableros necesarios.</li>
             )}
             <li>Verifica que las dimensiones sean compatibles con el equipo de corte disponible.</li>
           </ul>
@@ -184,4 +182,9 @@ export const StatsPanel = ({ result, units = 'mm' }) => {
     </Card>
   );
 };
+
+
+
+
+
 

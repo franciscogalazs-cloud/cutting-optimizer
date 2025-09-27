@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+﻿import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
@@ -11,14 +11,25 @@ import {
   TableFooter,
 } from '@/components/ui/table';
 import { computeEdgeTotals } from './edgeBanding';
+import { EdgeBandingPattern } from './EdgeBandingPattern.jsx';
 
 const formatMm = (value) => value.toLocaleString(undefined, { maximumFractionDigits: 2 });
 const formatMeters = (value) => value.toLocaleString(undefined, { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
 const hasAnyEdges = (totals) => Object.values(totals).some((total) => total > 0);
 
-export const EdgeBandingPanel = ({ pieces = [] }) => {
+export const EdgeBandingPanel = ({ pieces = [], units = 'cm', onEditPiece }) => {
   const [wastePercent, setWastePercent] = useState(0);
+  // Cargar desperdicio desde localStorage al iniciar
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('edgebanding-waste-percent');
+      const n = Number(raw);
+      if (Number.isFinite(n) && n >= 0) setWastePercent(n);
+    } catch {
+      // noop: ignorar errores de localStorage
+    }
+  }, []);
 
   const totals = useMemo(() => computeEdgeTotals(pieces), [pieces]);
   const sortedEntries = useMemo(
@@ -37,6 +48,11 @@ export const EdgeBandingPanel = ({ pieces = [] }) => {
       return;
     }
     setWastePercent(numeric);
+    try {
+      localStorage.setItem('edgebanding-waste-percent', String(numeric));
+    } catch {
+      // noop: ignorar errores de escritura en localStorage
+    }
   };
 
   return (
@@ -102,8 +118,9 @@ export const EdgeBandingPanel = ({ pieces = [] }) => {
             Activa tapacantos en las piezas para ver los totales por tipo.
           </div>
         )}
+
+        <EdgeBandingPattern pieces={pieces} units={units} onEditPiece={onEditPiece} />
       </CardContent>
     </Card>
   );
 };
-

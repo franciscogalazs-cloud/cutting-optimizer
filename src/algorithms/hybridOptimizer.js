@@ -112,6 +112,8 @@ export class HybridOptimizer {
           rotated: preferred.rotated,
           label: piece.label,
           color: piece.color,
+          // Propagar tapacantos desde la pieza original
+          edges: piece.edges,
         });
         pattern.pieces.push(placedPiece);
         placedCount++;

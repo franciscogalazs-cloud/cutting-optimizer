@@ -1,10 +1,5 @@
-﻿<svg id="logo-stencil-main" viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placa metálica estilo stencil (principal)">
-  <defs>
-    <style>
-      :root { --bg:#ffffff; --fg:#0f172a; --accent:#10b981; }
-      text { font-family: Inter, ui-sans-serif, system-ui; }
-    </style>
-  </defs>
+<svg id="logo-stencil-main" viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placa metálica estilo stencil (principal)">
+  <defs><style>:root{--bg:#ffffff;--fg:#0f172a;--accent:#10b981;} text{font-family:Inter, ui-sans-serif, system-ui;}</style></defs>
   <rect x="12" y="36" width="696" height="148" rx="18" fill="none" stroke="#0f172a" stroke-width="8"/>
   <g fill="#0f172a">
     <circle cx="36" cy="60" r="4"/><circle cx="696" cy="60" r="4"/>

@@ -1,10 +1,10 @@
-﻿<svg id="logo-stencil-compact" viewBox="0 0 640 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placa compacta">
+<svg id="logo-stencil-compact" viewBox="0 0 640 180" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placa compacta">
   <defs>
     <pattern id="hazard" width="16" height="16" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
       <rect width="16" height="16" fill="#f8fafc"/>
       <rect x="0" y="0" width="8" height="16" fill="#e2e8f0"/>
     </pattern>
-    <style>text { font-family: Inter, ui-sans-serif, system-ui; }</style>
+    <style>text{font-family:Inter, ui-sans-serif, system-ui;}</style>
   </defs>
   <rect x="12" y="28" width="616" height="124" rx="12" fill="#f8fafc" stroke="#0f172a" stroke-width="6"/>
   <g fill="#0f172a">

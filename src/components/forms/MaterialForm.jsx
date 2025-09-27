@@ -13,19 +13,78 @@ const PRESETS = [
   { name: 'Terciado', lengthCm: 240, widthCm: 120 },
 ];
 
-export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margin = 5, onConfigChange }) => {
+export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margin = 5, pieces = [], onConfigChange }) => {
   const [formData, setFormData] = useState({
     length: '',
     width: '',
-    quantity: '1',
     material: 'Melamina',
-    price: '',
     kerf: String(kerfWidth),
     margin: String(margin),
   });
 
   const [errors, setErrors] = useState({});
   const prevUnits = useRef(units);
+
+  // Funcion para calcular la cantidad automaticamente basada en la demanda
+  const calculateRequiredQuantity = () => {
+    const lengthValue = Number.parseFloat(formData.length);
+    const widthValue = Number.parseFloat(formData.width);
+    if (!Number.isFinite(lengthValue) || !Number.isFinite(widthValue) || lengthValue <= 0 || widthValue <= 0) {
+      return 1;
+    }
+
+    const unitToMillimeters = (value) => {
+      if (!Number.isFinite(value)) return NaN;
+      switch (units) {
+        case 'cm':
+          return value * 10;
+        case 'in':
+          return value * 25.4;
+        default:
+          return value;
+      }
+    };
+
+    const normalizedMaterial = String(formData.material ?? '').trim().toLowerCase();
+    const relevantPieces = Array.isArray(pieces)
+      ? pieces.filter((piece) => {
+          const pieceMaterial = String(piece?.material ?? '').trim().toLowerCase();
+          return normalizedMaterial ? pieceMaterial === normalizedMaterial : true;
+        })
+      : [];
+
+    if (relevantPieces.length === 0) {
+      return 1;
+    }
+
+    const materialArea = unitToMillimeters(lengthValue) * unitToMillimeters(widthValue);
+    if (!Number.isFinite(materialArea) || materialArea <= 0) {
+      return 1;
+    }
+
+    const totalPiecesArea = relevantPieces.reduce((total, piece) => {
+      const pieceLength = unitToMillimeters(Number.parseFloat(piece?.length));
+      const pieceWidth = unitToMillimeters(Number.parseFloat(piece?.width));
+      const quantity = Number.parseInt(piece?.quantity, 10);
+      if (!Number.isFinite(pieceLength) || !Number.isFinite(pieceWidth) || pieceLength <= 0 || pieceWidth <= 0) {
+        return total;
+      }
+      const validQuantity = Number.isFinite(quantity) && quantity > 0 ? quantity : 1;
+      return total + pieceLength * pieceWidth * validQuantity;
+    }, 0);
+
+    if (!Number.isFinite(totalPiecesArea) || totalPiecesArea <= 0) {
+      return 1;
+    }
+
+    const efficiency = 0.9;
+    const requiredArea = totalPiecesArea / efficiency;
+    if (!Number.isFinite(requiredArea) || requiredArea <= 0) {
+      return 1;
+    }
+
+    return Math.max(1, Math.ceil(requiredArea / materialArea));
+  };
 
   useEffect(() => {
     if (prevUnits.current !== units) {
@@ -47,8 +106,6 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
     const nextErrors = {};
     if (!formData.length || parseFloat(formData.length) <= 0) nextErrors.length = 'El largo debe ser mayor a 0';
     if (!formData.width || parseFloat(formData.width) <= 0) nextErrors.width = 'El ancho debe ser mayor a 0';
-    if (!formData.quantity || parseInt(formData.quantity, 10) <= 0) nextErrors.quantity = 'La cantidad debe ser mayor a 0';
-    if (!formData.price || parseFloat(formData.price) < 0) nextErrors.price = 'El precio debe ser mayor o igual a 0';
     if (!formData.kerf || parseFloat(formData.kerf) < 0) nextErrors.kerf = 'El grosor de sierra debe ser mayor o igual a 0';
     if (!formData.margin || parseFloat(formData.margin) < 0) nextErrors.margin = 'El margen debe ser mayor o igual a 0';
     setErrors(nextErrors);
@@ -59,12 +116,14 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
     event.preventDefault();
     if (!validateForm()) return;
 
+    const calculatedQuantity = calculateRequiredQuantity();
+
     const material = createMaterial({
       length: parseFloat(formData.length),
       width: parseFloat(formData.width),
-      quantity: parseInt(formData.quantity, 10),
+      quantity: calculatedQuantity, // Usar cantidad calculada automaticamente
       material: formData.material,
-      price: parseFloat(formData.price),
+  // precio eliminado; se define en Presupuesto
       kerf: parseFloat(formData.kerf),
       margin: parseFloat(formData.margin),
     });
@@ -75,9 +134,8 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
     setFormData({
       length: '',
       width: '',
-      quantity: '1',
       material: 'Melamina',
-      price: '',
+  // precio eliminado
       kerf: String(kerfWidth),
       margin: String(margin),
     });
@@ -169,35 +227,40 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
             </div>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="mat-quantity">Cantidad</Label>
-              <Input
-                id="mat-quantity"
-                type="number"
-                min="1"
-                value={formData.quantity}
-                onChange={(event) => handleChange('quantity', event.target.value)}
-                className={errors.quantity ? 'border-red-500' : ''}
-                placeholder="1"
-              />
-              {errors.quantity && <p className="text-xs text-[var(--danger)]">{errors.quantity}</p>}
+          {/* Mostrar cantidad calculada automaticamente */}
+          {(formData.length && formData.width) && (
+            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3 text-sm">
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--muted)]">Cantidad calculada automaticamente:</span>
+                <span className="font-semibold text-[var(--primary)]">
+                  {calculateRequiredQuantity()} tablero{calculateRequiredQuantity() !== 1 ? 's' : ''}
+                </span>
+              </div>
+              <div className="mt-1 text-xs text-[var(--muted)] space-y-1">
+                {pieces.length > 0 ? (
+                  <>
+                    <div>Basado en {pieces.reduce((sum, p) => sum + p.quantity, 0)} piezas con eficiencia del 80%</div>
+                    <div>Area total piezas: {(pieces.reduce((sum, p) => {
+                      const pieceLengthMm = units === 'cm' ? p.length * 10 : p.length;
+                      const pieceWidthMm = units === 'cm' ? p.width * 10 : p.width;
+                      return sum + (pieceLengthMm * pieceWidthMm * p.quantity);
+                    }, 0) / 1000000).toFixed(2)} m2</div>
+                  </>
+                ) : (
+                  <div>Agregar piezas para calcular cantidad automaticamente</div>
+                )}
+                <div>Area por tablero: {(() => {
+                  const materialLength = parseFloat(formData.length);
+                  const materialWidth = parseFloat(formData.width);
+                  const materialLengthMm = units === 'cm' ? materialLength * 10 : materialLength;
+                  const materialWidthMm = units === 'cm' ? materialWidth * 10 : materialWidth;
+                  return ((materialLengthMm * materialWidthMm) / 1000000).toFixed(2);
+                })() } m2</div>
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="mat-price">Precio ($)</Label>
-              <Input
-                id="mat-price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(event) => handleChange('price', event.target.value)}
-                className={errors.price ? 'border-red-500' : ''}
-                placeholder="0.00"
-              />
-              {errors.price && <p className="text-xs text-[var(--danger)]">{errors.price}</p>}
-            </div>
-          </div>
+          )}
+
+          {/* campo precio eliminado: el precio se aplica directamente en Presupuesto */}
 
           <div className="space-y-2">
             <Label htmlFor="mat-material">Nombre del material</Label>

@@ -88,7 +88,7 @@ export class MaxRectsOptimizer {
     const tryOrientations = [
       { width: piece.length, height: piece.width, rotated: false },
     ];
-    if (this.config.allowRotation) {
+    if (this.config.allowRotation && (piece.canRotate ?? true)) {
       tryOrientations.push({ width: piece.width, height: piece.length, rotated: true });
     }
     for (const orient of tryOrientations) {
@@ -125,6 +125,8 @@ export class MaxRectsOptimizer {
       rotated: position.rotated,
       label: piece.label,
       color: piece.color,
+      // Propagar tapacantos desde la pieza original
+      edges: piece.edges,
     });
     pattern.pieces.push(placedPiece);
     this.splitFreeRects(pattern, position);
@@ -217,7 +219,7 @@ export class MaxRectsOptimizer {
     const usableLength = material.length - margin * 2;
     const usableWidth = material.width - margin * 2;
     if (piece.length <= usableLength && piece.width <= usableWidth) return true;
-    if (this.config.allowRotation && piece.width <= usableLength && piece.length <= usableWidth) return true;
+    if (this.config.allowRotation && (piece.canRotate ?? true) && piece.width <= usableLength && piece.length <= usableWidth) return true;
     return false;
   }
 
@@ -245,8 +247,9 @@ export class MaxRectsOptimizer {
       this.updatePatternStatistics(pattern);
       const material = originalMaterials.find(m => m.id === pattern.materialId);
       if (material) {
-        pattern.cost = material.price;
-        totalCost += material.price;
+        const price = Number(material.price) || 0;
+        pattern.cost = price;
+        totalCost += price;
       }
       totalWaste += pattern.waste;
       materialsUsed++;

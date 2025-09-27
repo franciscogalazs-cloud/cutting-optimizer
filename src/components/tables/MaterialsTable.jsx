@@ -1,4 +1,4 @@
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -9,9 +9,9 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-export const MaterialsTable = ({ materials, onDelete, onEditRequest, units = 'mm' }) => {
-  const totalMaterials = materials.reduce((sum, material) => sum + material.quantity, 0);
-  const totalArea = materials.reduce((sum, material) => sum + material.length * material.width * material.quantity, 0) / 10000;
+import { rectangleAreaToSquareMeters, formatSquareMeters } from '@/lib/format.js';
+export const MaterialsTable = ({ materials, onDelete, onEditRequest, onDuplicate, units = 'mm' }) => {
+  // Se elimina el resumen de área total en el encabezado
 
   if (materials.length === 0) {
     return (
@@ -21,7 +21,7 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, units = 'mm
         </CardHeader>
         <CardContent className="py-10 text-center text-[var(--muted)]">
           <p>No hay materiales cargados.</p>
-          <p className="text-xs">Añade tableros desde la sección izquierda.</p>
+          <p className="text-xs">Anade tableros desde la seccion izquierda.</p>
         </CardContent>
       </Card>
     );
@@ -30,12 +30,7 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, units = 'mm
   return (
     <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
       <CardHeader>
-        <CardTitle className="flex flex-col gap-1 text-[var(--text)] sm:flex-row sm:items-center sm:justify-between">
-          <span>Materiales disponibles</span>
-          <span className="text-sm text-[var(--muted)]">
-            Total: {totalMaterials} tableros · Área: {totalArea.toLocaleString()} m²
-          </span>
-        </CardTitle>
+        <CardTitle className="flex flex-col gap-1 text-[var(--text)] sm:flex-row sm:items-center sm:justify-between">Materiales disponibles</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
@@ -45,11 +40,9 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, units = 'mm
                 <TableHead>Material</TableHead>
                 <TableHead>Largo ({units})</TableHead>
                 <TableHead>Ancho ({units})</TableHead>
-                <TableHead>Cantidad</TableHead>
                 <TableHead>Grosor sierra ({units})</TableHead>
                 <TableHead>Margen ({units})</TableHead>
-                <TableHead>Precio</TableHead>
-                <TableHead>Área (m²)</TableHead>
+                <TableHead>Area (m2)</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
@@ -59,13 +52,20 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, units = 'mm
                   <TableCell className="font-medium text-[var(--text)]">{material.material}</TableCell>
                   <TableCell>{material.length}</TableCell>
                   <TableCell>{material.width}</TableCell>
-                  <TableCell>{material.quantity}</TableCell>
                   <TableCell>{material.kerf}</TableCell>
                   <TableCell>{material.margin}</TableCell>
-                  <TableCell>{material.price?.toLocaleString(undefined, { style: 'currency', currency: 'USD' }) || '--'}</TableCell>
-                  <TableCell>{((material.length * material.width * material.quantity) / 10000).toLocaleString()}</TableCell>
+                  <TableCell>{formatSquareMeters(rectangleAreaToSquareMeters(material.length, material.width, material.quantity, units))}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onDuplicate?.(material)}
+                        className="h-8 w-8 p-0 text-[var(--text)]"
+                        title="Duplicar material"
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"

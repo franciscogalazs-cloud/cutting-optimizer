@@ -86,6 +86,8 @@ export class BacktrackingOptimizer {
           originalId: piece.id,
           color: PIECE_COLORS[colorIndex % PIECE_COLORS.length],
           instanceNumber: i + 1,
+          // Asegurar consistencia con allowRotation global
+          canRotate: (piece.canRotate ?? true) && (this.config.allowRotation ?? true),
         });
       }
       colorIndex++;

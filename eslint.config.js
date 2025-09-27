@@ -4,7 +4,7 @@ import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 
 export default [
-  { ignores: ['dist', 'cutting-optimizer-dist', 'node_modules', 'src/assets/index-*.js'] },
+  { ignores: ['dist', 'cutting-optimizer-dist', 'node_modules', 'src/assets/index-*.js', 'src/ai/**'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {

@@ -5,11 +5,13 @@
  * @typedef {Record<EdgeType, number>} EdgeTotals
  */
 
+// Nota: 'arriba' y 'abajo' recorren el lado horizontal (largo),
+// mientras que 'izquierda' y 'derecha' recorren el lado vertical (ancho).
 const sideLengthMm = (piece, side) => {
   if (side === 'arriba' || side === 'abajo') {
-    return Number.isFinite(piece?.anchoMm) ? piece.anchoMm : 0;
+    return Number.isFinite(piece?.largoMm) ? piece.largoMm : 0;
   }
-  return Number.isFinite(piece?.largoMm) ? piece.largoMm : 0;
+  return Number.isFinite(piece?.anchoMm) ? piece.anchoMm : 0;
 };
 
 const getQuantity = (piece) => {

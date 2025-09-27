@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 
 export const MaterialEditModal = ({ open, onClose, material, onSave, units = 'mm' }) => {
-  const [form, setForm] = useState({ length: 0, width: 0, quantity: 1, price: 0, material: 'Melamina', kerf: 3, margin: 5 })
+  const [form, setForm] = useState({ length: 0, width: 0, quantity: 1, material: 'Melamina', kerf: 3, margin: 5 })
   const [errors, setErrors] = useState({})
 
   useEffect(() => {
@@ -14,7 +14,6 @@ export const MaterialEditModal = ({ open, onClose, material, onSave, units = 'mm
         length: material.length ?? 0,
         width: material.width ?? 0,
         quantity: material.quantity ?? 1,
-        price: material.price ?? 0,
         material: material.material ?? 'Melamina',
         kerf: material.kerf ?? 3,
         margin: material.margin ?? 5,
@@ -29,8 +28,6 @@ export const MaterialEditModal = ({ open, onClose, material, onSave, units = 'mm
     const e = {}
     if (!(form.length > 0)) e.length = 'Debe ser > 0'
     if (!(form.width > 0)) e.width = 'Debe ser > 0'
-    if (!(Number.isInteger(Number(form.quantity)) && Number(form.quantity) > 0)) e.quantity = 'Debe ser entero > 0'
-    if (!(form.price >= 0)) e.price = 'Debe ser >= 0'
     if (!(form.kerf >= 0)) e.kerf = 'Debe ser >= 0'
     if (!(form.margin >= 0)) e.margin = 'Debe ser >= 0'
     setErrors(e)
@@ -42,8 +39,7 @@ export const MaterialEditModal = ({ open, onClose, material, onSave, units = 'mm
     onSave?.({
       length: Number(form.length),
       width: Number(form.width),
-      quantity: Number(form.quantity),
-      price: Number(form.price),
+      quantity: form.quantity, // Mantener la cantidad original, no editable
       material: form.material,
       kerf: Number(form.kerf),
       margin: Number(form.margin),
@@ -70,18 +66,9 @@ export const MaterialEditModal = ({ open, onClose, material, onSave, units = 'mm
               {errors.width && <p className="text-xs text-red-600 mt-1">{errors.width}</p>}
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label>Cantidad</Label>
-              <Input type="number" min="1" value={form.quantity} onChange={e => setField('quantity', e.target.value)} />
-              {errors.quantity && <p className="text-xs text-red-600 mt-1">{errors.quantity}</p>}
-            </div>
-            <div>
-              <Label>Precio ($)</Label>
-              <Input type="number" step="0.01" min="0" value={form.price} onChange={e => setField('price', e.target.value)} />
-              {errors.price && <p className="text-xs text-red-600 mt-1">{errors.price}</p>}
-            </div>
-          </div>
+          {/* Se oculta la cantidad; se calcula automáticamente durante la optimización. */}
+          
+          {/* Precio eliminado del modal. Se define directamente en Presupuesto. */}
           <div>
             <Label>Material</Label>
             <Input value={form.material} onChange={e => setField('material', e.target.value)} />

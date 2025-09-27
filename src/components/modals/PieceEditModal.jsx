@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from 'react';
+﻿import { useState, useEffect, useMemo, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +21,7 @@ const createEdgesFromPiece = (piece, units) => {
 };
 
 export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', materials = [] }) => {
+  const labelInputRef = useRef(null);
   const [form, setForm] = useState({
     label: '',
     length: 0,
@@ -72,6 +73,20 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
       return prev;
     });
   }, [materialNames]);
+
+  useEffect(() => {
+    if (open) {
+      // Esperar al siguiente tick para asegurar que el input esté montado
+      setTimeout(() => {
+        try {
+          labelInputRef.current?.focus();
+          labelInputRef.current?.select();
+        } catch {
+          // noop
+        }
+      }, 0);
+    }
+  }, [open]);
 
   const setField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -136,7 +151,7 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
           <p id="piece-edit-desc" className="sr-only">Formulario para editar una pieza.</p>
           <div>
             <Label>Etiqueta</Label>
-            <Input value={form.label} onChange={(event) => setField('label', event.target.value)} />
+            <Input ref={labelInputRef} value={form.label} onChange={(event) => setField('label', event.target.value)} />
             {errors.label && <p className="mt-1 text-xs text-red-600">{errors.label}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -191,7 +206,7 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
                     {materialNames.map((name) => {
                       const sample = nameToSample.get(name);
                       const label = sample && sample.length && sample.width
-                        ? `${name} — ${sample.length}x${sample.width} ${units}`
+                        ? `${name} - ${sample.length}x${sample.width} ${units}`
                         : name;
                       return (
                         <SelectItem key={name} value={name}>

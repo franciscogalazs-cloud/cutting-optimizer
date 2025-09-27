@@ -13,14 +13,15 @@ import { MaterialsTable } from "./components/tables/MaterialsTable";
 import { AdvancedCuttingPattern } from "./components/visualization/AdvancedCuttingPattern";
 import { StatsPanel } from "./components/visualization/StatsPanel";
 import { KpiCard } from "./components/KpiCard.jsx";
-import { PatternSkeleton } from "./components/skeletons/PatternSkeleton.jsx";
 import { StatsSkeleton } from "./components/skeletons/StatsSkeleton.jsx";
 import { PieceEditModal } from "./components/modals/PieceEditModal";
 import { MaterialEditModal } from "./components/modals/MaterialEditModal";
 import { InfoModal } from "./components/common/InfoModal";
 import { ExportModal } from "./components/common/ExportModal";
 import { EdgeBandingPanel } from "./features/edgebanding/EdgeBandingPanel.jsx";
-import { normalizePiece } from "./types/pieces.js";
+import { BudgetPanel } from "./components/visualization/BudgetPanel.jsx";
+import { AIDemo } from "./components/ai/AIDemo.jsx";
+import { normalizePiece, toMillimeters, cloneEdges, defaultEdges } from "./types/pieces.js";
 import { useOptimization } from "./hooks/useOptimization";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 const mmToUnits = (valueMm, units) => {
@@ -47,12 +48,17 @@ function App() {
     allowRotation: true,
   });
   const [activeTab, setActiveTab] = useState("pieces");
+  useEffect(() => {
+    setConfig((prev) => (prev.allowRotation ? prev : { ...prev, allowRotation: true }));
+  }, [setConfig]);
+
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [editingPiece, setEditingPiece] = useState(null);
   const [editingMaterial, setEditingMaterial] = useState(null);
   const { result, optimize, error } = useOptimization();
+  const efficiencyFactor = 0.9;
   useEffect(() => {
     setPieces((current) => {
       if (!Array.isArray(current) || current.length === 0) return current;
@@ -71,21 +77,127 @@ function App() {
       });
     });
   }, [config.units, setPieces]);
+  useEffect(() => {
+    setMaterials((current) => {
+      if (!Array.isArray(current) || current.length === 0) return current;
+
+      const demandByMaterial = new Map();
+      if (Array.isArray(pieces)) {
+        pieces.forEach((piece) => {
+          const key = String(piece?.material ?? '').trim().toLowerCase();
+          if (!key) return;
+          const pieceLengthMm = toMillimeters(piece?.length, config.units);
+          const pieceWidthMm = toMillimeters(piece?.width, config.units);
+          if (!Number.isFinite(pieceLengthMm) || !Number.isFinite(pieceWidthMm) || pieceLengthMm <= 0 || pieceWidthMm <= 0) return;
+          const quantityValue = Number(piece?.quantity);
+          const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
+          const currentDemand = demandByMaterial.get(key) ?? 0;
+          demandByMaterial.set(key, currentDemand + pieceLengthMm * pieceWidthMm * quantity);
+        });
+      }
+
+      let updated = false;
+
+      const nextMaterials = current.map((material) => {
+        const key = String(material?.material ?? '').trim().toLowerCase();
+        if (!key) return material;
+        const materialLengthMm = toMillimeters(material?.length, config.units);
+        const materialWidthMm = toMillimeters(material?.width, config.units);
+        if (!Number.isFinite(materialLengthMm) || !Number.isFinite(materialWidthMm) || materialLengthMm <= 0 || materialWidthMm <= 0) {
+          return material.quantity > 0 ? material : { ...material, quantity: 1 };
+        }
+        const materialArea = materialLengthMm * materialWidthMm;
+        const demand = demandByMaterial.get(key) ?? 0;
+        if (demand <= 0) {
+          const nextQuantity = material.quantity > 0 ? material.quantity : 1;
+          if (nextQuantity !== material.quantity) {
+            updated = true;
+            return { ...material, quantity: nextQuantity };
+          }
+          return material;
+        }
+        const requiredQuantity = Math.max(1, Math.ceil((demand / efficiencyFactor) / materialArea));
+        if (requiredQuantity !== material.quantity) {
+          updated = true;
+        }
+        const coveredArea = materialArea * requiredQuantity * efficiencyFactor;
+        demandByMaterial.set(key, Math.max(0, demand - coveredArea));
+        return requiredQuantity !== material.quantity ? { ...material, quantity: requiredQuantity } : material;
+      });
+
+      return updated ? nextMaterials : current;
+    });
+  }, [pieces, config.units, setMaterials]);
+  useEffect(() => {
+    setMaterials((current) => {
+      if (!Array.isArray(current) || current.length === 0) return current;
+
+      const demandByMaterial = new Map();
+      if (Array.isArray(pieces)) {
+        pieces.forEach((piece) => {
+          const key = String(piece?.material ?? '').trim().toLowerCase();
+          if (!key) return;
+          const pieceLengthMm = toMillimeters(piece?.length, config.units);
+          const pieceWidthMm = toMillimeters(piece?.width, config.units);
+          if (!Number.isFinite(pieceLengthMm) || !Number.isFinite(pieceWidthMm) || pieceLengthMm <= 0 || pieceWidthMm <= 0) return;
+          const quantityValue = Number(piece?.quantity);
+          const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
+          const currentDemand = demandByMaterial.get(key) ?? 0;
+          demandByMaterial.set(key, currentDemand + pieceLengthMm * pieceWidthMm * quantity);
+        });
+      }
+
+      let updated = false;
+
+      const nextMaterials = current.map((material) => {
+        const key = String(material?.material ?? '').trim().toLowerCase();
+        if (!key) return material;
+        const materialLengthMm = toMillimeters(material?.length, config.units);
+        const materialWidthMm = toMillimeters(material?.width, config.units);
+        if (!Number.isFinite(materialLengthMm) || !Number.isFinite(materialWidthMm) || materialLengthMm <= 0 || materialWidthMm <= 0) {
+          return material.quantity > 0 ? material : { ...material, quantity: 1 };
+        }
+        const materialArea = materialLengthMm * materialWidthMm;
+        const demand = demandByMaterial.get(key) ?? 0;
+        if (demand <= 0) {
+          const nextQuantity = material.quantity > 0 ? material.quantity : 1;
+          if (nextQuantity !== material.quantity) {
+            updated = true;
+            return { ...material, quantity: nextQuantity };
+          }
+          return material;
+        }
+        const requiredQuantity = Math.max(1, Math.ceil((demand / efficiencyFactor) / materialArea));
+        if (requiredQuantity !== material.quantity) {
+          updated = true;
+        }
+        const coveredArea = materialArea * requiredQuantity * efficiencyFactor;
+        demandByMaterial.set(key, Math.max(0, demand - coveredArea));
+        return requiredQuantity !== material.quantity ? { ...material, quantity: requiredQuantity } : material;
+      });
+
+      return updated ? nextMaterials : current;
+    });
+  }, [pieces, config.units, setMaterials]);
   const handleAddPiece = (piece) => {
-    const normalized = normalizePiece(piece, config.units);
+    // Remover flags temporales (e.g., duplicado en borrador) y cualquier id previo
+    const { isDuplicateDraft: _dup, id: _oldId, ...clean } = piece || {};
+    const normalized = normalizePiece(clean, config.units);
     const newPiece = {
-      ...piece,
+      ...clean,
       ...normalized,
       id: Date.now() + Math.random(),
-      color: `hsl(${Math.random() * 360}, 70%, 60%)`,
+      color: "hsl(" + Math.random() * 360 + ", 70%, 60%)",
       length: mmToUnits(normalized.largoMm, config.units),
       width: mmToUnits(normalized.anchoMm, config.units),
     };
     setPieces((prev) => [...prev, newPiece]);
   };
   const handleAddMaterial = (material) => {
+    // Remover flags temporales y cualquier id previo en duplicados
+    const { isDuplicateDraft: _dup, id: _oldId, ...clean } = material || {};
     const newMaterial = {
-      ...material,
+      ...clean,
       id: Date.now() + Math.random(),
     };
     setMaterials((prev) => [...prev, newMaterial]);
@@ -96,20 +208,74 @@ function App() {
   const handleDeleteMaterial = (id) => {
     setMaterials((prev) => prev.filter((m) => m.id !== id));
   };
+  const handleDuplicateMaterial = (material) => {
+    // Crear borrador de duplicado sin agregar aún; se agregará solo al guardar
+    const duplicateDraft = {
+      ...material,
+      // sin id para indicar que es nuevo al guardar
+      id: undefined,
+      material: `${material.material} (copia)`,
+      quantity: 1,
+      price: 0,
+      isDuplicateDraft: true,
+    };
+    setEditingMaterial(duplicateDraft);
+  };
   const handleEditPiece = (id, updatedPiece) => {
     setPieces((prev) =>
       prev.map((piece) => {
         if (piece.id !== id) return piece;
-        const merged = { ...piece, ...updatedPiece };
-        const normalized = normalizePiece(merged, config.units);
+        // Si el usuario rotó manualmente (intercambió largo/ancho) y no envió edges nuevos,
+        // rotamos también los cantos para que sigan el mismo lado físico.
+        const isSwap =
+          updatedPiece &&
+          typeof updatedPiece.length !== 'undefined' &&
+          typeof updatedPiece.width !== 'undefined' &&
+          Number(updatedPiece.length) === Number(piece.width) &&
+          Number(updatedPiece.width) === Number(piece.length);
+
+        let edgesAfter = updatedPiece?.edges;
+        if (!edgesAfter && isSwap) {
+          const e = piece.edges || {};
+          // Rotación 90° antihoraria (CCW) por defecto:
+          // new.top = right, new.right = bottom, new.bottom = left, new.left = top
+          edgesAfter = {
+            arriba: e?.derecha ?? { enabled: false, tipo: null },
+            derecha: e?.abajo ?? { enabled: false, tipo: null },
+            abajo: e?.izquierda ?? { enabled: false, tipo: null },
+            izquierda: e?.arriba ?? { enabled: false, tipo: null },
+          };
+        }
+
+        const merged = { ...piece, ...updatedPiece, ...(edgesAfter ? { edges: edgesAfter } : null) };
+        const normalized = normalizePiece({ ...merged, largoMm: null, anchoMm: null }, config.units);
         return {
-          ...piece,
+          ...merged,
           ...normalized,
           length: mmToUnits(normalized.largoMm, config.units),
           width: mmToUnits(normalized.anchoMm, config.units),
         };
       }),
     );
+  };
+
+  const handleDuplicatePiece = (piece) => {
+    const baseLabel = (piece.label ?? piece.name ?? "Pieza").toString();
+    const duplicateDraft = {
+      ...piece,
+      // sin id: se asignará al guardar
+      id: undefined,
+      label: `${baseLabel} (copia)`,
+      quantity: 1,
+      material: '',
+      canRotate: true,
+      edges: cloneEdges(defaultEdges),
+      isDuplicateDraft: true,
+    };
+    // Abrir modal de edición con borrador (no agregado aún)
+    setEditingPiece(duplicateDraft);
+    // Asegurar foco en la pestaña de piezas
+    setActiveTab("pieces");
   };
   const handleEditMaterial = (id, updatedMaterial) => {
     setMaterials((prev) => prev.map((material) => (material.id === id ? { ...material, ...updatedMaterial } : material)));
@@ -127,9 +293,9 @@ function App() {
     try {
       await optimize(pieces, materials, config);
       setActiveTab("patterns");
-      toast.success("Optimización completada exitosamente");
+      toast.success("Optimizacion completada exitosamente");
     } catch (err) {
-      toast.error(`Error durante la optimización: ${err.message}`);
+      toast.error(`Error durante la optimizacion: ${err.message}`);
     } finally {
       setIsOptimizing(false);
     }
@@ -164,16 +330,13 @@ function App() {
     });
   };
   const handleExportPattern = (pattern, index) => {
-    console.log("Exportando patrón:", pattern, index);
+    console.log("Exportando patron:", pattern, index);
   };
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
-  const totalArea = pieces.reduce((sum, piece) => sum + piece.length * piece.width * piece.quantity, 0);
   const totalMaterials = materials.reduce((sum, material) => sum + material.quantity, 0);
   const utilization = typeof result?.totalUtilization === "number" ? result.totalUtilization : null;
   const wasteAmount = typeof result?.totalWaste === "number" ? result.totalWaste : null;
   const optimizedBoards = result?.patterns?.length ?? 0;
-  const kerfDisplay = `${Number(config.kerfWidth ?? 0).toFixed(2)} ${config.units}`;
-  const marginDisplay = `${Number(config.margin ?? 0).toFixed(2)} ${config.units}`;
   const kpiItems = [
     {
       label: "Piezas registradas",
@@ -182,27 +345,32 @@ function App() {
       intent: "default",
     },
     {
-      label: "Utilización promedio",
+      label: "Utilizacion promedio",
       value: utilization !== null ? `${utilization.toFixed(1)} %` : "--",
-      subtitle: result ? "Promedio sobre tableros optimizados" : "Ejecuta la optimización",
+      subtitle: result ? "Promedio sobre tableros optimizados" : "Ejecuta la optimizacion",
       intent: "success",
     },
     {
       label: "Desperdicio total",
-      value: wasteAmount !== null ? `${wasteAmount.toLocaleString()} ${config.units}²` : "--",
-      subtitle: result ? "Área sin usar" : "Disponible tras optimizar",
+      value: (() => {
+        if (wasteAmount === null) return "--";
+        let wasteInSquareMeters;
+        if (config.units === "cm") {
+          wasteInSquareMeters = wasteAmount / 10000;
+        } else if (config.units === "in") {
+          wasteInSquareMeters = wasteAmount / 1550.003;
+        } else {
+          wasteInSquareMeters = wasteAmount / 1000000;
+        }
+        return `${wasteInSquareMeters.toFixed(2)} m2`;
+      })(),
+      subtitle: result ? "Area sin usar" : "Disponible tras optimizar",
       intent: "danger",
-    },
-    {
-      label: "Grosor / Margen",
-      value: kerfDisplay,
-      subtitle: `Margen ${marginDisplay}`,
-      intent: "default",
     },
     {
       label: "Tableros optimizados",
       value: optimizedBoards.toString(),
-      subtitle: optimizedBoards > 0 ? "Patrones listos" : "Corre la optimización",
+      subtitle: optimizedBoards > 0 ? "Patrones listos" : "Corre la optimizacion",
       intent: "default",
     },
   ];
@@ -250,20 +418,24 @@ function App() {
               units={config.units}
               materials={materials}
               allowRotation={config.allowRotation}
-              onToggleRotation={(value) => setConfig((prev) => ({ ...prev, allowRotation: value }))}
+              onToggleRotation={(value) => {
+                // Actualiza la configuración global y sincroniza todas las piezas existentes
+                setConfig((prev) => ({ ...prev, allowRotation: value }));
+                setPieces((current) => current.map((p) => ({ ...p, canRotate: value })));
+              }}
             />
             <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
               <CardContent className="space-y-4 p-5 text-sm text-[var(--muted)]">
                 <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--text)]">
                   <Calculator className="h-5 w-5 text-[var(--primary)]" />
-                  Panel de optimización
+                  Panel de optimizacion
                 </h3>
                 <p>
-                  Usa el botón "Optimizar" en la barra superior para generar patrones. Cada tablero utiliza su propio
+                  Usa el boton "Optimizar" en la barra superior para generar patrones. Cada tablero utiliza su propio
                   grosor de sierra y margen.
                 </p>
                 <div className="flex items-center justify-between text-xs">
-                  <span>Rotación global</span>
+                  <span>Rotacion global</span>
                   <span className="font-medium text-[var(--text)]">{config.allowRotation ? "Permitida" : "Bloqueada"}</span>
                 </div>
                 <div className="space-y-1 text-xs">
@@ -279,7 +451,7 @@ function App() {
           </aside>
           <section className="space-y-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] sm:grid-cols-2 lg:grid-cols-5">
+              <TabsList className="grid gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] sm:grid-cols-3 lg:grid-cols-6">
                 <TabsTrigger value="pieces" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
                   <span>Piezas</span>
                   <Badge variant={getTabBadgeVariant("pieces")} className="ml-1">
@@ -303,22 +475,21 @@ function App() {
                   <Scissors className="h-4 w-4" />
                   <span>Tapacantos</span>
                 </TabsTrigger>
-                <TabsTrigger value="stats" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>Estadísticas</span>
-                  <Badge variant={getTabBadgeVariant("stats")} className="ml-1">
-                    {result ? "Listo" : "--"}
+                <TabsTrigger value="budget" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
+                  <Calculator className="h-4 w-4" />
+                  <span>Presupuesto</span>
+                  <Badge variant={getTabBadgeVariant("budget")} className="ml-1">
+                    {result ? "" : "--"}
                   </Badge>
+                </TabsTrigger>
+                <TabsTrigger value="ai" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
+                  <BarChart3 className="h-4 w-4" />
+                  <span>IA</span>
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="pieces" className="space-y-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-lg font-semibold text-[var(--text)]">Piezas a cortar</h2>
-                  {pieces.length > 0 && (
-                    <span className="text-sm text-[var(--muted)]">
-                      Total: {totalPieces} piezas · Área combinada: {(totalArea / 10000).toLocaleString()} m²
-                    </span>
-                  )}
                 </div>
                 <PiecesTable
                   pieces={pieces}
@@ -327,14 +498,12 @@ function App() {
                   onDelete={handleDeletePiece}
                   onEdit={handleEditPiece}
                   onEditRequest={setEditingPiece}
+                  onDuplicate={handleDuplicatePiece}
                 />
               </TabsContent>
               <TabsContent value="materials" className="space-y-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <h2 className="text-lg font-semibold text-[var(--text)]">Materiales disponibles</h2>
-                  {materials.length > 0 && (
-                    <span className="text-sm text-[var(--muted)]">Total: {totalMaterials} tableros</span>
-                  )}
                 </div>
                 <MaterialsTable
                   materials={materials}
@@ -342,6 +511,7 @@ function App() {
                   onDelete={handleDeleteMaterial}
                   onEdit={handleEditMaterial}
                   onEditRequest={setEditingMaterial}
+                  onDuplicate={handleDuplicateMaterial}
                 />
               </TabsContent>
               <TabsContent value="patterns" className="space-y-4">
@@ -366,7 +536,7 @@ function App() {
                       <Grid3X3 className="mx-auto h-12 w-12 text-[var(--muted)]" />
                       <h3 className="text-lg font-medium text-[var(--text)]">No hay patrones generados</h3>
                       <p className="text-sm text-[var(--muted)]">
-                        Carga piezas y materiales, luego ejecuta la optimización para visualizar patrones.
+                        Carga piezas y materiales, luego ejecuta la optimizacion para visualizar patrones.
                       </p>
                       <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
                         <Play className="h-4 w-4" />
@@ -377,11 +547,11 @@ function App() {
                 )}
               </TabsContent>
               <TabsContent value="edgebanding">
-                <EdgeBandingPanel pieces={pieces} />
+                <EdgeBandingPanel pieces={pieces} units={config.units} onEditPiece={setEditingPiece} />
               </TabsContent>
               <TabsContent value="stats" className="space-y-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-[var(--text)]">Estadísticas de optimización</h2>
+                  <h2 className="text-lg font-semibold text-[var(--text)]">Estadisticas de optimizacion</h2>
                   {result && (
                     <Badge variant="outline" className="border-[var(--border)] text-[var(--muted)]">
                       {result.algorithm}
@@ -394,17 +564,39 @@ function App() {
                   <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
                     <CardContent className="space-y-3 py-12">
                       <TrendingUp className="mx-auto h-12 w-12 text-[var(--muted)]" />
-                      <h3 className="text-lg font-medium text-[var(--text)]">Sin estadísticas todavía</h3>
+                      <h3 className="text-lg font-medium text-[var(--text)]">Sin estadisticas todavia</h3>
                       <p className="text-sm text-[var(--muted)]">
-                        Ejecuta la optimización para analizar el uso de materiales y el desperdicio.
+                        Ejecuta la optimizacion para analizar el uso de materiales y el desperdicio.
                       </p>
                       <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
                         <Calculator className="h-4 w-4" />
-                        Generar estadísticas
+                        Generar estadisticas
                       </Button>
                     </CardContent>
                   </Card>
                 )}
+              </TabsContent>
+              <TabsContent value="budget" className="space-y-4">
+                {result ? (
+                  <BudgetPanel result={result} pieces={pieces} materials={materials} units={config.units} />
+                ) : (
+                  <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
+                    <CardContent className="space-y-3 py-12">
+                      <Calculator className="mx-auto h-12 w-12 text-[var(--muted)]" />
+                      <h3 className="text-lg font-medium text-[var(--text)]">Presupuesto no disponible</h3>
+                      <p className="text-sm text-[var(--muted)]">
+                        Ejecuta la optimizacion para generar automaticamente un resumen de costos.
+                      </p>
+                      <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
+                        <Play className="h-4 w-4" />
+                        Optimizar cortes
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+              <TabsContent value="ai" className="space-y-4">
+                <AIDemo pieces={pieces} materials={materials} config={config} />
               </TabsContent>
             </Tabs>
           </section>
@@ -432,15 +624,37 @@ function App() {
         units={config.units}
         materials={materials}
         onClose={() => setEditingPiece(null)}
-        onSave={(data) => editingPiece && handleEditPiece(editingPiece.id, data)}
+        onSave={(data) => {
+          if (!editingPiece) return;
+          if (editingPiece.isDuplicateDraft) {
+            // Guardar como nueva pieza
+            const payload = { ...editingPiece, ...data };
+            handleAddPiece(payload);
+          } else {
+            // Editar pieza existente
+            handleEditPiece(editingPiece.id, data);
+          }
+        }}
       />
       <MaterialEditModal
         open={!!editingMaterial}
         material={editingMaterial}
         units={config.units}
         onClose={() => setEditingMaterial(null)}
-        onSave={(data) => editingMaterial && handleEditMaterial(editingMaterial.id, data)}
+        onSave={(data) => {
+          if (!editingMaterial) return;
+          if (editingMaterial.isDuplicateDraft) {
+            // Guardar como nuevo material
+            const payload = { ...editingMaterial, ...data };
+            handleAddMaterial(payload);
+          } else {
+            // Editar material existente
+            handleEditMaterial(editingMaterial.id, data);
+          }
+        }}
       />
+
+      {/* IA integrada dentro de la vista de patrones (pestaña IA) */}
     </div>
   );
 }

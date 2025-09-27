@@ -5,6 +5,13 @@ node_modules/
 dist/
 cutting-optimizer-dist/
 *.zip
+node_modules/
+dist/
+.vscode/
+.env
+*.log
+*.patch
+tmp_*.txt
 
 # Vite cache
 .vite/
