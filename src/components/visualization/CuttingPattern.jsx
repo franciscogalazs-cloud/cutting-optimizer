@@ -179,7 +179,7 @@ export const CuttingPattern = ({ patterns, units = 'mm' }) => {
 
               {/* Tooltip para pieza seleccionada */}
               {hoveredPiece !== null && (
-                <div className="absolute top-2 left-2 bg-black bg-opacity-75 text-white p-2 rounded text-xs">
+                <div className="absolute top-2 left-2 bg-neutral-800/80 text-white p-2 rounded text-xs">
                   <div className="font-medium">{currentPattern.pieces[hoveredPiece].label}</div>
                   <div>
                     {currentPattern.pieces[hoveredPiece].width} × {currentPattern.pieces[hoveredPiece].height} {units}

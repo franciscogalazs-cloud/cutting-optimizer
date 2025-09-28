@@ -12,10 +12,10 @@ export const KpiCard = ({ label, value, subtitle, intent = 'default', className 
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-lg shadow-black/5 transition hover:shadow-xl',
+        'relative overflow-hidden rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-lg transition hover:shadow-xl',
         className,
       )}
-      style={{ boxShadow: 'var(--shadow)' }}
+      style={{ boxShadow: 'var(--shadow), 0 10px 15px -3px rgba(17,24,39,0.05), 0 4px 6px -4px rgba(17,24,39,0.05)' }}
     >
       <span
         className="absolute inset-x-0 top-0 h-1"

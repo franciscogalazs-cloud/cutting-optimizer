@@ -51,7 +51,7 @@ const printStyles = `
   @media print {
     body {
       background: #fff;
-      color: #000;
+      color: #111827; /* gris oscuro en vez de negro */
     }
     .no-print {
       display: none !important;
