@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { printElement } from '@/lib/print.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -68,6 +69,7 @@ const printStyles = `
 `;
 
 export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' }) => {
+  const printAreaRef = useRef(null); // contendrá toda la pestaña presupuesto visible
   const [client, setClient] = useState(emptyClient);
   const [baseMaterials, setBaseMaterials] = useState([createMaterialRow()]);
   const [edgeItems, setEdgeItems] = useState([createEdgeRow()]);
@@ -189,6 +191,87 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const totalWithTax = subtotalWithMargin + taxValue;
   const printGeneratedAt = useMemo(() => new Date().toLocaleString('es-CL'), []);
 
+  const printBudget = () => {
+    // Cierra posibles popups/portales (Radix Select, Dialog, etc.) antes de imprimir
+    try {
+      document.activeElement?.blur?.();
+      const escDown = new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true });
+      const escUp = new KeyboardEvent('keyup', { key: 'Escape', code: 'Escape', bubbles: true });
+      document.dispatchEvent(escDown);
+      document.dispatchEvent(escUp);
+    } catch {
+      // Ignorar: si no hay overlays activos, no hay nada que cerrar
+    }
+
+    const node = printAreaRef.current;
+    if (!node) return window.print();
+    const extraCss = `
+      /* Preferir menos hojas */
+      @page { size: A4; margin: 6mm; }
+
+      /* Mostrar todo lo que normalmente está oculto en pantalla */
+      .no-print { display: block !important; }
+      .print-only { display: block !important; }
+  .hide-on-print { display: none !important; }
+      /* Expandir contenedores con scroll para que entre todo */
+  .max-h-[80vh] { max-height: none !important; }
+      .overflow-auto, .overflow-y-auto, .overflow-x-auto { overflow: visible !important; }
+      /* Evitar posicionamiento sticky que puede romper el layout en papel */
+      .sticky { position: static !important; left: auto !important; right: auto !important; top: auto !important; }
+      /* Ocultar botones en impresión (dejar visibles sólo triggers de Select/Radix) */
+      button:not([role="combobox"]) { display: none !important; }
+      [role="button"]:not([role="combobox"]) { display: none !important; }
+      /* Neutralizar sombras/bordes si quieres más limpio (opcional) */
+  /* .shadow-[var(--shadow)], .shadow, .ring, .border { box-shadow: none !important; } */
+
+  /* ===== Compactación del contenido del presupuesto ===== */
+  #budget-print-root { font-size: 10px; line-height: 1.25; }
+      #budget-print-root h1 { font-size: 16px; margin: 0 0 6px 0; }
+      #budget-print-root h2 { font-size: 14px; margin: 6px 0; }
+      #budget-print-root h3, #budget-print-root h4 { font-size: 12px; margin: 4px 0; }
+  #budget-print-root svg { display: none !important; }
+  #budget-print-root img.print-logo { display: inline-block !important; max-height: 84px; }
+      #budget-print-root .shadow, #budget-print-root [class*="shadow-"] { box-shadow: none !important; }
+      #budget-print-root .rounded, #budget-print-root [class*="rounded-"] { border-radius: 4px !important; }
+      #budget-print-root .border, #budget-print-root [class*="border-"] { border-color: #e5e7eb !important; }
+
+      /* Reducir paddings y gaps frecuentes */
+  #budget-print-root .p-4 { padding: 6px !important; }
+  #budget-print-root .p-3 { padding: 5px !important; }
+  #budget-print-root .p-2 { padding: 3px !important; }
+      #budget-print-root .px-4 { padding-left: 8px !important; padding-right: 8px !important; }
+  #budget-print-root .px-3 { padding-left: 5px !important; padding-right: 5px !important; }
+  #budget-print-root .py-4 { padding-top: 6px !important; padding-bottom: 6px !important; }
+  #budget-print-root .py-3 { padding-top: 5px !important; padding-bottom: 5px !important; }
+  #budget-print-root .py-2 { padding-top: 3px !important; padding-bottom: 3px !important; }
+  #budget-print-root .gap-6 { gap: 6px !important; }
+  #budget-print-root .gap-4 { gap: 5px !important; }
+  #budget-print-root .gap-3 { gap: 3px !important; }
+  #budget-print-root .space-y-6 > * + * { margin-top: 6px !important; }
+  #budget-print-root .space-y-4 > * + * { margin-top: 5px !important; }
+  #budget-print-root .space-y-3 > * + * { margin-top: 3px !important; }
+
+      /* Inputs/selects como texto simple para ahorrar espacio */
+      #budget-print-root input, #budget-print-root select, #budget-print-root textarea {
+        border: 0 !important; background: transparent !important; box-shadow: none !important;
+        padding: 0 !important; height: auto !important; outline: 0 !important; appearance: none !important;
+      }
+      #budget-print-root [role="combobox"] { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+      #budget-print-root .badge, #budget-print-root [class*="badge"] { padding: 0 4px !important; font-size: 10px !important; }
+
+      /* Tablas compactas */
+      #budget-print-root table { border-collapse: collapse !important; width: 100% !important; }
+      #budget-print-root th, #budget-print-root td { padding: 3px 5px !important; }
+      #budget-print-root th { background: #f8fafc !important; }
+      #budget-print-root tr { break-inside: avoid; }
+      #budget-print-root section, #budget-print-root .card, #budget-print-root .Card, #budget-print-root .border { break-inside: avoid; }
+    `;
+    // Pequeño delay para permitir que Radix desmonte portales sin conflicto
+    setTimeout(() => {
+      printElement(node, { title: 'Presupuesto', extraCss });
+    }, 30);
+  };
+
   if (!result) {
     return (
       <>
@@ -220,7 +303,17 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   return (
     <>
       <style>{printStyles}</style>
-      <div className="no-print">
+      <div ref={printAreaRef} id="budget-print-root" className="no-print">
+        {/* Encabezado solo para impresión */}
+        <div className="print-only mb-4 flex items-center gap-3">
+          <img
+            src="/brand/industrial-plate/stencil_main.svg"
+            alt="Logo"
+            className="print-logo"
+            style={{ height: 84 }}
+          />
+          <div className="text-xs text-[var(--muted)]">Presupuesto</div>
+        </div>
         <ScrollArea className="max-h-[80vh] pr-2">
           <div className="space-y-6 pb-4">
             <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
@@ -498,7 +591,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </Card>
             </div>
 
-            <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+            <Card className="hide-on-print border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
               <CardHeader>
                 <CardTitle>Totales</CardTitle>
               </CardHeader>
@@ -586,40 +679,149 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                     <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" onClick={() => window.print()}>
+                    <Button variant="outline" size="sm" onClick={printBudget}>
                       Imprimir
                     </Button>
                   </div>
                 </div>
               </CardContent>
             </Card>
+
+            {/* Totales (solo impresión): parámetros a la izquierda y totales a la derecha en el mismo espacio */}
+            <div className="print-only rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4">
+              <h2 className="mb-3 text-lg font-semibold text-[var(--text)]">Totales</h2>
+              <div className="grid gap-4 sm:grid-cols-2 text-sm">
+                {/* Columna izquierda: parámetros */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span>% Indirectos</span>
+                    <span className="font-medium">{toNumber(indirectPercent)}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>% Margen</span>
+                    <span className="font-medium">{toNumber(marginPercent)}%</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>IVA %</span>
+                    <span className="font-medium">{toNumber(taxPercent)}%</span>
+                  </div>
+                </div>
+
+                {/* Columna derecha: totales */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span>Materiales base</span>
+                    <span className="font-medium">{formatCLP(materialsTotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Tapacantos</span>
+                    <span className="font-medium">{formatCLP(edgesTotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Herrajes</span>
+                    <span className="font-medium">{formatCLP(hardwareTotal)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Indirectos</span>
+                    <span className="font-medium">{formatCLP(indirects)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Flete</span>
+                    <span className="font-medium">{formatCLP(freightValue)}</span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="font-semibold text-[var(--text)]">Subtotal neto</span>
+                    <span className="font-semibold text-[var(--text)]">{formatCLP(subtotalNet)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Margen</span>
+                    <span className="font-medium">{formatCLP(marginValue)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Precio de venta</span>
+                    <span className="font-medium">{formatCLP(subtotalWithMargin)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>IVA</span>
+                    <span className="font-medium">{formatCLP(taxValue)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Total con IVA</span>
+                    <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </ScrollArea>
       </div>
 
-      <div className="print-only space-y-6 p-8">
+  <div className="print-only space-y-6 p-8">
         <header className="border-b border-[var(--border)] pb-4">
           <h1 className="text-2xl font-semibold text-[var(--text)]">Resumen de presupuesto</h1>
           <p className="text-sm text-[var(--muted)]">Generado: {printGeneratedAt}</p>
         </header>
         <section className="space-y-2">
           <h2 className="text-lg font-semibold text-[var(--text)]">Totales</h2>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3">
-              <p className="text-xs text-[var(--muted)]">Materiales base</p>
-              <p className="text-lg font-semibold text-[var(--text)]">{formatCLP(materialsTotal)}</p>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {/* Columna izquierda: parámetros */}
+            <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span>% Indirectos</span>
+                <span className="font-medium">{toNumber(indirectPercent)}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>% Margen</span>
+                <span className="font-medium">{toNumber(marginPercent)}%</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>IVA %</span>
+                <span className="font-medium">{toNumber(taxPercent)}%</span>
+              </div>
             </div>
-            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3">
-              <p className="text-xs text-[var(--muted)]">Tapacantos</p>
-              <p className="text-lg font-semibold text-[var(--text)]">{formatCLP(edgesTotal)}</p>
-            </div>
-            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3">
-              <p className="text-xs text-[var(--muted)]">Herrajes</p>
-              <p className="text-lg font-semibold text-[var(--text)]">{formatCLP(hardwareTotal)}</p>
-            </div>
-            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3">
-              <p className="text-xs text-[var(--muted)]">Total con IVA</p>
-              <p className="text-lg font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</p>
+
+            {/* Columna derecha: totales */}
+            <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
+              <div className="flex items-center justify-between">
+                <span>Materiales base</span>
+                <span className="font-medium">{formatCLP(materialsTotal)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Tapacantos</span>
+                <span className="font-medium">{formatCLP(edgesTotal)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Herrajes</span>
+                <span className="font-medium">{formatCLP(hardwareTotal)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Indirectos</span>
+                <span className="font-medium">{formatCLP(indirects)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Flete</span>
+                <span className="font-medium">{formatCLP(freightValue)}</span>
+              </div>
+              <div className="flex items-center justify-between pt-2">
+                <span className="font-semibold text-[var(--text)]">Subtotal neto</span>
+                <span className="font-semibold text-[var(--text)]">{formatCLP(subtotalNet)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Margen</span>
+                <span className="font-medium">{formatCLP(marginValue)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Precio de venta</span>
+                <span className="font-medium">{formatCLP(subtotalWithMargin)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>IVA</span>
+                <span className="font-medium">{formatCLP(taxValue)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span>Total con IVA</span>
+                <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
+              </div>
             </div>
           </div>
         </section>

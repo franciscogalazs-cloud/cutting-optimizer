@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import PatternCanvas2D from './PatternCanvas2D.jsx';
+import ThumbnailStrip from './ThumbnailStrip.jsx';
 import { mapSideOriginalToPlaced } from '@/lib/edge-mapping.js';
-import { EDGE_TYPE_COLORS, getEdgeColor as pickEdgeColor } from '@/theme/edge-colors.js';
+import { getEdgeColor as pickEdgeColor } from '@/theme/edge-colors.js';
 // eliminado control de tamaño
 
 const PREFS_STORAGE_KEY = 'pattern-view-preferences';
@@ -74,31 +75,10 @@ const DEFAULT_PREFS = {
   showLabels: true,
   showEdges: true,
 };
-
-const hexToRgb = (hex = '') => {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex) || /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(hex);
-  if (!m) return { r: 0, g: 0, b: 0 };
-  const r = m[1].length === 1 ? parseInt(m[1] + m[1], 16) : parseInt(m[1], 16);
-  const g = m[2].length === 1 ? parseInt(m[2] + m[2], 16) : parseInt(m[2], 16);
-  const b = m[3].length === 1 ? parseInt(m[3] + m[3], 16) : parseInt(m[3], 16);
-  return { r, g, b };
-};
-const toRgba = (hex, a = 1) => {
-  const { r, g, b } = hexToRgb(hex);
-  return `rgba(${r},${g},${b},${a})`;
-};
-const textOn = (hex) => {
-  const { r, g, b } = hexToRgb(hex);
-  const [R, G, B] = [r, g, b].map((v) => {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  });
-  const L = 0.2126 * R + 0.7152 * G + 0.0722 * B;
-  return L > 0.5 ? '#111827' : '#ffffff';
-};
+// utilidades no usadas eliminadas para pasar lint
 // pickEdgeColor viene de util centralizado (evita negro y mantiene contraste)
 
-export const AdvancedCuttingPattern = ({ patterns, units = 'mm', ai = null }) => {
+export const AdvancedCuttingPattern = ({ patterns, units = 'mm', ai: _ai = null }) => {
   const preferencesFromStorage = useMemo(() => loadPreferences(), []);
   const [prefs, setPrefs] = useState(() => ({ ...DEFAULT_PREFS, ...(preferencesFromStorage ?? {}) }));
   const { showDimensions, showLabels, showEdges } = prefs;
@@ -114,24 +94,37 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm', ai = null }) =>
     savePreferences(prefs);
   }, [prefs]);
 
-  useEffect(() => {
-    const handleKeyNavigation = (event) => {
-      if (!validPatterns.length) return;
-      if (event.key === 'ArrowRight') {
-        event.preventDefault();
-        setCurrentPatternIndex((prev) => (prev + 1) % validPatterns.length);
-      }
-      if (event.key === 'ArrowLeft') {
-        event.preventDefault();
-        setCurrentPatternIndex((prev) => (prev - 1 + validPatterns.length) % validPatterns.length);
-      }
-    };
-    window.addEventListener('keydown', handleKeyNavigation);
-    return () => window.removeEventListener('keydown', handleKeyNavigation);
-  }, [validPatterns.length]);
+  // La navegación por teclado (flechas) la maneja ThumbnailStrip; evitamos duplicar aquí.
 
   const setPref = (key, value) => setPrefs((prev) => ({ ...prev, [key]: value }));
   
+  // Normalizar a mm para miniaturas SVG (hook antes de cualquier return)
+  const toMmFactor = units === 'cm' ? 10 : units === 'in' ? 25.4 : 1;
+  const thumbPatterns = useMemo(() => {
+    return validPatterns.map((pat, idx) => {
+      const wSheet = Math.max(1, Number(pat.materialLength) || 0) * toMmFactor;
+      const hSheet = Math.max(1, Number(pat.materialWidth) || 0) * toMmFactor;
+      const kerf = Number(pat.kerf || pat.kerfWidth || 0) * toMmFactor;
+      const pieces = Array.isArray(pat.pieces)
+        ? pat.pieces.map((pc) => ({
+            x: Number(pc.x) * toMmFactor,
+            y: Number(pc.y) * toMmFactor,
+            w: Number(pc.width) * toMmFactor,
+            h: Number(pc.height) * toMmFactor,
+            color: pc.color,
+          }))
+        : [];
+      const pMatKey = pat.materialName ?? pat.materialId ?? '';
+      return {
+        id: String(pat.id ?? pat.materialName ?? pat.materialId ?? idx),
+        widthMm: wSheet,
+        heightMm: hSheet,
+        kerfMm: kerf,
+        pieces,
+        theme: getMaterialTheme(pMatKey),
+      };
+    });
+  }, [validPatterns, toMmFactor]);
 
   if (!validPatterns.length) {
     return (
@@ -174,6 +167,15 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm', ai = null }) =>
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Tira de miniaturas (navegación entre hojas) */}
+        <div className="-mt-1 mb-2">
+          <ThumbnailStrip
+          patterns={thumbPatterns}
+          activeIndex={currentPatternIndex}
+          onSelect={setCurrentPatternIndex}
+          />
+        </div>
+        
         <section className="grid grid-rows-[auto,1fr] min-h-[calc(100vh-160px)]">
           <div>
             <div className="relative">
@@ -281,7 +283,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm', ai = null }) =>
                         {sides
                           .filter(({ key }) => (piece.edges?.[key]?.enabled))
                           .sort((a, b) => a.label.localeCompare(b.label, 'es'))
-                          .map(({ key, label, len, order }) => {
+                          .map(({ key, label, order }) => {
                             const conf = piece.edges?.[key];
                             // Calcular largo mostrado según el lado ORIGINAL y el estado de rotación
                             const originalLength = rotated ? Number(piece.height) : Number(piece.width); // Arriba/Abajo

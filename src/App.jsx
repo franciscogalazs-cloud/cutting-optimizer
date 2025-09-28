@@ -13,7 +13,6 @@ import { MaterialsTable } from "./components/tables/MaterialsTable";
 import { AdvancedCuttingPattern } from "./components/visualization/AdvancedCuttingPattern";
 import { StatsPanel } from "./components/visualization/StatsPanel";
 import { KpiCard } from "./components/KpiCard.jsx";
-import { StatsSkeleton } from "./components/skeletons/StatsSkeleton.jsx";
 import { PieceEditModal } from "./components/modals/PieceEditModal";
 import { MaterialEditModal } from "./components/modals/MaterialEditModal";
 import { InfoModal } from "./components/common/InfoModal";
@@ -78,57 +77,6 @@ function App() {
       });
     });
   }, [config.units, setPieces]);
-  useEffect(() => {
-    setMaterials((current) => {
-      if (!Array.isArray(current) || current.length === 0) return current;
-
-      const demandByMaterial = new Map();
-      if (Array.isArray(pieces)) {
-        pieces.forEach((piece) => {
-          const key = String(piece?.material ?? '').trim().toLowerCase();
-          if (!key) return;
-          const pieceLengthMm = toMillimeters(piece?.length, config.units);
-          const pieceWidthMm = toMillimeters(piece?.width, config.units);
-          if (!Number.isFinite(pieceLengthMm) || !Number.isFinite(pieceWidthMm) || pieceLengthMm <= 0 || pieceWidthMm <= 0) return;
-          const quantityValue = Number(piece?.quantity);
-          const quantity = Number.isFinite(quantityValue) && quantityValue > 0 ? quantityValue : 1;
-          const currentDemand = demandByMaterial.get(key) ?? 0;
-          demandByMaterial.set(key, currentDemand + pieceLengthMm * pieceWidthMm * quantity);
-        });
-      }
-
-      let updated = false;
-
-      const nextMaterials = current.map((material) => {
-        const key = String(material?.material ?? '').trim().toLowerCase();
-        if (!key) return material;
-        const materialLengthMm = toMillimeters(material?.length, config.units);
-        const materialWidthMm = toMillimeters(material?.width, config.units);
-        if (!Number.isFinite(materialLengthMm) || !Number.isFinite(materialWidthMm) || materialLengthMm <= 0 || materialWidthMm <= 0) {
-          return material.quantity > 0 ? material : { ...material, quantity: 1 };
-        }
-        const materialArea = materialLengthMm * materialWidthMm;
-        const demand = demandByMaterial.get(key) ?? 0;
-        if (demand <= 0) {
-          const nextQuantity = material.quantity > 0 ? material.quantity : 1;
-          if (nextQuantity !== material.quantity) {
-            updated = true;
-            return { ...material, quantity: nextQuantity };
-          }
-          return material;
-        }
-        const requiredQuantity = Math.max(1, Math.ceil((demand / efficiencyFactor) / materialArea));
-        if (requiredQuantity !== material.quantity) {
-          updated = true;
-        }
-        const coveredArea = materialArea * requiredQuantity * efficiencyFactor;
-        demandByMaterial.set(key, Math.max(0, demand - coveredArea));
-        return requiredQuantity !== material.quantity ? { ...material, quantity: requiredQuantity } : material;
-      });
-
-      return updated ? nextMaterials : current;
-    });
-  }, [pieces, config.units, setMaterials]);
   useEffect(() => {
     setMaterials((current) => {
       if (!Array.isArray(current) || current.length === 0) return current;
@@ -335,7 +283,6 @@ function App() {
   };
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
   const totalMaterials = materials.reduce((sum, material) => sum + material.quantity, 0);
-  const utilization = typeof result?.totalUtilization === "number" ? result.totalUtilization : null;
   const avgUsedM2 = (() => {
     const patterns = result?.patterns || [];
     if (!Array.isArray(patterns) || patterns.length === 0) return null;
@@ -467,7 +414,7 @@ function App() {
               </CardContent>
             </Card>
           </aside>
-          <section className="space-y-6">
+          <section className="space-y-6 min-w-0 w-full flex-1">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] sm:grid-cols-3 lg:grid-cols-6">
                 <TabsTrigger value="pieces" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">

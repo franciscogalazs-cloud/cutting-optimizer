@@ -28,34 +28,15 @@ const formatValue = (value) => {
 
 // pickEdgeColor ya evita negro y mantiene buena visibilidad
 
-// Utilidades para tooltip simple
-const hexToRgb = (hex) => {
-  const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex || '')
-    || /^#?([a-f\d])([a-f\d])([a-f\d])$/i.exec(hex || '');
-  if (!m) return { r: 0, g: 0, b: 0 };
-  const r = m[1].length === 1 ? parseInt(m[1] + m[1], 16) : parseInt(m[1], 16);
-  const g = m[2].length === 1 ? parseInt(m[2] + m[2], 16) : parseInt(m[2], 16);
-  const b = m[3].length === 1 ? parseInt(m[3] + m[3], 16) : parseInt(m[3], 16);
-  return { r, g, b };
-};
-const toRgba = (hex, a = 1) => {
-  const { r, g, b } = hexToRgb(hex);
-  return `rgba(${r},${g},${b},${a})`;
-};
-const textOn = (hex) => {
-  const { r, g, b } = hexToRgb(hex);
-  const [R, G, B] = [r, g, b].map((v) => {
-    v /= 255;
-    return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  });
-  const L = 0.2126 * R + 0.7152 * G + 0.0722 * B;
-  return L > 0.5 ? '#111827' : '#ffffff';
-};
+// Tooltip: usamos color sólido con opacidad y borde del mismo color
 
 const PiecePreview = ({ piece, original, index, units, onEditPiece }) => {
+  // Hooks deben ir antes de cualquier return condicional
+  const containerRef = useRef(null);
+  const [tt, setTt] = useState(null);
+
   const edges = piece.edges ?? {};
   const sidesWithEdge = EDGE_SIDES.filter((side) => Boolean(edges?.[side]?.enabled));
-  if (sidesWithEdge.length === 0) return null;
 
   const longestSide = Math.max(piece.length || piece.largoMm || 0, piece.width || piece.anchoMm || 0);
   const ratio = longestSide > 0 ? Math.min(1, 140 / longestSide) : 1;
@@ -64,8 +45,6 @@ const PiecePreview = ({ piece, original, index, units, onEditPiece }) => {
   const quantity = getQuantity(piece);
 
   const typeToColor = new Map();
-  const containerRef = useRef(null);
-  const [tt, setTt] = useState(null);
   const onEnter = (event, payload) => {
     const rect = containerRef.current?.getBoundingClientRect();
     const x = event.clientX - (rect?.left ?? 0) + 8;
@@ -87,7 +66,7 @@ const PiecePreview = ({ piece, original, index, units, onEditPiece }) => {
     }
   };
 
-  return (
+  return sidesWithEdge.length === 0 ? null : (
     <div className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm" key={piece.id ?? index}>
       <div className="flex items-center justify-between gap-2">
         <div className="min-w-0">
@@ -173,8 +152,8 @@ const PiecePreview = ({ piece, original, index, units, onEditPiece }) => {
               style={{
                 left: tt.x,
                 top: tt.y,
-                background: toRgba(tt.color || '#2563eb', 0.2),
-                color: textOn(tt.color || '#2563eb'),
+                background: tt.color || '#2563eb',
+                color: '#fff',
                 border: `1px solid ${tt.color || '#2563eb'}`,
                 backdropFilter: 'blur(2px)'
               }}

@@ -2,7 +2,6 @@ import { Edit2, RotateCcw, Trash2, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -38,7 +37,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
   }
 
   return (
-    <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+    <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)] min-w-0 w-full flex-1">
       <CardHeader>
         <CardTitle className="flex flex-col gap-1 text-[var(--text)] sm:flex-row sm:items-center sm:justify-between">
           <span>Piezas a cortar</span>
@@ -48,41 +47,53 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
-          <Table>
+        <div className="w-full max-w-none min-w-0 overflow-auto">
+          <table className="w-full table-auto caption-bottom text-sm">
+            <colgroup>
+              <col />
+              <col className="w-24" />
+              <col className="w-24" />
+              <col className="w-24" />
+              <col className="w-[18rem]" />
+              <col className="w-24" />
+              <col className="w-36" />
+            </colgroup>
             <TableHeader>
               <TableRow className="bg-[var(--surface)]">
-                <TableHead>Etiqueta</TableHead>
-                <TableHead>Largo ({units})</TableHead>
-                <TableHead>Ancho ({units})</TableHead>
-                <TableHead>Cantidad</TableHead>
-                <TableHead>Material</TableHead>
-                <TableHead>Area (m2)</TableHead>
-                <TableHead>Opciones</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
+                <TableHead className="text-left">Etiqueta</TableHead>
+                <TableHead className="text-center">Largo ({units})</TableHead>
+                <TableHead className="text-center">Ancho ({units})</TableHead>
+                <TableHead className="text-center">Cantidad</TableHead>
+                <TableHead className="text-center">Material</TableHead>
+                <TableHead className="text-center">Area (m2)</TableHead>
+                <TableHead className="text-right sticky right-0 bg-[var(--surface)] z-10">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pieces.map((piece) => (
                 <TableRow key={piece.id}>
-                  <TableCell className="font-medium text-[var(--text)]">{piece.label}</TableCell>
-                  <TableCell>{piece.length}</TableCell>
-                  <TableCell>{piece.width}</TableCell>
-                  <TableCell>
+                  <TableCell className="font-medium text-[var(--text)] text-left">
+                    <span className="block max-w-[16rem] truncate" title={piece.label}>
+                      {piece.label}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-center">{piece.length}</TableCell>
+                  <TableCell className="text-center">{piece.width}</TableCell>
+                  <TableCell className="text-center">
                     <Badge variant="secondary" className="bg-[var(--surface)] text-[var(--text)]">
                       {piece.quantity}
                     </Badge>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     <Select
                       value={materialNames.includes(piece.material) ? piece.material : undefined}
                       onValueChange={(value) => onEdit && onEdit(piece.id, { material: value })}
                       disabled={materialNames.length === 0}
                     >
-                      <SelectTrigger className="w-48 border-[var(--border)] bg-[var(--surface)] text-left text-[var(--text)]">
+                      <SelectTrigger className="w-full relative border-[var(--border)] bg-[var(--surface)] text-center text-[var(--text)]">
                         <SelectValue placeholder={materialNames.length === 0 ? 'Sin materiales' : 'Selecciona material'} />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent position="popper" sideOffset={4} className="z-50">
                         {materialNames.map((name) => {
                           const sample = nameToSample.get(name);
                           const label = sample && sample.length && sample.width
@@ -97,21 +108,19 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell>{((piece.length * piece.width * piece.quantity) / 10000).toLocaleString()}</TableCell>
-                  <TableCell>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-2 text-[var(--text)]"
-                      title="Rotar largo/ancho"
-                      onClick={() => onEdit && onEdit(piece.id, { length: piece.width, width: piece.length })}
-                    >
-                      <RotateCcw className="mr-1 h-3 w-3" />
-                      Rotar
-                    </Button>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                  <TableCell className="text-center">{((piece.length * piece.width * piece.quantity) / 10000).toLocaleString()}</TableCell>
+                  <TableCell className="text-right sticky right-0 bg-[var(--surface)]">
+                    <div className="inline-flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-2 text-[var(--text)]"
+                        title="Rotar largo/ancho"
+                        onClick={() => onEdit && onEdit(piece.id, { length: piece.width, width: piece.length })}
+                      >
+                        <RotateCcw className="mr-1 h-3 w-3" />
+                        Rotar
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -142,7 +151,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
                 </TableRow>
               ))}
             </TableBody>
-          </Table>
+          </table>
         </div>
       </CardContent>
     </Card>

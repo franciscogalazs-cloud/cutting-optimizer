@@ -70,17 +70,19 @@ const pickFromPaletteByType = (type = '') => {
   return SAFE_PALETTE[idx];
 };
 
+// mantenido como referencia; no se usa directamente
 // Elegir color por contraste con el color base de la pieza (plancha)
-const pickByBaseFill = (baseFill) => {
-  const threshold = 3.0; // contraste mínimo recomendado para distinguirse perceptiblemente
-  // Ordenar la paleta por mayor contraste primero para un picking estable
-  const sorted = [...SAFE_PALETTE].sort((a, b) => contrastRatio(b, baseFill) - contrastRatio(a, baseFill));
-  for (const c of sorted) {
-    if (!isBlackish(c) && contrastRatio(c, baseFill) >= threshold) return c;
-  }
-  // Fallback: el de mayor contraste aunque no alcance el umbral
-  return sorted[0] || '#2563eb';
-};
+// mantenido como referencia; no se usa directamente
+// const pickByBaseFill = (baseFill) => {
+//   const threshold = 3.0; // contraste mínimo recomendado para distinguirse perceptiblemente
+//   // Ordenar la paleta por mayor contraste primero para un picking estable
+//   const sorted = [...SAFE_PALETTE].sort((a, b) => contrastRatio(b, baseFill) - contrastRatio(a, baseFill));
+//   for (const c of sorted) {
+//     if (!isBlackish(c) && contrastRatio(c, baseFill) >= threshold) return c;
+//   }
+//   // Fallback: el de mayor contraste aunque no alcance el umbral
+//   return sorted[0] || '#2563eb';
+// };
 
 /**
  * Devuelve un color para el tapacanto según el tipo seleccionado, evitando negro
@@ -110,7 +112,9 @@ export const getEdgeColor = (type, index = 0, baseFill) => {
         }
         color = picked;
       }
-    } catch {}
+    } catch {
+      // Ignorar errores de contraste
+    }
   }
   return color;
 };

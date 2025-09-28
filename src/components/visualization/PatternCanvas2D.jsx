@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { getEdgeColor as pickEdgeColor } from '@/theme/edge-colors.js';
-import { mapEdgesForRotation, mapSidePlacedToOriginal } from '@/lib/edge-mapping.js';
+import { mapEdgesForRotation } from '@/lib/edge-mapping.js';
 
 /**
  * Canvas 2D demo renderer using devicePixelRatio-aware transform.
@@ -330,7 +330,9 @@ export default function PatternCanvas2D({
           ctx.strokeStyle = hover.color || '#2563eb';
           ctx.strokeRect(hover.x, hover.y, hover.w, hover.h);
           ctx.restore();
-        } catch {}
+        } catch {
+          // Ignorar: highlight de canto puede fallar si datos incompletos
+        }
       }
 
       // Highlight de canto externo (desde lista): siempre que esté activo
@@ -386,11 +388,13 @@ export default function PatternCanvas2D({
             screenX = Math.max(6, Math.min(vw - 6, screenX));
             screenY = Math.max(6, Math.min(vh - 6, screenY));
             setTooltip({ x: screenX, y: screenY, text, color: ext.color, side: ext.side });
-          } catch {}
+          } catch {
+            // Ignorar errores de cálculo de tooltip externo
+          }
         }
       } else if (!hover) {
-        // Sin hover ni highlight externo: ocultar tooltip si existe
-        if (tooltip) setTooltip(null);
+        // Sin hover ni highlight externo: ocultar tooltip
+        setTooltip(null);
       }
 
       // Highlight de pieza al hover (interno del canvas)
@@ -408,7 +412,9 @@ export default function PatternCanvas2D({
           ctx.strokeStyle = darkenHex(hoverPiece.fill, 0.5);
           ctx.strokeRect(hoverPiece.x, hoverPiece.y, hoverPiece.w, hoverPiece.h);
           ctx.restore();
-        } catch {}
+        } catch {
+          // Ignorar errors de highlight de pieza interna
+        }
       }
 
       // Highlight de pieza externo (desde lista), solo si no hay hover interno
@@ -425,7 +431,9 @@ export default function PatternCanvas2D({
             ctx.strokeStyle = darkenHex(ext.fill, 0.5);
             ctx.strokeRect(ext.x, ext.y, ext.w, ext.h);
             ctx.restore();
-          } catch {}
+          } catch {
+            // Ignorar errores de highlight de pieza externo
+          }
         }
       }
     };
@@ -471,18 +479,18 @@ export default function PatternCanvas2D({
             const pz = piecesRef.current.find((r) => mx >= r.x && mx <= r.x + r.w && my >= r.y && my <= r.y + r.h);
             if (pz) {
               hoveredPieceRef.current = pz;
-              if (tooltip) setTooltip(null);
+              setTooltip(null);
               render();
             } else {
               hoveredPieceRef.current = null;
-              if (tooltip) setTooltip(null);
+              setTooltip(null);
               render();
             }
         }
       } catch {
         hoveredRef.current = null;
           hoveredPieceRef.current = null;
-        if (tooltip) setTooltip(null);
+        setTooltip(null);
       }
     };
     const onLeave = () => {
@@ -504,7 +512,7 @@ export default function PatternCanvas2D({
       cv.removeEventListener('mousemove', onMove);
       cv.removeEventListener('mouseleave', onLeave);
     };
-  }, [pattern, theme, width, height, paddingPx, showLabels, showDimensions, units, showEdges, highlightPieceIndex, highlightEdge]);
+  }, [pattern, theme, width, height, paddingPx, showLabels, showDimensions, units, showEdges, highlightPieceIndex, highlightEdge, tooltip]);
 
   return (
     <div
