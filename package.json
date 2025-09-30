@@ -4,10 +4,10 @@
     "version": "0.0.0",
     "type": "module",
     "scripts": {
-        "dev": "vite",
-        "build": "node tools/brand-build.mjs && vite build",
+          "dev": "vite",
+          "build": "node tools/brand-build.mjs && vite build",
         "lint": "eslint .",
-        "preview": "vite preview",
+          "preview": "vite preview",
         "start": "vite preview --host localhost --port 3000",
         "lint:fix": "eslint . --fix",
         "brand:apply": "node tools/brand-build.mjs",

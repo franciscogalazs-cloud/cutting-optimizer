@@ -9,6 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/cutting-optimizer/',
   plugins: [react(),tailwindcss()],
   server: {
     host: '127.0.0.1',
