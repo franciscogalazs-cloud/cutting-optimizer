@@ -18,28 +18,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-      - name: Enable corepack
-        run: corepack enable
-      - name: Prepare pnpm 10.4.1
-        run: corepack prepare pnpm@10.4.1 --activate
-      - run: pnpm -v
-      - name: Install dependencies (pnpm with fallback)
-        run: |
-          if command -v pnpm >/dev/null 2>&1; then
-            pnpm install --frozen-lockfile || pnpm install
-          else
-            npm i
-          fi
+          cache: 'npm'
+      - name: Install dependencies (npm)
+        run: npm ci
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Build
-        run: |
-          if command -v pnpm >/dev/null 2>&1; then
-            pnpm build
-          else
-            npm run build
-          fi
+        run: npm run build
       - name: Copy 404 for SPA fallback
         run: |
           cp dist/index.html dist/404.html
