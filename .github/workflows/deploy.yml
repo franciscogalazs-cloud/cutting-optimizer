@@ -15,14 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.4.1
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
+      - name: Enable corepack (use packageManager pnpm)
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
       - run: pnpm build
       - name: Copy 404 for SPA fallback
         run: |
