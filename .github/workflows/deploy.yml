@@ -19,8 +19,11 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-      - name: Enable corepack (use packageManager pnpm)
+      - name: Enable corepack
         run: corepack enable
+      - name: Prepare pnpm 10.4.1
+        run: corepack prepare pnpm@10.4.1 --activate
+      - run: pnpm -v
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Configure Pages
