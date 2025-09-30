@@ -12,6 +12,7 @@ export default function PatternCanvas2D({
   width = 820,
   height = 520,
   paddingPx = 24,
+  materialLabel = '',
   showLabels = true,
   showDimensions = true,
   units = 'mm',
@@ -142,6 +143,23 @@ export default function PatternCanvas2D({
   ctx.lineWidth = 1 / (s * dpr); // 1px visual
       ctx.fillRect(0, 0, sheetW, sheetH);
       ctx.strokeRect(0, 0, sheetW, sheetH);
+
+      // Etiqueta del material (superior izquierda, fuera del tablero)
+      if (materialLabel) {
+        const dpr = window.devicePixelRatio || 1;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        // Alinear al borde izquierdo del tablero, por encima del borde superior
+        const xPx = Math.max(2, tx) * dpr;
+        const yPx = Math.max(4, ty - 20) * dpr; // 20px por encima
+        const fontPx = 14 * dpr; // un poco más grande
+        ctx.font = `bold ${fontPx}px sans-serif`;
+        ctx.fillStyle = '#111827'; // casi negro
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(String(materialLabel), xPx, yPx);
+        ctx.restore();
+      }
 
       // Piezas
   const edgeZones = [];
@@ -330,8 +348,9 @@ export default function PatternCanvas2D({
           ctx.strokeStyle = hover.color || '#2563eb';
           ctx.strokeRect(hover.x, hover.y, hover.w, hover.h);
           ctx.restore();
-        } catch {
+        } catch (error) {
           // Ignorar: highlight de canto puede fallar si datos incompletos
+          console.warn('Error al dibujar el highlight del canto en hover:', error);
         }
       }
 
@@ -388,8 +407,9 @@ export default function PatternCanvas2D({
             screenX = Math.max(6, Math.min(vw - 6, screenX));
             screenY = Math.max(6, Math.min(vh - 6, screenY));
             setTooltip({ x: screenX, y: screenY, text, color: ext.color, side: ext.side });
-          } catch {
+          } catch (error) {
             // Ignorar errores de cálculo de tooltip externo
+            console.warn('Error al dibujar el highlight de canto externo:', error);
           }
         }
       } else if (!hover) {
@@ -412,8 +432,9 @@ export default function PatternCanvas2D({
           ctx.strokeStyle = darkenHex(hoverPiece.fill, 0.5);
           ctx.strokeRect(hoverPiece.x, hoverPiece.y, hoverPiece.w, hoverPiece.h);
           ctx.restore();
-        } catch {
-          // Ignorar errors de highlight de pieza interna
+        } catch (error) {
+          // Ignorar errores de highlight de pieza interna
+          console.warn('Error al dibujar el highlight de pieza en hover:', error);
         }
       }
 
@@ -431,8 +452,9 @@ export default function PatternCanvas2D({
             ctx.strokeStyle = darkenHex(ext.fill, 0.5);
             ctx.strokeRect(ext.x, ext.y, ext.w, ext.h);
             ctx.restore();
-          } catch {
+          } catch (error) {
             // Ignorar errores de highlight de pieza externo
+            console.warn('Error al dibujar el highlight de pieza externo:', error);
           }
         }
       }
@@ -487,9 +509,10 @@ export default function PatternCanvas2D({
               render();
             }
         }
-      } catch {
+      } catch (error) {
+        console.warn('Error en el evento onMove del canvas:', error);
         hoveredRef.current = null;
-          hoveredPieceRef.current = null;
+        hoveredPieceRef.current = null;
         setTooltip(null);
       }
     };

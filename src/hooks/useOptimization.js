@@ -2,6 +2,7 @@
 import { BestFitDecreasing } from '../algorithms/bestFitDecreasing.js';
 import { BacktrackingOptimizer } from '../algorithms/backtrackingOptimizer.js';
 import { MaxRectsOptimizer } from '../algorithms/maxRectsOptimizer.js';
+import { GuillotineOptimizer } from '../algorithms/guillotineOptimizer.js';
 
 const ALGORITHM_FALLBACK = 'bfd';
 
@@ -18,6 +19,10 @@ const createOptimizer = (config) => {
     case 'backtracking':
     case 'bt':
       return new BacktrackingOptimizer(config);
+    case 'guillotine':
+    case 'shelf':
+    case 'shelves':
+      return new GuillotineOptimizer(config);
     default:
       return new BestFitDecreasing(config);
   }

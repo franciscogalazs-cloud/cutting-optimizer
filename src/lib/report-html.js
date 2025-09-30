@@ -1,32 +1,32 @@
-import { useMemo, useRef, useEffect } from 'react';
-import { FileText, ExternalLink, Printer, Download } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { areaToSquareMeters, formatSquareMeters } from '../../lib/format';
-import { printElement } from '@/lib/print';
+import { areaToSquareMeters, formatSquareMeters } from './format';
 
-// Generador del HTML del reporte (fuera del componente para evitar TDZ y re-creaciones)
+// Genera el HTML completo del reporte (para modal, nueva pestaña o descarga)
 export function generateReportHTML(result, pieces, materials, config) {
   const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const wasteForPattern = (p) => {
-    const used = Array.isArray(p.pieces) ? p.pieces.reduce((s, pc) => s + (Number(pc.width)||0)*(Number(pc.height)||0), 0) : 0;
-    const board = (Number(p.materialLength)||0) * (Number(p.materialWidth)||0);
+    const used = Array.isArray(p.pieces)
+      ? p.pieces.reduce((s, pc) => s + (Number(pc.width) || 0) * (Number(pc.height) || 0), 0)
+      : 0;
+    const board = (Number(p.materialLength) || 0) * (Number(p.materialWidth) || 0);
     return Math.max(0, board - used);
   };
   const usedForPattern = (p) => {
     if (Array.isArray(p.pieces)) {
-      return p.pieces.reduce((s, pc) => s + (Number(pc.width)||0)*(Number(pc.height)||0), 0);
+      return p.pieces.reduce((s, pc) => s + (Number(pc.width) || 0) * (Number(pc.height) || 0), 0);
     }
-    const board = (Number(p.materialLength)||0) * (Number(p.materialWidth)||0);
-    const waste = ('waste' in p ? Number(p.waste) || 0 : wasteForPattern(p));
+    const board = (Number(p.materialLength) || 0) * (Number(p.materialWidth) || 0);
+    const waste = 'waste' in p ? Number(p.waste) || 0 : wasteForPattern(p);
     return Math.max(0, board - waste);
   };
   const patterns = Array.isArray(result?.patterns) ? result.patterns : [];
-  const totalWasteUnits2 = patterns.reduce((acc, p) => acc + (('waste' in p && Number.isFinite(Number(p.waste))) ? Number(p.waste) : wasteForPattern(p)), 0);
+  const totalWasteUnits2 = patterns.reduce(
+    (acc, p) => acc + (('waste' in p && Number.isFinite(Number(p.waste))) ? Number(p.waste) : wasteForPattern(p)),
+    0,
+  );
   const totalUsedUnits2 = patterns.reduce((acc, p) => acc + usedForPattern(p), 0);
   const totalWasteM2 = formatSquareMeters(areaToSquareMeters(totalWasteUnits2, config.units));
   const totalUsedM2 = formatSquareMeters(areaToSquareMeters(totalUsedUnits2, config.units));
+
   const styles = `
     <style>
       @page { size: A4 portrait; margin: 12mm; }
@@ -39,9 +39,9 @@ export function generateReportHTML(result, pieces, materials, config) {
       .page { width: 190mm; padding: 10mm; margin: 0 auto; box-sizing: border-box; background: #ffffff; color: #111827; font-family: Arial, sans-serif; font-size: 12px; }
       .header { text-align: center; margin-bottom: 18px; }
       .brand { display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 8px; }
-  .brand-logo { height: 96px; display: inline-block; }
+      .brand-logo { height: 96px; display: inline-block; }
       .header h1 { margin: 0 0 6px; font-size: 16px; }
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+      .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
       .stat-card { border: 1px solid #e5e7eb; padding: 10px; border-radius: 6px; text-align: center; }
       .stat-value { font-size: 14px; font-weight: bold; color: #2563eb; }
       .table { width: 100%; border-collapse: collapse; margin: 10px 0 14px; font-size: 11px; }
@@ -146,11 +146,10 @@ export function generateReportHTML(result, pieces, materials, config) {
         <div class="pattern">
           <div class="pattern-header">
             <strong>Hoja ${index + 1}</strong> - 
-            Material: ${(Array.isArray(materials) ? (materials.find(m => m.id === pattern.materialId)?.material || 'N/A') : 'N/A')} - 
             ${fmt(pattern.materialLength)} × ${fmt(pattern.materialWidth)} ${config.units} - 
-            Usado: ${formatSquareMeters(areaToSquareMeters(usedForPattern(pattern), config.units))} m² - 
+            Usado: ${formatSquareMeters(areaToSquareMeters((${usedForPattern.toString()})(pattern), config.units))} m² - 
             ${(pattern.pieces||[]).length} piezas - 
-            Desperdicio: ${formatSquareMeters(areaToSquareMeters(('waste' in pattern ? Number(pattern.waste)||0 : wasteForPattern(pattern)), config.units))} m²
+            Desperdicio: ${formatSquareMeters(areaToSquareMeters(('waste' in pattern ? Number(pattern.waste)||0 : (${wasteForPattern.toString()})(pattern)), config.units))} m²
           </div>
           <div class="pattern-figure">
             <svg viewBox="0 0 ${pattern.materialLength} ${pattern.materialWidth}">
@@ -181,26 +180,6 @@ export function generateReportHTML(result, pieces, materials, config) {
               }).join('')}
             </svg>
           </div>
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Pieza</th>
-                <th>Ancho (${config.units})</th>
-                <th>Alto (${config.units})</th>
-                <th>Rotado</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${(pattern.pieces||[]).map(piece => `
-                <tr>
-                  <td>${piece.label ?? ''}</td>
-                  <td>${fmt(piece.width)}</td>
-                  <td>${fmt(piece.height)}</td>
-                  <td>${piece.rotated ? 'Sí' : 'No'}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
         </div>
       `).join('') : '<p style="color:#6b7280">No hay patrones generados.</p>'}
 
@@ -212,109 +191,4 @@ export function generateReportHTML(result, pieces, materials, config) {
   return `${styles}${content}`;
 }
 
-export const ExportModal = ({ isOpen, onClose, result, pieces, materials, config, autoPrint = false }) => {
-  const reportRef = useRef(null);
-  const htmlReport = useMemo(() => {
-    if (!result) return '';
-    return generateReportHTML(result, pieces, materials, config);
-  }, [result, pieces, materials, config]);
-
-  useEffect(() => {
-    if (!isOpen || !autoPrint) return;
-    // Pequeño delay para asegurar que el contenido esté en el DOM
-    const t = setTimeout(() => {
-      try { printReport(); } catch {}
-    }, 60);
-    return () => clearTimeout(t);
-  }, [isOpen, autoPrint, htmlReport]);
-
-  const openInNewTab = () => {
-    const win = window.open('', '_blank');
-    if (win) {
-      win.document.open();
-      // Envolver en documento completo para impresión
-      win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Reporte</title></head><body>${htmlReport}</body></html>`);
-      win.document.close();
-    } else {
-      alert('El navegador bloqueó la apertura de una nueva pestaña. Permite pop-ups para ver el reporte.');
-    }
-  };
-
-  const downloadReport = () => {
-    try {
-      const fullHtml = `<!doctype html><html><head><meta charset="utf-8"><title>Reporte de Cortes</title></head><body>${htmlReport}</body></html>`;
-      const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const date = new Date().toISOString().slice(0,10);
-      a.href = url;
-      a.download = `reporte-cortes-${date}.html`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (e) {
-      alert('No se pudo descargar el reporte: ' + (e?.message || e));
-    }
-  };
-
-  const printReport = () => {
-    // Imprimir el contenido del modal sin usar pop-ups
-    const node = reportRef.current;
-    if (node) {
-      printElement(node, { title: 'Reporte de cortes' });
-      return;
-    }
-    // Fallback: abrir nueva pestaña si no hay nodo (debería ser raro)
-    const win = window.open('', '_blank');
-    if (!win) {
-      alert('El navegador bloqueó la apertura de una nueva pestaña. Permite pop-ups para imprimir.');
-      return;
-    }
-    win.document.open();
-    win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Imprimir reporte</title></head><body>${htmlReport}</body></html>`);
-    win.document.close();
-    setTimeout(() => { try { win.focus(); win.print(); } catch {} }, 150);
-  };
-
-  
-
-  // Eliminado generador CSV
-
-  if (!result) return null;
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[95vw] pr-12">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 pr-10">
-            <FileText className="h-5 w-5 text-red-600" />
-            Reporte (HTML)
-          </DialogTitle>
-        </DialogHeader>
-        <div className="mt-3">
-          <Card className="border-[var(--border)] bg-[var(--surface)]">
-            <CardContent className="p-3 sm:p-4">
-              <div className="max-h-[75vh] overflow-auto rounded-md border bg-white">
-                <div className="sticky top-0 z-10 flex items-center justify-end gap-2 border-b bg-white/95 p-2 backdrop-blur supports-[backdrop-filter]:bg-white/80">
-                  <button type="button" onClick={openInNewTab} className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline">
-                    <ExternalLink className="h-4 w-4" /> Abrir en nueva pestaña
-                  </button>
-                  <Button variant="outline" size="sm" onClick={printReport}>
-                    <Printer className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-1">Imprimir</span>
-                  </Button>
-                  <Button variant="default" size="sm" onClick={downloadReport}>
-                    <Download className="h-4 w-4" />
-                    <span className="hidden sm:inline ml-1">Descargar</span>
-                  </Button>
-                </div>
-                <div ref={reportRef} dangerouslySetInnerHTML={{ __html: htmlReport }} />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
+export default generateReportHTML;

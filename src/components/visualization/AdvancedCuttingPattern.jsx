@@ -78,7 +78,7 @@ const DEFAULT_PREFS = {
 // utilidades no usadas eliminadas para pasar lint
 // pickEdgeColor viene de util centralizado (evita negro y mantiene contraste)
 
-export const AdvancedCuttingPattern = ({ patterns, units = 'mm', ai: _ai = null }) => {
+export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm', ai: _ai = null }) => {
   const preferencesFromStorage = useMemo(() => loadPreferences(), []);
   const [prefs, setPrefs] = useState(() => ({ ...DEFAULT_PREFS, ...(preferencesFromStorage ?? {}) }));
   const { showDimensions, showLabels, showEdges } = prefs;
@@ -141,6 +141,8 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm', ai: _ai = null 
   }
 
   const currentPattern = validPatterns[currentPatternIndex];
+  const resolveMaterialName = (pat) => pat?.materialName ?? (Array.isArray(materials) ? (materials.find(m => m.id === pat?.materialId)?.material) : undefined) ?? '';
+  const materialName = resolveMaterialName(currentPattern);
   const materialKey = currentPattern.materialName ?? currentPattern.materialId ?? '';
   const theme = getMaterialTheme(materialKey);
   // Variables para dibujo se recalculan dentro de PatternCanvas; evitar duplicados en este scope.
@@ -235,6 +237,7 @@ export const AdvancedCuttingPattern = ({ patterns, units = 'mm', ai: _ai = null 
                 width={820}
                 height={520}
                 paddingPx={24}
+                materialLabel={materialName}
                 showLabels={showLabels}
                 showDimensions={showDimensions}
                 showEdges={showEdges}

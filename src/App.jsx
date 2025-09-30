@@ -240,7 +240,7 @@ function App() {
     }
     setIsOptimizing(true);
     try {
-      await optimize(pieces, materials, config);
+  await optimize(pieces, materials, { ...config, algorithm: 'guillotine' });
       setActiveTab("patterns");
       toast.success("Optimizacion completada exitosamente");
     } catch (err) {
@@ -492,6 +492,7 @@ function App() {
                 {result?.patterns ? (
                   <AdvancedCuttingPattern
                     patterns={result.patterns}
+                    materials={materials}
                     units={config.units}
                     onExportPattern={handleExportPattern}
                   />
