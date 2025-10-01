@@ -1,4 +1,5 @@
 import { areaToSquareMeters, formatSquareMeters } from './format';
+import { brandUrl } from './paths';
 
 // Genera el HTML completo del reporte (para modal, nueva pestaña o descarga)
 export function generateReportHTML(result, pieces, materials, config) {
@@ -59,7 +60,7 @@ export function generateReportHTML(result, pieces, materials, config) {
     <div class="page">
       <div class="header">
         <div class="brand">
-          <img class="brand-logo" src="/brand/industrial-plate/stencil_main.svg" alt="Industrial Plate" />
+          <img class="brand-logo" src="${brandUrl('brand/industrial-plate/stencil_main.svg')}" alt="Industrial Plate" />
         </div>
         <h1>Reporte de Optimización de Cortes</h1>
         <p>Generado el ${new Date().toLocaleDateString('es-ES')}</p>
@@ -142,14 +143,17 @@ export function generateReportHTML(result, pieces, materials, config) {
       </table>
 
       <h2>Patrones de Corte</h2>
-      ${hasPatterns ? result.patterns.map((pattern, index) => `
+      ${hasPatterns ? result.patterns.map((pattern, index) => {
+        const waste = 'waste' in pattern ? Number(pattern.waste) || 0 : wasteForPattern(pattern);
+        const used = usedForPattern(pattern);
+        return `
         <div class="pattern">
           <div class="pattern-header">
             <strong>Hoja ${index + 1}</strong> - 
             ${fmt(pattern.materialLength)} × ${fmt(pattern.materialWidth)} ${config.units} - 
-            Usado: ${formatSquareMeters(areaToSquareMeters((${usedForPattern.toString()})(pattern), config.units))} m² - 
+            Usado: ${formatSquareMeters(areaToSquareMeters(used, config.units))} m² - 
             ${(pattern.pieces||[]).length} piezas - 
-            Desperdicio: ${formatSquareMeters(areaToSquareMeters(('waste' in pattern ? Number(pattern.waste)||0 : (${wasteForPattern.toString()})(pattern)), config.units))} m²
+            Desperdicio: ${formatSquareMeters(areaToSquareMeters(waste, config.units))} m²
           </div>
           <div class="pattern-figure">
             <svg viewBox="0 0 ${pattern.materialLength} ${pattern.materialWidth}">
@@ -181,7 +185,7 @@ export function generateReportHTML(result, pieces, materials, config) {
             </svg>
           </div>
         </div>
-      `).join('') : '<p style="color:#6b7280">No hay patrones generados.</p>'}
+      `}).join('') : '<p style="color:#6b7280">No hay patrones generados.</p>'}
 
       <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 12px;">
         <p>Generado por Optimizador de Cortes de Melamina v1.0</p>

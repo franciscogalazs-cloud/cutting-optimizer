@@ -1,3 +1,4 @@
+import { brandUrl } from "@/lib/paths";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { printElement } from '@/lib/print.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -307,7 +308,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
         {/* Encabezado solo para impresión */}
         <div className="print-only mb-4 flex items-center gap-3">
           <img
-            src="/brand/industrial-plate/stencil_main.svg"
+            src={brandUrl("brand/industrial-plate/stencil_main.svg")}
             alt="Logo"
             className="print-logo"
             style={{ height: 84 }}

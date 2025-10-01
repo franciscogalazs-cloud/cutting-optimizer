@@ -1,4 +1,5 @@
 ﻿import React from "react";
+import { brandUrl } from "@/lib/paths";
 
 type Variant = "main" | "compact" | "square" | "stack";
 
@@ -14,10 +15,10 @@ type Props = {
 };
 
 const fileByVariant: Record<Variant, string> = {
-  main: "/brand/industrial-plate/stencil_main.svg",
-  compact: "/brand/industrial-plate/stencil_compact.svg",
-  square: "/brand/industrial-plate/stencil_square.svg",
-  stack: "/brand/industrial-plate/stencil_stack.svg",
+  main: brandUrl("brand/industrial-plate/stencil_main.svg"),
+  compact: brandUrl("brand/industrial-plate/stencil_compact.svg"),
+  square: brandUrl("brand/industrial-plate/stencil_square.svg"),
+  stack: brandUrl("brand/industrial-plate/stencil_stack.svg"),
 };
 
 export default function LogoPlate({
