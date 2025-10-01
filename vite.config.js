@@ -23,21 +23,8 @@ export default defineConfig({
   },
   build: {
     chunkSizeWarningLimit: 1024, // Reducir avisos por chunks grandes (1 MB)
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          // Separar librerías pesadas en chunks dedicados
-          if (id.includes('node_modules')) {
-            if (id.includes('recharts')) return 'charts';
-            // Radix y utilidades varias a vendor
-            if (id.includes('@radix-ui') || id.includes('react-router-dom')) return 'vendor';
-          }
-
-          // Agrupar módulos de IA en un chunk separado
-          const aiPath = path.resolve(__dirname, 'src/components/ai');
-          if (id.includes(aiPath)) return 'ai';
-        },
-      },
-    },
+    // Deja que Vite/Rollup decidan el code-splitting por defecto.
+    // Evitamos manualChunks personalizados para reducir riesgos de
+    // agrupación errónea que puedan romper importaciones en producción.
   },
 })
