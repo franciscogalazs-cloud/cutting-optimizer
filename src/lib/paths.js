@@ -7,7 +7,24 @@ export function withBase(pathname = "") {
 
 export function brandUrl(rel = "") {
   // rel: e.g., "brand/industrial-plate/stencil_main.svg"
-  return withBase(rel);
+  const relClean = cleanRel(rel);
+  // En desarrollo, servir desde la raíz del dev server suele ser más fiable
+  // (Vite puede montar bajo base, pero los archivos de public/ siguen accesibles en raíz)
+  if (import.meta?.env?.DEV) {
+    return `/${relClean}`;
+  }
+  // En build/producción, respetar base (GitHub Pages)
+  return withBase(relClean);
+}
+
+// Dev helper: obtener la ruta relativa limpia (sin slash inicial)
+export function cleanRel(rel = "") {
+  return String(rel).replace(/^\/+/, "");
+}
+
+// Fallback absoluto a la raíz del host (útil en dev si el base no aplica a /public)
+export function rootUrl(rel = "") {
+  return `/${cleanRel(rel)}`;
 }
 
 export function absoluteUrl(rel = "") {

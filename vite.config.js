@@ -8,13 +8,15 @@ import { fileURLToPath } from 'url'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
-export default defineConfig({
-  base: '/cutting-optimizer/',
-  plugins: [react(),tailwindcss()],
+export default defineConfig(({ command }) => ({
+  // En desarrollo servimos en raíz para evitar issues con rutas de /public
+  // En build/producción mantenemos el base para GitHub Pages
+  base: command === 'serve' ? '/' : '/cutting-optimizer/',
+  plugins: [react(), tailwindcss()],
   server: {
     host: '127.0.0.1',
-    port: 5173, // usar puerto por defecto de Vite
-    strictPort: false, // permitir usar otro puerto si el 5173 está ocupado
+    port: 5173,
+    strictPort: false,
   },
   resolve: {
     alias: {
@@ -22,9 +24,6 @@ export default defineConfig({
     },
   },
   build: {
-    chunkSizeWarningLimit: 1024, // Reducir avisos por chunks grandes (1 MB)
-    // Deja que Vite/Rollup decidan el code-splitting por defecto.
-    // Evitamos manualChunks personalizados para reducir riesgos de
-    // agrupación errónea que puedan romper importaciones en producción.
+    chunkSizeWarningLimit: 1024,
   },
-})
+}))

@@ -1,5 +1,5 @@
 ﻿import React from "react";
-import { brandUrl } from "@/lib/paths";
+import { brandUrl, rootUrl } from "@/lib/paths";
 
 type Variant = "main" | "compact" | "square" | "stack";
 
@@ -33,6 +33,20 @@ export default function LogoPlate({
   return (
     <img
       src={src}
+      onError={(e) => {
+        const t = e.currentTarget as HTMLImageElement;
+        if (!(t as any).dataset?.fallback) {
+          (t as any).dataset = { ...(t as any).dataset, fallback: "1" } as DOMStringMap;
+          // mapear variante a ruta relativa root
+          const relByVariant: Record<Variant, string> = {
+            main: "brand/industrial-plate/stencil_main.svg",
+            compact: "brand/industrial-plate/stencil_compact.svg",
+            square: "brand/industrial-plate/stencil_square.svg",
+            stack: "brand/industrial-plate/stencil_stack.svg",
+          };
+          t.src = rootUrl(relByVariant[variant]);
+        }
+      }}
       width={width}
       className={className}
       alt={`Logo placa industrial (${variant})`}

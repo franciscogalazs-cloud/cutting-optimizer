@@ -1,5 +1,5 @@
 import { Trash2, Info, Play, Search } from "lucide-react";
-import { brandUrl } from "@/lib/paths";
+import { brandUrl, rootUrl } from "@/lib/paths";
 import { Button } from "@/components/ui/button";
 
 export const Header = ({
@@ -20,8 +20,24 @@ export const Header = ({
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--stroke)] bg-[var(--bg)]/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
-  <img src={brandUrl("brand/industrial-plate/stencil_main.svg")} alt="Logo" width="300" className="hidden sm:block" />
-  <img src={brandUrl("brand/industrial-plate/stencil_main.svg")} alt="Logo" width="220" className="sm:hidden" />
+  <img
+    src={brandUrl("brand/industrial-plate/stencil_main.svg")}
+    onError={(e) => {
+      const t = e.currentTarget; if (!t.dataset.fallback) { t.dataset.fallback = "1"; t.src = rootUrl("brand/industrial-plate/stencil_main.svg"); }
+    }}
+    alt="Logo"
+    width="300"
+    className="hidden sm:block"
+  />
+  <img
+    src={brandUrl("brand/industrial-plate/stencil_main.svg")}
+    onError={(e) => {
+      const t = e.currentTarget; if (!t.dataset.fallback) { t.dataset.fallback = "1"; t.src = rootUrl("brand/industrial-plate/stencil_main.svg"); }
+    }}
+    alt="Logo"
+    width="220"
+    className="sm:hidden"
+  />
 
         <div className="hidden flex-1 items-center justify-center md:flex">
           <label className="relative w-full max-w-md">
