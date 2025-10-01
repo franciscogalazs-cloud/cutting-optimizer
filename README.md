@@ -65,3 +65,8 @@ Notas de lint configuradas:
 - Añadir tests unitarios al algoritmo si se requiere.
 - Exportaciones: ampliar a PDF real (por ahora se genera HTML descargable) o a SVG/PNG con mayor fidelidad.
 
+## Notas de despliegue (GitHub Pages)
+- Vite está configurado con `base: '/cutting-optimizer/'`.
+- Los assets de marca utilizan helpers que respetan el base (`brandUrl()`).
+- React fijado a 18.3.x para compatibilidad de librerías en producción.
+
