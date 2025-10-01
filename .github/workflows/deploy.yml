@@ -21,39 +21,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: pnpm
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.4.1
-          run_install: false
-      - name: Enable corepack (safety)
-        run: corepack enable
-      - name: Verify pnpm
-        run: |
-          pnpm --version
-          which pnpm
-      - name: Ensure pnpm in PATH (fallback)
-        run: |
-          if ! command -v pnpm >/dev/null 2>&1; then
-            echo "pnpm not found, installing globally via npm..."
-            npm i -g pnpm@10.4.1
-            pnpm --version
-            which pnpm
-          fi
-      - name: Set CI env
-        run: echo "CI=true" >> $GITHUB_ENV
-      - name: Install dependencies (pnpm)
-        run: pnpm install --frozen-lockfile || pnpm install
+
+      - name: Install pnpm
+        run: npm install -g pnpm@10.4.1
+
       - name: Configure Pages
         uses: actions/configure-pages@v5
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile || pnpm install
+
       - name: Build
         run: pnpm build
+
       - name: Copy 404 for SPA fallback
-        run: |
-          cp dist/index.html dist/404.html
+        run: cp dist/index.html dist/404.html
+
       - uses: actions/upload-pages-artifact@v3
-        with: { path: dist }
+        with:
+          path: dist
+
   deploy:
     needs: build
     runs-on: ubuntu-latest
