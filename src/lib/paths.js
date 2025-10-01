@@ -1,6 +1,8 @@
 // Helpers para rutas respetando el base de Vite (GitHub Pages)
 export function withBase(pathname = "") {
-  const base = (import.meta?.env?.BASE_URL ?? "/");
+  // Tomar BASE_URL de Vite o del global inyectado en index.html
+  const injected = (typeof window !== 'undefined' && (window).__BASE_URL__) || undefined;
+  const base = (injected ?? import.meta?.env?.BASE_URL ?? "/");
   const clean = String(pathname).replace(/^\//, "");
   return `${base}${clean}`;
 }
