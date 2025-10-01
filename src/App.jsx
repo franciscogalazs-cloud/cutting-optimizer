@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Download, Grid3X3, Play, Scissors, TrendingUp, Calculator, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "./components/layout/Header";
