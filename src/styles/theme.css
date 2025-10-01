@@ -1,21 +1,23 @@
 :root {
-  --bg: #f7f7fb;
+  /* Colores base con mayor contraste para mejor legibilidad */
+  --bg: #f6f8fc; /* ligeramente más claro */
   --surface: #ffffff;
   --card: #ffffff;
-  --fg: #0f172a;
+  --fg: #0f172a; /* azul pizarra muy oscuro */
   --text: #0f172a;
-  --muted: #64748b;
-  --border: #e5e7eb;
-  --stroke: #e5e7eb;
-  --primary: #2563eb;
-  --accent: #22c55e;
-  --accent-2: #0ea5e9;
-  --success: #16a34a;
-  --warning: #f59e0b;
-  --danger: #ef4444;
-  --shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  --muted: #475569; /* más oscuro que antes para contraste */
+  --border: #d1d5db; /* bordes un poco más marcados */
+  --stroke: #d1d5db;
+  --primary: #1d4ed8; /* más oscuro para mejorar contraste */
+  --accent: #15803d;  /* verde más oscuro */
+  --accent-2: #0369a1; /* cian más oscuro */
+  --success: #166534;
+  --warning: #b45309; /* naranja más oscuro */
+  --danger: #b91c1c;  /* rojo más oscuro */
+  --shadow: 0 10px 22px rgba(15, 23, 42, 0.10);
   --radius: 16px;
 }
+
 
 html,
 body,
