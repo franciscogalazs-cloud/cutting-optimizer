@@ -35,6 +35,15 @@ body {
   box-sizing: border-box;
 }
 
+/* Utilidad: ocultar scrollbars sin desactivar scroll */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Responsive helpers */
+@media (max-width: 640px) {
+  .container-pad { padding-left: 12px; padding-right: 12px; }
+}
+
 button,
 input,
 select,

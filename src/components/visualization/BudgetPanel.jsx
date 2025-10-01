@@ -1,4 +1,4 @@
-import { brandUrl } from "@/lib/paths";
+import { absoluteUrl } from "@/lib/paths";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { printElement } from '@/lib/print.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calculator, Copy, Plus, Trash2 } from 'lucide-react';
 import { computeEdgeTotals } from '@/features/edgebanding/edgeBanding.js';
+import { useLocalStorage } from '@/hooks/useLocalStorage.js';
 import { formatCLP } from '@/lib/format.js';
 
 const createId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -71,14 +72,14 @@ const printStyles = `
 
 export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' }) => {
   const printAreaRef = useRef(null); // contendrá toda la pestaña presupuesto visible
-  const [client, setClient] = useState(emptyClient);
-  const [baseMaterials, setBaseMaterials] = useState([createMaterialRow()]);
-  const [edgeItems, setEdgeItems] = useState([createEdgeRow()]);
-  const [hardwareItems, setHardwareItems] = useState([createHardwareRow()]);
-  const [indirectPercent, setIndirectPercent] = useState(0);
-  const [marginPercent, setMarginPercent] = useState(0);
-  const [taxPercent, setTaxPercent] = useState(19);
-  const [freight, setFreight] = useState(0);
+  const [client, setClient] = useLocalStorage('budget-client', emptyClient);
+  const [baseMaterials, setBaseMaterials] = useLocalStorage('budget-base-materials', [createMaterialRow()]);
+  const [edgeItems, setEdgeItems] = useLocalStorage('budget-edge-items', [createEdgeRow()]);
+  const [hardwareItems, setHardwareItems] = useLocalStorage('budget-hardware-items', [createHardwareRow()]);
+  const [indirectPercent, setIndirectPercent] = useLocalStorage('budget-indirect-percent', 0);
+  const [marginPercent, setMarginPercent] = useLocalStorage('budget-margin-percent', 0);
+  const [taxPercent, setTaxPercent] = useLocalStorage('budget-tax-percent', 19);
+  const [freight, setFreight] = useLocalStorage('budget-freight', 0);
   // Desperdicio de tapacantos se calcula fuera; no se edita aquí.
 
   // (ancho eliminado)
@@ -135,14 +136,20 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   }, [pieces]);
 
   useEffect(() => {
-    setClient(emptyClient);
-    setBaseMaterials(defaultBaseRows);
-    setEdgeItems(defaultEdgeRows);
-    setHardwareItems([createHardwareRow()]);
-    setIndirectPercent(0);
-    setMarginPercent(0);
-    setTaxPercent(19);
-    setFreight(0);
+    // Si no hay datos previos guardados, inicializamos desde resultado/materiales
+    if (!client || (client && !client.__init)) {
+      setClient({ ...emptyClient, __init: true });
+    }
+    if (Array.isArray(baseMaterials) && baseMaterials.length <= 1 && !baseMaterials[0]?.name && defaultBaseRows.length) {
+      setBaseMaterials(defaultBaseRows);
+    }
+    if (Array.isArray(edgeItems) && edgeItems.length <= 1 && !edgeItems[0]?.name && defaultEdgeRows.length) {
+      setEdgeItems(defaultEdgeRows);
+    }
+    if (Array.isArray(hardwareItems) && hardwareItems.length === 1 && !hardwareItems[0]?.name) {
+      setHardwareItems([createHardwareRow()]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultBaseRows, defaultEdgeRows]);
 
   const handleMaterialChange = (id, key, value) => {
@@ -191,6 +198,11 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const taxValue = subtotalWithMargin * (toNumber(taxPercent) / 100);
   const totalWithTax = subtotalWithMargin + taxValue;
   const printGeneratedAt = useMemo(() => new Date().toLocaleString('es-CL'), []);
+  const printFolio = useMemo(() => {
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    return `P-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+  }, []);
 
   const printBudget = () => {
     // Cierra posibles popups/portales (Radix Select, Dialog, etc.) antes de imprimir
@@ -210,10 +222,10 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       /* Preferir menos hojas */
       @page { size: A4; margin: 6mm; }
 
-      /* Mostrar todo lo que normalmente está oculto en pantalla */
-      .no-print { display: block !important; }
+      /* Mostrar solo la versión de impresión */
+      .no-print { display: none !important; }
       .print-only { display: block !important; }
-  .hide-on-print { display: none !important; }
+      .hide-on-print { display: none !important; }
       /* Expandir contenedores con scroll para que entre todo */
   .max-h-[80vh] { max-height: none !important; }
       .overflow-auto, .overflow-y-auto, .overflow-x-auto { overflow: visible !important; }
@@ -273,6 +285,13 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     }, 30);
   };
 
+  const scrollToId = (id) => {
+    try {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } catch {}
+  };
+
   if (!result) {
     return (
       <>
@@ -304,20 +323,11 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   return (
     <>
       <style>{printStyles}</style>
-      <div ref={printAreaRef} id="budget-print-root" className="no-print">
-        {/* Encabezado solo para impresión */}
-        <div className="print-only mb-4 flex items-center gap-3">
-          <img
-            src={brandUrl("brand/industrial-plate/stencil_main.svg")}
-            alt="Logo"
-            className="print-logo"
-            style={{ height: 84 }}
-          />
-          <div className="text-xs text-[var(--muted)]">Presupuesto</div>
-        </div>
-        <ScrollArea className="max-h-[80vh] pr-2">
+      <div ref={printAreaRef} id="budget-print-root" className="">
+        {/* Editor visible solo en pantalla (no-print) para agregar/editar valores */}
+        <ScrollArea className="no-print max-h-[80vh] pr-2">
           <div className="space-y-6 pb-4">
-            <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+            <Card id="budget-editor-cliente" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
               <CardHeader>
                 <CardTitle>Datos del cliente</CardTitle>
               </CardHeader>
@@ -350,7 +360,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </CardContent>
             </Card>
 
-            <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+            <Card id="budget-editor-materiales" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <span>Materiales base</span>
@@ -442,7 +452,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             </Card>
 
             <div className="grid gap-4">
-              <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+              <Card id="budget-editor-tapacantos" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
                 <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <span>Tapacantos</span>
@@ -518,7 +528,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 </CardContent>
               </Card>
 
-              <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+              <Card id="budget-editor-herrajes" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
                 <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <span>Herrajes</span>
@@ -688,171 +698,258 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </CardContent>
             </Card>
 
-            {/* Totales (solo impresión): parámetros a la izquierda y totales a la derecha en el mismo espacio */}
-            <div className="print-only rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4">
-              <h2 className="mb-3 text-lg font-semibold text-[var(--text)]">Totales</h2>
-              <div className="grid gap-4 sm:grid-cols-2 text-sm">
-                {/* Columna izquierda: parámetros */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span>% Indirectos</span>
-                    <span className="font-medium">{toNumber(indirectPercent)}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>% Margen</span>
-                    <span className="font-medium">{toNumber(marginPercent)}%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>IVA %</span>
-                    <span className="font-medium">{toNumber(taxPercent)}%</span>
-                  </div>
-                </div>
-
-                {/* Columna derecha: totales */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span>Materiales base</span>
-                    <span className="font-medium">{formatCLP(materialsTotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Tapacantos</span>
-                    <span className="font-medium">{formatCLP(edgesTotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Herrajes</span>
-                    <span className="font-medium">{formatCLP(hardwareTotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Indirectos</span>
-                    <span className="font-medium">{formatCLP(indirects)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Flete</span>
-                    <span className="font-medium">{formatCLP(freightValue)}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="font-semibold text-[var(--text)]">Subtotal neto</span>
-                    <span className="font-semibold text-[var(--text)]">{formatCLP(subtotalNet)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Margen</span>
-                    <span className="font-medium">{formatCLP(marginValue)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Precio de venta</span>
-                    <span className="font-medium">{formatCLP(subtotalWithMargin)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>IVA</span>
-                    <span className="font-medium">{formatCLP(taxValue)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Total con IVA</span>
-                    <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
         </ScrollArea>
-      </div>
-
-  <div className="print-only space-y-6 p-8">
-        <header className="border-b border-[var(--border)] pb-4">
-          <h1 className="text-2xl font-semibold text-[var(--text)]">Resumen de presupuesto</h1>
-          <p className="text-sm text-[var(--muted)]">Generado: {printGeneratedAt}</p>
-        </header>
-        <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Totales</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {/* Columna izquierda: parámetros */}
-            <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
-              <div className="flex items-center justify-between">
-                <span>% Indirectos</span>
-                <span className="font-medium">{toNumber(indirectPercent)}%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>% Margen</span>
-                <span className="font-medium">{toNumber(marginPercent)}%</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>IVA %</span>
-                <span className="font-medium">{toNumber(taxPercent)}%</span>
+  {/* Resumen consolidado: solo para impresión */}
+  <div className="print-only space-y-6 p-6">
+          <header className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+            <div className="flex items-center gap-3">
+              <img src={absoluteUrl('brand/industrial-plate/stencil_main.svg')} alt="Logo" className="print-logo" style={{ height: 64 }} />
+              <div>
+                <h1 className="text-xl font-semibold text-[var(--text)]">Resumen de presupuesto</h1>
+                <p className="text-xs text-[var(--muted)]">Generado: {printGeneratedAt} · Folio: {printFolio}</p>
               </div>
             </div>
-
-            {/* Columna derecha: totales */}
-            <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
-              <div className="flex items-center justify-between">
-                <span>Materiales base</span>
-                <span className="font-medium">{formatCLP(materialsTotal)}</span>
+            <div className="text-right text-xs text-[var(--muted)]">Cliente</div>
+          </header>
+          
+          {/* Datos del cliente */}
+          <section className="space-y-2">
+            <div className="text-sm text-[var(--muted)]">Datos del cliente</div>
+            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-white p-4">
+              <div className="grid grid-cols-3 gap-4 text-sm">
+                <div>
+                  <div className="text-[var(--muted)]">Nombre</div>
+                  <div className="text-[var(--text)]">{client.name || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-[var(--muted)]">Email</div>
+                  <div className="text-[var(--text)]">{client.email || '—'}</div>
+                </div>
+                <div>
+                  <div className="text-[var(--muted)]">Telefono</div>
+                  <div className="text-[var(--text)]">{client.phone || '—'}</div>
+                </div>
               </div>
-              <div className="flex items-center justify-between">
-                <span>Tapacantos</span>
-                <span className="font-medium">{formatCLP(edgesTotal)}</span>
+            </div>
+            <div className="no-print">
+              <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-cliente')}>Agregar / Editar</Button>
+            </div>
+          </section>
+          {/* Materiales base */}
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Materiales base</h2>
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-[var(--surface)]">
+                  <th className="border border-[var(--border)] px-3 py-2 text-left">Tipo</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-left">Unidad</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">Precio</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">Cantidad</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {baseMaterials.map((m) => (
+                  <tr key={m.id}>
+                    <td className="border border-[var(--border)] px-3 py-2">{m.name || '—'}{m.details ? <div className="text-[10px] text-[var(--muted)]">{m.details}</div> : null}</td>
+                    <td className="border border-[var(--border)] px-3 py-2">{m.unit}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(m.price))}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{toNumber(m.quantity)}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(m.price) * toNumber(m.quantity))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="no-print">
+              <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-materiales')}>Agregar material</Button>
+            </div>
+          </section>
+          {/* Tapacantos */}
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Tapacantos</h2>
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-[var(--surface)]">
+                  <th className="border border-[var(--border)] px-3 py-2 text-left">Nombre</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">$/ml</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">Cantidad (ml)</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {edgeItems.map((e) => (
+                  <tr key={e.id}>
+                    <td className="border border-[var(--border)] px-3 py-2">{e.name || '—'}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(e.price))}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{toNumber(e.quantity)}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(e.price) * toNumber(e.quantity))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="no-print">
+              <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-tapacantos')}>Agregar tapacanto</Button>
+            </div>
+          </section>
+          {/* Herrajes */}
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Herrajes</h2>
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-[var(--surface)]">
+                  <th className="border border-[var(--border)] px-3 py-2 text-left">Nombre</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">$ c/u</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">Cantidad</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hardwareItems.map((h) => (
+                  <tr key={h.id}>
+                    <td className="border border-[var(--border)] px-3 py-2">{h.name || '—'}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(h.price))}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{toNumber(h.quantity)}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(h.price) * toNumber(h.quantity))}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div className="no-print">
+              <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-herrajes')}>Agregar herraje</Button>
+            </div>
+          </section>
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Patrones optimizados</h2>
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr className="bg-[var(--surface)]">
+                  <th className="border border-[var(--border)] px-3 py-2 text-left">Hoja</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-left">Material</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-left">Dimensiones</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">Utilización</th>
+                  <th className="border border-[var(--border)] px-3 py-2 text-right">Piezas</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.patterns.map((pattern, index) => (
+                  <tr key={pattern.id ?? index}>
+                    <td className="border border-[var(--border)] px-3 py-2">Hoja {index + 1}</td>
+                    <td className="border border-[var(--border)] px-3 py-2">{pattern.materialName || 'N/A'}</td>
+                    <td className="border border-[var(--border)] px-3 py-2">{pattern.materialLength} × {pattern.materialWidth} {units}</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{Number(pattern.utilization ?? 0).toFixed(1)}%</td>
+                    <td className="border border-[var(--border)] px-3 py-2 text-right">{(pattern.pieces || []).length}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+          {/* Controles de parámetros y acción (solo en pantalla) - ubicado debajo de Patrones optimizados */}
+          <div className="no-print rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3">
+            <div className="grid items-end gap-3 sm:grid-cols-5">
+              <div className="space-y-1">
+                <Label className="text-xs">% Indirectos</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={indirectPercent}
+                  onChange={(e) => setIndirectPercent(e.target.value)}
+                />
               </div>
-              <div className="flex items-center justify-between">
-                <span>Herrajes</span>
-                <span className="font-medium">{formatCLP(hardwareTotal)}</span>
+              <div className="space-y-1">
+                <Label className="text-xs">% Margen</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={marginPercent}
+                  onChange={(e) => setMarginPercent(e.target.value)}
+                />
               </div>
-              <div className="flex items-center justify-between">
-                <span>Indirectos</span>
-                <span className="font-medium">{formatCLP(indirects)}</span>
+              <div className="space-y-1">
+                <Label className="text-xs">IVA %</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={taxPercent}
+                  onChange={(e) => setTaxPercent(e.target.value)}
+                />
               </div>
-              <div className="flex items-center justify-between">
-                <span>Flete</span>
-                <span className="font-medium">{formatCLP(freightValue)}</span>
+              <div className="space-y-1">
+                <Label className="text-xs">Flete (CLP)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  value={freight}
+                  onChange={(e) => setFreight(e.target.value)}
+                />
               </div>
-              <div className="flex items-center justify-between pt-2">
-                <span className="font-semibold text-[var(--text)]">Subtotal neto</span>
-                <span className="font-semibold text-[var(--text)]">{formatCLP(subtotalNet)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Margen</span>
-                <span className="font-medium">{formatCLP(marginValue)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Precio de venta</span>
-                <span className="font-medium">{formatCLP(subtotalWithMargin)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>IVA</span>
-                <span className="font-medium">{formatCLP(taxValue)}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Total con IVA</span>
-                <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
+              <div className="flex sm:justify-end">
+                <Button variant="outline" onClick={printBudget}>Imprimir</Button>
               </div>
             </div>
           </div>
-        </section>
-        <section className="space-y-2">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Patrones optimizados</h2>
-          <table className="w-full border-collapse text-sm">
-            <thead>
-              <tr className="bg-[var(--surface)]">
-                <th className="border border-[var(--border)] px-3 py-2 text-left">Hoja</th>
-                <th className="border border-[var(--border)] px-3 py-2 text-left">Material</th>
-                <th className="border border-[var(--border)] px-3 py-2 text-left">Dimensiones</th>
-                <th className="border border-[var(--border)] px-3 py-2 text-right">Utilizacion</th>
-                <th className="border border-[var(--border)] px-3 py-2 text-right">Piezas</th>
-              </tr>
-            </thead>
-            <tbody>
-              {result.patterns.map((pattern, index) => (
-                <tr key={pattern.id ?? index}>
-                  <td className="border border-[var(--border)] px-3 py-2">Hoja {index + 1}</td>
-                  <td className="border border-[var(--border)] px-3 py-2">{pattern.materialName || '�'}</td>
-                  <td className="border border-[var(--border)] px-3 py-2">
-                    {pattern.materialLength} � {pattern.materialWidth} {units}
-                  </td>
-                  <td className="border border-[var(--border)] px-3 py-2 text-right">{pattern.utilization.toFixed(1)}%</td>
-                  <td className="border border-[var(--border)] px-3 py-2 text-right">{pattern.pieces.length}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+          {/* Totales al final */}
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Totales</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {/* Parámetros */}
+              <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>% Indirectos</span>
+                  <span className="font-medium">{toNumber(indirectPercent)}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>% Margen</span>
+                  <span className="font-medium">{toNumber(marginPercent)}%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>IVA %</span>
+                  <span className="font-medium">{toNumber(taxPercent)}%</span>
+                </div>
+              </div>
+
+              {/* Totales */}
+              <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
+                <div className="flex items-center justify-between">
+                  <span>Materiales base</span>
+                  <span className="font-medium">{formatCLP(materialsTotal)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Tapacantos</span>
+                  <span className="font-medium">{formatCLP(edgesTotal)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Herrajes</span>
+                  <span className="font-medium">{formatCLP(hardwareTotal)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Indirectos</span>
+                  <span className="font-medium">{formatCLP(indirects)}</span>
+                </div>
+                <div className="flex items-center justify-between pt-2">
+                  <span className="font-semibold text-[var(--text)]">Subtotal neto</span>
+                  <span className="font-semibold text-[var(--text)]">{formatCLP(subtotalNet)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Margen</span>
+                  <span className="font-medium">{formatCLP(marginValue)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Precio de venta</span>
+                  <span className="font-medium">{formatCLP(subtotalWithMargin)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>IVA</span>
+                  <span className="font-medium">{formatCLP(taxValue)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Total con IVA</span>
+                  <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </div>
     </>
   );

@@ -363,7 +363,7 @@ function App() {
         isOptimizing={isOptimizing}
         units={config.units}
       />
-      <main className="mx-auto flex max-w-7xl flex-col gap-8 px-4 py-6 lg:px-6">
+  <main className="mx-auto flex max-w-7xl flex-col gap-8 px-3 py-4 sm:px-4 lg:px-6">
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {kpiItems.map((item) => (
             <KpiCard key={item.label} {...item} />
@@ -416,7 +416,7 @@ function App() {
           </aside>
           <section className="space-y-6 min-w-0 w-full flex-1">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid gap-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] sm:grid-cols-3 lg:grid-cols-6">
+              <TabsList className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] sm:grid sm:grid-cols-3 lg:grid-cols-6">
                 <TabsTrigger value="pieces" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
                   <span>Piezas</span>
                   <Badge variant={getTabBadgeVariant("pieces")} className="ml-1">

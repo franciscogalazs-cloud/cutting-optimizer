@@ -1,6 +1,7 @@
 import { Trash2, Info, Play, Search } from "lucide-react";
 import { brandUrl, rootUrl } from "@/lib/paths";
 import { Button } from "@/components/ui/button";
+import BUILD_INFO from "@/lib/build-info";
 
 export const Header = ({
   onShowInfo,
@@ -19,7 +20,7 @@ export const Header = ({
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--stroke)] bg-[var(--bg)]/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center gap-4 px-4 py-3 sm:px-6">
+  <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4 lg:px-6">
   <img
     src={brandUrl("brand/industrial-plate/stencil_main.svg")}
     onError={(e) => {
@@ -47,8 +48,8 @@ export const Header = ({
       }
     }}
     alt="Logo"
-    width="220"
-    className="sm:hidden"
+    width="160"
+    className="sm:hidden max-w-[60%] h-auto"
   />
 
         <div className="hidden flex-1 items-center justify-center md:flex">
@@ -63,6 +64,12 @@ export const Header = ({
         </div>
 
         <div className="ml-auto flex items-center gap-2 text-[var(--muted)]">
+          <span
+            title={`v${BUILD_INFO?.version} • ${BUILD_INFO?.commit} • ${new Date(BUILD_INFO?.date).toLocaleString('es-CL')}`}
+            className="hidden md:inline-flex items-center rounded-md border border-[var(--stroke)] bg-[var(--card)] px-2 py-1 text-[10px] text-[var(--muted)]"
+          >
+            v{BUILD_INFO?.version} · {BUILD_INFO?.commit}
+          </span>
           <Button
             size="sm"
             onClick={onOptimize}

@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { areaToSquareMeters, formatSquareMeters } from '../../lib/format';
-import { brandUrl } from "@/lib/paths";
+import { absoluteUrl } from "@/lib/paths";
 import { printElement } from '@/lib/print';
 
 // Generador del HTML del reporte (fuera del componente para evitar TDZ y re-creaciones)
@@ -60,7 +60,7 @@ export function generateReportHTML(result, pieces, materials, config) {
     <div class="page">
       <div class="header">
         <div class="brand">
-          <img class="brand-logo" src="${brandUrl('brand/industrial-plate/stencil_main.svg')}" alt="Industrial Plate" />
+          <img class="brand-logo" src="${absoluteUrl('brand/industrial-plate/stencil_main.svg')}" alt="Industrial Plate" />
         </div>
         <h1>Reporte de Optimización de Cortes</h1>
         <p>Generado el ${new Date().toLocaleDateString('es-ES')}</p>

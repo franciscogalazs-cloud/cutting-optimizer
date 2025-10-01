@@ -1,5 +1,5 @@
 import { areaToSquareMeters, formatSquareMeters } from './format';
-import { brandUrl } from './paths';
+import { absoluteUrl } from './paths';
 
 // Genera el HTML completo del reporte (para modal, nueva pestaña o descarga)
 export function generateReportHTML(result, pieces, materials, config) {
@@ -60,7 +60,7 @@ export function generateReportHTML(result, pieces, materials, config) {
     <div class="page">
       <div class="header">
         <div class="brand">
-          <img class="brand-logo" src="${brandUrl('brand/industrial-plate/stencil_main.svg')}" alt="Industrial Plate" />
+          <img class="brand-logo" src="${absoluteUrl('brand/industrial-plate/stencil_main.svg')}" alt="Industrial Plate" />
         </div>
         <h1>Reporte de Optimización de Cortes</h1>
         <p>Generado el ${new Date().toLocaleDateString('es-ES')}</p>
