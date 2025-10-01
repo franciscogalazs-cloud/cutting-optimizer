@@ -416,7 +416,7 @@ function App() {
           </aside>
           <section className="space-y-6 min-w-0 w-full flex-1">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] sm:grid sm:grid-cols-3 lg:grid-cols-6">
+              <TabsList className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
                 <TabsTrigger value="pieces" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
                   <span>Piezas</span>
                   <Badge variant={getTabBadgeVariant("pieces")} className="ml-1">
