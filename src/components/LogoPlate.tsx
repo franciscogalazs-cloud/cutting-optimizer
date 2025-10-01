@@ -34,17 +34,19 @@ export default function LogoPlate({
     <img
       src={src}
       onError={(e) => {
-        const t = e.currentTarget as HTMLImageElement;
-        if (!(t as any).dataset?.fallback) {
-          (t as any).dataset = { ...(t as any).dataset, fallback: "1" } as DOMStringMap;
-          // mapear variante a ruta relativa root
-          const relByVariant: Record<Variant, string> = {
-            main: "brand/industrial-plate/stencil_main.svg",
-            compact: "brand/industrial-plate/stencil_compact.svg",
-            square: "brand/industrial-plate/stencil_square.svg",
-            stack: "brand/industrial-plate/stencil_stack.svg",
-          };
-          t.src = rootUrl(relByVariant[variant]);
+        if (import.meta.env.DEV) {
+          const t = e.currentTarget as HTMLImageElement;
+          if (!(t as any).dataset?.fallback) {
+            (t as any).dataset = { ...(t as any).dataset, fallback: "1" } as DOMStringMap;
+            // mapear variante a ruta relativa root
+            const relByVariant: Record<Variant, string> = {
+              main: "brand/industrial-plate/stencil_main.svg",
+              compact: "brand/industrial-plate/stencil_compact.svg",
+              square: "brand/industrial-plate/stencil_square.svg",
+              stack: "brand/industrial-plate/stencil_stack.svg",
+            };
+            t.src = rootUrl(relByVariant[variant]);
+          }
         }
       }}
       width={width}

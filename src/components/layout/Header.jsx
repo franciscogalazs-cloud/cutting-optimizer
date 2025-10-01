@@ -23,7 +23,13 @@ export const Header = ({
   <img
     src={brandUrl("brand/industrial-plate/stencil_main.svg")}
     onError={(e) => {
-      const t = e.currentTarget; if (!t.dataset.fallback) { t.dataset.fallback = "1"; t.src = rootUrl("brand/industrial-plate/stencil_main.svg"); }
+      if (import.meta.env.DEV) {
+        const t = e.currentTarget;
+        if (!t.dataset.fallback) {
+          t.dataset.fallback = "1";
+          t.src = rootUrl("brand/industrial-plate/stencil_main.svg");
+        }
+      }
     }}
     alt="Logo"
     width="300"
@@ -32,7 +38,13 @@ export const Header = ({
   <img
     src={brandUrl("brand/industrial-plate/stencil_main.svg")}
     onError={(e) => {
-      const t = e.currentTarget; if (!t.dataset.fallback) { t.dataset.fallback = "1"; t.src = rootUrl("brand/industrial-plate/stencil_main.svg"); }
+      if (import.meta.env.DEV) {
+        const t = e.currentTarget;
+        if (!t.dataset.fallback) {
+          t.dataset.fallback = "1";
+          t.src = rootUrl("brand/industrial-plate/stencil_main.svg");
+        }
+      }
     }}
     alt="Logo"
     width="220"
