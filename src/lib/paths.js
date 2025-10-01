@@ -13,8 +13,13 @@ export function brandUrl(rel = "") {
   if (import.meta?.env?.DEV) {
     return `/${relClean}`;
   }
-  // En build/producción, respetar base (GitHub Pages)
-  return withBase(relClean);
+  // En build/producción, devolver URL absoluta con base para robustez (Pages)
+  const withB = withBase(relClean);
+  try {
+    return new URL(withB, window.location.origin).href;
+  } catch {
+    return withB;
+  }
 }
 
 // Dev helper: obtener la ruta relativa limpia (sin slash inicial)
