@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Download, Grid3X3, Play, Scissors, TrendingUp, Calculator, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
@@ -419,22 +419,13 @@ function App() {
               <TabsList className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
                 <TabsTrigger value="pieces" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
                   <span>Piezas</span>
-                  <Badge variant={getTabBadgeVariant("pieces")} className="ml-1">
-                    {pieces.length}
-                  </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="materials" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
                   <span>Materiales</span>
-                  <Badge variant={getTabBadgeVariant("materials")} className="ml-1">
-                    {materials.length}
-                  </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="patterns" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
                   <Grid3X3 className="h-4 w-4" />
                   <span>Patrones</span>
-                  <Badge variant={getTabBadgeVariant("patterns")} className="ml-1">
-                    {result?.patterns?.length || 0}
-                  </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="edgebanding" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
                   <Scissors className="h-4 w-4" />
@@ -443,9 +434,6 @@ function App() {
                 <TabsTrigger value="budget" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
                   <Calculator className="h-4 w-4" />
                   <span>Presupuesto</span>
-                  <Badge variant={getTabBadgeVariant("budget")} className="ml-1">
-                    {result ? "" : "--"}
-                  </Badge>
                 </TabsTrigger>
                 <TabsTrigger value="ai" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
                   <BarChart3 className="h-4 w-4" />
