@@ -3,6 +3,9 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+defaults:
+  run:
+    shell: bash
 permissions:
   contents: read
   pages: write
@@ -19,11 +22,27 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
-      - name: Enable corepack and pnpm
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+          run_install: false
+      - name: Enable corepack (safety)
+        run: corepack enable
+      - name: Verify pnpm
         run: |
-          corepack enable
-          corepack prepare pnpm@10.4.1 --activate
-          pnpm -v
+          pnpm --version
+          which pnpm
+      - name: Ensure pnpm in PATH (fallback)
+        run: |
+          if ! command -v pnpm >/dev/null 2>&1; then
+            echo "pnpm not found, installing globally via npm..."
+            npm i -g pnpm@10.4.1
+            pnpm --version
+            which pnpm
+          fi
+      - name: Set CI env
+        run: echo "CI=true" >> $GITHUB_ENV
       - name: Install dependencies (pnpm)
         run: pnpm install --frozen-lockfile || pnpm install
       - name: Configure Pages
