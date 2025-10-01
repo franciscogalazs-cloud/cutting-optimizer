@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calculator, Copy, Plus, Trash2 } from 'lucide-react';
@@ -364,7 +363,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="flex items-center gap-2">
                   <span>Materiales base</span>
-                  <Badge variant="outline">{formatCLP(materialsTotal)}</Badge>
                 </CardTitle>
                 <Button variant="outline" size="sm" onClick={() => setBaseMaterials((prev) => [...prev, createMaterialRow()])}>
                   <Plus className="h-4 w-4" />
@@ -456,7 +454,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <span>Tapacantos</span>
-                    <Badge variant="outline">{formatCLP(edgesTotal)}</Badge>
                   </CardTitle>
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setEdgeItems((prev) => [...prev, createEdgeRow()])}>
@@ -532,7 +529,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="flex items-center gap-2">
                     <span>Herrajes</span>
-                    <Badge variant="outline">{formatCLP(hardwareTotal)}</Badge>
                   </CardTitle>
                   <Button variant="outline" size="sm" onClick={() => setHardwareItems((prev) => [...prev, createHardwareRow()])}>
                     <Plus className="h-4 w-4" />

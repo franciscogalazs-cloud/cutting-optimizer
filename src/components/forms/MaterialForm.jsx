@@ -227,38 +227,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
             </div>
           </div>
 
-          {/* Mostrar cantidad calculada automaticamente */}
-          {(formData.length && formData.width) && (
-            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3 text-sm">
-              <div className="flex items-center justify-between">
-                <span className="text-[var(--muted)]">Cantidad calculada automaticamente:</span>
-                <span className="font-semibold text-[var(--primary)]">
-                  {calculateRequiredQuantity()} tablero{calculateRequiredQuantity() !== 1 ? 's' : ''}
-                </span>
-              </div>
-              <div className="mt-1 text-xs text-[var(--muted)] space-y-1">
-                {pieces.length > 0 ? (
-                  <>
-                    <div>Basado en {pieces.reduce((sum, p) => sum + p.quantity, 0)} piezas con eficiencia del 80%</div>
-                    <div>Area total piezas: {(pieces.reduce((sum, p) => {
-                      const pieceLengthMm = units === 'cm' ? p.length * 10 : p.length;
-                      const pieceWidthMm = units === 'cm' ? p.width * 10 : p.width;
-                      return sum + (pieceLengthMm * pieceWidthMm * p.quantity);
-                    }, 0) / 1000000).toFixed(2)} m2</div>
-                  </>
-                ) : (
-                  <div>Agregar piezas para calcular cantidad automaticamente</div>
-                )}
-                <div>Area por tablero: {(() => {
-                  const materialLength = parseFloat(formData.length);
-                  const materialWidth = parseFloat(formData.width);
-                  const materialLengthMm = units === 'cm' ? materialLength * 10 : materialLength;
-                  const materialWidthMm = units === 'cm' ? materialWidth * 10 : materialWidth;
-                  return ((materialLengthMm * materialWidthMm) / 1000000).toFixed(2);
-                })() } m2</div>
-              </div>
-            </div>
-          )}
+          {/* Bloque informativo de cantidad automática removido a pedido del usuario */}
 
           {/* campo precio eliminado: el precio se aplica directamente en Presupuesto */}
 
