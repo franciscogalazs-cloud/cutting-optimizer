@@ -1,4 +1,16 @@
-﻿@import "tailwindcss";
+﻿/* Encabezados de tabla pegados al imprimir (repetir thead en cada página) */
+@media print {
+  thead { display: table-header-group; }
+  tfoot { display: table-footer-group; }
+}
+
+/* Zebra más marcada en móvil para mejorar lectura */
+@media (max-width: 640px) {
+  table tbody tr:nth-child(odd) {
+    background-color: color-mix(in srgb, var(--bg) 80%, #000 20%) !important;
+  }
+}
+@import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -75,10 +87,12 @@ textarea:focus-visible {
 
 /* Feedback hover/active para botones nativos no-shadcn */
 button:not([data-slot="button"]) {
-  transition: transform 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+  transition: transform 150ms ease, background-color 150ms ease, color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
 }
 button:not([data-slot="button"]):hover {
   transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+  border-color: var(--primary);
 }
 button:not([data-slot="button"]):active {
   transform: translateY(0) scale(0.98);
