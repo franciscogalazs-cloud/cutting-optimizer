@@ -168,8 +168,23 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
       <CardContent>
         <div className="p-4 pb-0 text-xs text-slate-500 dark:text-slate-400">Ingresa las dimensiones en {units}. Puedes activar tapacantos para cada lado individualmente.</div>
         <form onSubmit={handleSubmit} className="card-scroll p-4 space-y-4 max-h-[420px] overflow-auto">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+          {/* Etiqueta primero */}
+          <div className="space-y-2">
+            <Label htmlFor="piece-label">Nombre de pieza</Label>
+            <Input
+              id="piece-label"
+              type="text"
+              value={formData.label}
+              onChange={(event) => handleFieldChange('label', event.target.value)}
+              placeholder="Ej: Puerta, Estante..."
+              className={'w-full ' + (errors.label ? 'border-red-500' : '')}
+            />
+            {errors.label && <p className="text-xs text-[var(--danger)]">{errors.label}</p>}
+          </div>
+
+          {/* En la misma línea: Largo, Ancho, Cantidad y Material */}
+          <div className="grid gap-3 md:grid-cols-4 sm:grid-cols-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="piece-length">Largo ({units})</Label>
               <Input
                 id="piece-length"
@@ -182,7 +197,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
               />
               {errors.length && <p className="text-xs text-[var(--danger)]">{errors.length}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="piece-width">Ancho ({units})</Label>
               <Input
                 id="piece-width"
@@ -195,10 +210,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
               />
               {errors.width && <p className="text-xs text-[var(--danger)]">{errors.width}</p>}
             </div>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="piece-quantity">Cantidad</Label>
               <Input
                 id="piece-quantity"
@@ -210,42 +222,29 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
               />
               {errors.quantity && <p className="text-xs text-[var(--danger)]">{errors.quantity}</p>}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="piece-label">Etiqueta</Label>
-              <Input
-                id="piece-label"
-                type="text"
-                value={formData.label}
-                onChange={(event) => handleFieldChange('label', event.target.value)}
-                placeholder="Ej: Puerta, Estante..."
-                className={'w-full ' + (errors.label ? 'border-red-500' : '')}
-              />
-              {errors.label && <p className="text-xs text-[var(--danger)]">{errors.label}</p>}
+            <div className="space-y-2 min-w-0">
+              <Label>Material</Label>
+              <Select
+                value={materialOptions.find((option) => option.name === formData.material) ? formData.material : undefined}
+                onValueChange={(value) => handleFieldChange('material', value)}
+                disabled={materialOptions.length === 0}
+              >
+                <SelectTrigger className="w-full border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">
+                  <SelectValue placeholder={materialOptions.length === 0 ? 'Sin materiales disponibles' : 'Selecciona un material'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {materialOptions.map((option) => (
+                    <SelectItem key={option.name} value={option.name}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {errors.material && <p className="text-xs text-[var(--danger)]">{errors.material}</p>}
+              {materialOptions.length === 0 && (
+                <p className="text-xs text-[var(--muted)]">Agrega materiales para habilitar esta lista.</p>
+              )}
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label>Material</Label>
-            <Select
-              value={materialOptions.find((option) => option.name === formData.material) ? formData.material : undefined}
-              onValueChange={(value) => handleFieldChange('material', value)}
-              disabled={materialOptions.length === 0}
-            >
-              <SelectTrigger className="w-full border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">
-                <SelectValue placeholder={materialOptions.length === 0 ? 'Sin materiales disponibles' : 'Selecciona un material'} />
-              </SelectTrigger>
-              <SelectContent>
-                {materialOptions.map((option) => (
-                  <SelectItem key={option.name} value={option.name}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.material && <p className="text-xs text-[var(--danger)]">{errors.material}</p>}
-            {materialOptions.length === 0 && (
-              <p className="text-xs text-[var(--muted)]">Agrega materiales para habilitar esta lista.</p>
-            )}
           </div>
 
           <div className="flex items-center gap-2">
@@ -269,24 +268,23 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
               <span className="text-sm font-medium text-[var(--text)]">Tapacantos</span>
               <span className="text-xs text-[var(--muted)]">Activa los lados que requieren canto</span>
             </div>
-            <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-4">
               {EDGE_SIDES.map((side) => {
                 const info = edges[side];
                 const id = `edge-${side}`;
                 return (
-                  <div key={side} className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id={id}
-                        checked={info.enabled}
-                        onCheckedChange={(checked) => handleEdgeToggle(side, checked === true)}
-                      />
-                      <Label htmlFor={id}>{EDGE_LABELS[side]}</Label>
-                    </div>
+                  <div key={side} className="flex items-center gap-2 min-w-0">
+                    <Checkbox
+                      id={id}
+                      checked={info.enabled}
+                      onCheckedChange={(checked) => handleEdgeToggle(side, checked === true)}
+                    />
+                    <Label htmlFor={id} className="mr-1 min-w-[64px] shrink-0">{EDGE_LABELS[side]}</Label>
                     <EdgeTypeSelect
                       disabled={!info.enabled}
                       value={info.tipo}
                       onChange={(tipo) => handleEdgeTypeChange(side, tipo)}
+                      className="w-full"
                     />
                   </div>
                 );

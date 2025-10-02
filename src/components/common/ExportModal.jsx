@@ -224,7 +224,9 @@ export const ExportModal = ({ isOpen, onClose, result, pieces, materials, config
     if (!isOpen || !autoPrint) return;
     // Pequeño delay para asegurar que el contenido esté en el DOM
     const t = setTimeout(() => {
-      try { printReport(); } catch {}
+      try { printReport(); } catch {
+        // ignore: fallo al imprimir automáticamente
+      }
     }, 60);
     return () => clearTimeout(t);
   }, [isOpen, autoPrint, htmlReport]);
@@ -255,6 +257,7 @@ export const ExportModal = ({ isOpen, onClose, result, pieces, materials, config
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) {
+      // fallback simple
       alert('No se pudo descargar el reporte: ' + (e?.message || e));
     }
   };
@@ -275,7 +278,7 @@ export const ExportModal = ({ isOpen, onClose, result, pieces, materials, config
     win.document.open();
     win.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Imprimir reporte</title></head><body>${htmlReport}</body></html>`);
     win.document.close();
-    setTimeout(() => { try { win.focus(); win.print(); } catch {} }, 150);
+    setTimeout(() => { try { win.focus(); win.print(); } catch { /* ignore */ } }, 150);
   };
 
   

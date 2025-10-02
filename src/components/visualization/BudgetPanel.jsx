@@ -1,5 +1,5 @@
 import { absoluteUrl } from "@/lib/paths";
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { printElement } from '@/lib/print.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,8 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calculator, Copy, Plus, Trash2 } from 'lucide-react';
 import { computeEdgeTotals } from '@/features/edgebanding/edgeBanding.js';
+import SummarySheet from '@/components/visualization/SummarySheet';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary.jsx';
 import { useLocalStorage } from '@/hooks/useLocalStorage.js';
-import { formatCLP } from '@/lib/format.js';
+import { formatCLP, rectangleAreaToSquareMeters } from '@/lib/format.js';
 
 const createId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 const toNumber = (value) => {
@@ -24,13 +26,15 @@ const unitOptions = [
   { label: 'unidad', value: 'unidad' },
 ];
 
-const createMaterialRow = ({ name = '', unit = 'plancha', price = 0, quantity = 0, details = '' } = {}) => ({
+const createMaterialRow = ({ name = '', unit = 'plancha', price = 0, quantity = 0, details = '', areaM2 } = {}) => ({
   id: createId(),
   name,
   unit,
   price: price ?? 0,
   quantity: quantity ?? 0,
   details,
+  // área por ítem (una plancha/hoja) en m², opcional
+  areaM2,
 });
 
 const createEdgeRow = ({ name = '', price = 0, quantity = 0 } = {}) => ({
@@ -84,19 +88,20 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   // (ancho eliminado)
 
   // Precios de materiales no se heredan; se definen en Presupuesto.
-
   const defaultBaseRows = useMemo(() => {
     if (result?.patterns?.length) {
       const map = new Map();
       for (const pattern of result.patterns) {
         const name = String(pattern.materialName || 'Material').trim();
         const key = `${name}|${pattern.materialLength}x${pattern.materialWidth}`;
+        const areaM2 = rectangleAreaToSquareMeters(Number(pattern.materialLength) || 0, Number(pattern.materialWidth) || 0, 1, units);
         const current = map.get(key) ?? {
           name,
           unit: 'plancha',
           quantity: 0,
           price: 0,
           details: `${pattern.materialLength} x ${pattern.materialWidth} ${units}`,
+          areaM2,
         };
         current.quantity += 1;
         map.set(key, current);
@@ -112,15 +117,16 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
           price: 0,
           quantity: toNumber(material.quantity),
           details: `${material.length} x ${material.width} ${units}`,
+          areaM2: rectangleAreaToSquareMeters(Number(material.length) || 0, Number(material.width) || 0, 1, units),
         }),
       );
     }
 
     return [createMaterialRow()];
-  }, [materials, result, units]);
+  }, [result, materials, units]);
 
   const defaultEdgeRows = useMemo(() => {
-    const totals = computeEdgeTotals(pieces);
+    const totals = computeEdgeTotals(pieces) || {};
     const entries = Object.entries(totals);
     if (entries.length === 0) {
       return [createEdgeRow({ name: 'General' })];
@@ -129,7 +135,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       createEdgeRow({
         name: type,
         price: 0,
-        quantity: Number(((lengthMm / 1000)).toFixed(2)),
+        quantity: toNumber((lengthMm ?? 0) / 1000),
       }),
     );
   }, [pieces]);
@@ -148,7 +154,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     if (Array.isArray(hardwareItems) && hardwareItems.length === 1 && !hardwareItems[0]?.name) {
       setHardwareItems([createHardwareRow()]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultBaseRows, defaultEdgeRows]);
 
   const handleMaterialChange = (id, key, value) => {
@@ -166,7 +172,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const duplicateRow = (setter, id, factory) => {
     setter((prev) => {
       const current = prev.find((row) => row.id === id);
-      if (!current) return prev;
       return [...prev, factory({ ...current, id: undefined })];
     });
   };
@@ -196,6 +201,42 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const subtotalWithMargin = subtotalNet + marginValue;
   const taxValue = subtotalWithMargin * (toNumber(taxPercent) / 100);
   const totalWithTax = subtotalWithMargin + taxValue;
+  // Datos para la planilla de visualización (solo pantalla)
+  const sheetItems = useMemo(() => {
+    const materials = (baseMaterials || []).map((m) => ({
+      detalle: m.details ? `${m.name || 'Material'} — ${m.details}` : (m.name || 'Material'),
+      cantidad: toNumber(m.quantity) || 0,
+      unitario: toNumber(m.price) || 0,
+      metros2: Number.isFinite(Number(m.areaM2)) ? Number(m.areaM2) : undefined,
+      subtotal: toNumber(m.price) * toNumber(m.quantity),
+    }));
+    const edges = (edgeItems || []).map((e) => ({
+      detalle: `Tapacanto ${String(e.name || '').trim()}`.trim(),
+      cantidad: toNumber(e.quantity) || 0,
+      unitario: toNumber(e.price) || 0,
+      subtotal: (toNumber(e.price) * toNumber(e.quantity)) || 0,
+    }));
+    const hardware = (hardwareItems || []).map((h) => ({
+      detalle: `Herraje ${String(h.name || '').trim()}`.trim(),
+      cantidad: toNumber(h.quantity) || 0,
+      unitario: toNumber(h.price) || 0,
+      subtotal: toNumber(h.price) * toNumber(h.quantity),
+    }));
+    return [...materials, ...edges, ...hardware];
+  }, [baseMaterials, edgeItems, hardwareItems]);
+
+  const sheetTotals = useMemo(() => ({
+    materialesBase: materialsTotal,
+    tapacantos: edgesTotal,
+    herrajes: hardwareTotal,
+    indirectos: indirects,
+    flete: freightValue,
+    subtotalNeto: subtotalNet,
+    margen: marginValue,
+    precioVenta: subtotalWithMargin,
+    iva: taxValue,
+    totalConIVA: totalWithTax,
+  }), [materialsTotal, edgesTotal, hardwareTotal, indirects, freightValue, subtotalNet, marginValue, subtotalWithMargin, taxValue, totalWithTax]);
   const printGeneratedAt = useMemo(() => new Date().toLocaleString('es-CL'), []);
   const printFolio = useMemo(() => {
     const d = new Date();
@@ -212,7 +253,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       document.dispatchEvent(escDown);
       document.dispatchEvent(escUp);
     } catch {
-      // Ignorar: si no hay overlays activos, no hay nada que cerrar
+      /* ignore: si no hay overlays activos, no hay nada que cerrar */
     }
 
     const node = printAreaRef.current;
@@ -288,7 +329,9 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     try {
       const el = document.getElementById(id);
       if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } catch {}
+    } catch {
+      /* ignore: scroll inalcanzable */
+    }
   };
 
   if (!result) {
@@ -371,8 +414,12 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </CardHeader>
               <CardContent className="space-y-4">
                 {baseMaterials.map((material) => (
-                  <div key={material.id} className="grid gap-4 rounded-[var(--radius)] border border-[var(--border)] p-4 sm:grid-cols-12">
-                    <div className="space-y-2 sm:col-span-3">
+                  <div
+                    key={material.id}
+                    className="grid items-end gap-3 rounded-[var(--radius)] border border-[var(--border)] p-4"
+                    style={{ gridTemplateColumns: 'minmax(160px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto' }}
+                  >
+                    <div className="space-y-2 min-w-0">
                       <Label>Tipo</Label>
                       <Input
                         value={material.name}
@@ -380,10 +427,10 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                         placeholder="Ej: Melamina 18mm"
                       />
                     </div>
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2 min-w-0">
                       <Label>Unidad</Label>
                       <Select value={material.unit} onValueChange={(value) => handleMaterialChange(material.id, 'unit', value)}>
-                        <SelectTrigger className="border-[var(--border)] bg-[var(--surface)] text-left">
+                        <SelectTrigger className="w-full border-[var(--border)] bg-[var(--surface)] text-left">
                           <SelectValue placeholder="plancha" />
                         </SelectTrigger>
                         <SelectContent>
@@ -395,7 +442,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2 min-w-0">
                       <Label>Precio (CLP)</Label>
                       <Input
                         type="number"
@@ -404,7 +451,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                         onChange={(event) => handleMaterialChange(material.id, 'price', event.target.value)}
                       />
                     </div>
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2 min-w-0">
                       <Label>Cantidad</Label>
                       <Input
                         type="number"
@@ -413,34 +460,32 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                         onChange={(event) => handleMaterialChange(material.id, 'quantity', event.target.value)}
                       />
                     </div>
-                    <div className="space-y-2 sm:col-span-2">
+                    <div className="space-y-2 min-w-0">
                       <Label>Total</Label>
                       <Input value={formatCLP(toNumber(material.price) * toNumber(material.quantity))} readOnly />
                     </div>
-                    <div className="sm:col-span-12 flex flex-wrap justify-end gap-2 pt-2">
+                    <div className="flex justify-end gap-2 justify-self-end">
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="icon"
+                        title="Duplicar"
+                        aria-label="Duplicar"
                         onClick={() => duplicateRow(setBaseMaterials, material.id, createMaterialRow)}
                       >
                         <Copy className="h-4 w-4" />
-                        Duplicar
                       </Button>
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="icon"
+                        title="Eliminar"
+                        aria-label="Eliminar"
                         onClick={() => removeRow(setBaseMaterials, material.id, createMaterialRow)}
                         className="text-[var(--danger)]"
                       >
                         <Trash2 className="h-4 w-4" />
-                        Eliminar
                       </Button>
                     </div>
-                    {material.details && (
-                      <div className="sm:col-span-12">
-                        <p className="text-xs text-[var(--muted)]">{material.details}</p>
-                      </div>
-                    )}
+                    {/* Ocultamos detalles (dimensiones) en pantalla; se muestran solo en la hoja de impresión */}
                   </div>
                 ))}
                 <div className="text-right text-sm text-[var(--text)] font-semibold">
@@ -464,8 +509,12 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {edgeItems.map((edge) => (
-                    <div key={edge.id} className="grid gap-4 rounded-[var(--radius)] border border-[var(--border)] p-4 sm:grid-cols-12">
-                      <div className="space-y-2 sm:col-span-4">
+                    <div
+                      key={edge.id}
+                      className="grid items-end gap-3 rounded-[var(--radius)] border border-[var(--border)] p-4"
+                      style={{ gridTemplateColumns: 'minmax(160px, 2fr) minmax(120px, 1fr) minmax(140px, 1fr) minmax(120px, 1fr) auto' }}
+                    >
+                      <div className="space-y-2 min-w-0">
                         <Label>Nombre</Label>
                         <Input
                           value={edge.name}
@@ -473,7 +522,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                           placeholder="Ej: Canto ABS"
                         />
                       </div>
-                      <div className="space-y-2 sm:col-span-2">
+                      <div className="space-y-2 min-w-0">
                         <Label>$ / ml</Label>
                         <Input
                           type="number"
@@ -482,7 +531,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                           onChange={(event) => handleEdgeChange(edge.id, 'price', event.target.value)}
                         />
                       </div>
-                      <div className="space-y-2 sm:col-span-2">
+                      <div className="space-y-2 min-w-0">
                         <Label>Cantidad (ml)</Label>
                         <Input
                           type="number"
@@ -492,30 +541,30 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                           onChange={(event) => handleEdgeChange(edge.id, 'quantity', event.target.value)}
                         />
                       </div>
-                      <div className="flex items-end justify-end gap-2 sm:col-span-12">
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-[var(--muted)]">Total:</span>
-                          <span className="text-sm font-medium text-[var(--text)]">{formatCLP(computeEdgeRowTotal(edge))}</span>
-                        </div>
-                        <div className="ml-auto flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => duplicateRow(setEdgeItems, edge.id, createEdgeRow)}
-                          >
-                            <Copy className="h-4 w-4" />
-                            Duplicar
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeRow(setEdgeItems, edge.id, createEdgeRow)}
-                            className="text-[var(--danger)]"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Eliminar
-                          </Button>
-                        </div>
+                      <div className="space-y-2 min-w-0">
+                        <Label>Total</Label>
+                        <Input value={formatCLP(computeEdgeRowTotal(edge))} readOnly />
+                      </div>
+                      <div className="flex justify-end gap-2 justify-self-end">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Duplicar"
+                          aria-label="Duplicar"
+                          onClick={() => duplicateRow(setEdgeItems, edge.id, createEdgeRow)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Eliminar"
+                          aria-label="Eliminar"
+                          onClick={() => removeRow(setEdgeItems, edge.id, createEdgeRow)}
+                          className="text-[var(--danger)]"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -537,8 +586,12 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {hardwareItems.map((item) => (
-                    <div key={item.id} className="grid gap-4 rounded-[var(--radius)] border border-[var(--border)] p-4 sm:grid-cols-12">
-                      <div className="space-y-2 sm:col-span-5">
+                    <div
+                      key={item.id}
+                      className="grid items-end gap-3 rounded-[var(--radius)] border border-[var(--border)] p-4"
+                      style={{ gridTemplateColumns: 'minmax(160px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto' }}
+                    >
+                      <div className="space-y-2 min-w-0">
                         <Label>Nombre</Label>
                         <Input
                           value={item.name}
@@ -546,7 +599,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                           placeholder="Ej: Bisagra 35mm"
                         />
                       </div>
-                      <div className="space-y-2 sm:col-span-3">
+                      <div className="space-y-2 min-w-0">
                         <Label>$ c/u</Label>
                         <Input
                           type="number"
@@ -555,7 +608,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                           onChange={(event) => handleHardwareChange(item.id, 'price', event.target.value)}
                         />
                       </div>
-                      <div className="space-y-2 sm:col-span-2">
+                      <div className="space-y-2 min-w-0">
                         <Label>Cantidad</Label>
                         <Input
                           type="number"
@@ -564,30 +617,30 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                           onChange={(event) => handleHardwareChange(item.id, 'quantity', event.target.value)}
                         />
                       </div>
-                      <div className="space-y-2 sm:col-span-2">
+                      <div className="space-y-2 min-w-0">
                         <Label>Total</Label>
                         <Input value={formatCLP(toNumber(item.price) * toNumber(item.quantity))} readOnly />
                       </div>
-                      <div className="flex items-end justify-end gap-2 sm:col-span-12">
-                        <div className="flex gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => duplicateRow(setHardwareItems, item.id, createHardwareRow)}
-                          >
-                            <Copy className="h-4 w-4" />
-                            Duplicar
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => removeRow(setHardwareItems, item.id, createHardwareRow)}
-                            className="text-[var(--danger)]"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                            Eliminar
-                          </Button>
-                        </div>
+                      <div className="flex justify-end gap-2 justify-self-end">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Duplicar"
+                          aria-label="Duplicar"
+                          onClick={() => duplicateRow(setHardwareItems, item.id, createHardwareRow)}
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Eliminar"
+                          aria-label="Eliminar"
+                          onClick={() => removeRow(setHardwareItems, item.id, createHardwareRow)}
+                          className="text-[var(--danger)]"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -598,101 +651,84 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </Card>
             </div>
 
-            <Card className="hide-on-print border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
-              <CardHeader>
-                <CardTitle>Totales</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-6 lg:grid-cols-2">
-                <div className="space-y-4">
-                  <div className="grid gap-3">
-                    <div className="space-y-2">
-                      <Label>% Indirectos</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={indirectPercent}
-                        onChange={(event) => setIndirectPercent(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>% Margen</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={marginPercent}
-                        onChange={(event) => setMarginPercent(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>IVA %</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={taxPercent}
-                        onChange={(event) => setTaxPercent(event.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Flete (CLP)</Label>
-                      <Input
-                        type="number"
-                        min="0"
-                        value={freight}
-                        onChange={(event) => setFreight(event.target.value)}
-                      />
-                    </div>
-                  </div>
+            {/* Fila compacta de parámetros y total (según imagen), ubicada justo debajo de Herrajes */}
+            <div className="no-print rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-4">
+              <div
+                className="grid items-end gap-3"
+                style={{ gridTemplateColumns: 'repeat(2, minmax(140px,1fr)) minmax(140px,1fr) minmax(160px,1fr) auto' }}
+              >
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-sm">% Indirectos</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={indirectPercent}
+                    onChange={(e) => setIndirectPercent(e.target.value)}
+                  />
                 </div>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-sm">% Margen</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={marginPercent}
+                    onChange={(e) => setMarginPercent(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-sm">IVA %</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={taxPercent}
+                    onChange={(e) => setTaxPercent(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <Label className="text-sm">Flete (CLP)</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={freight}
+                    onChange={(e) => setFreight(e.target.value)}
+                  />
+                </div>
+                <div className="flex justify-end gap-2 justify-self-end">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    title="Limpiar parámetros"
+                    aria-label="Limpiar parámetros"
+                    className="text-[var(--danger)]"
+                    onClick={() => {
+                      setIndirectPercent(0);
+                      setMarginPercent(0);
+                      setTaxPercent(0);
+                      setFreight(0);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
 
-                <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span>Materiales base</span>
-                    <span className="font-medium">{formatCLP(materialsTotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Tapacantos</span>
-                    <span className="font-medium">{formatCLP(edgesTotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Herrajes</span>
-                    <span className="font-medium">{formatCLP(hardwareTotal)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Indirectos</span>
-                    <span className="font-medium">{formatCLP(indirects)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Flete</span>
-                    <span className="font-medium">{formatCLP(freightValue)}</span>
-                  </div>
-                  <div className="flex items-center justify-between pt-2">
-                    <span className="font-semibold text-[var(--text)]">Subtotal neto</span>
-                    <span className="font-semibold text-[var(--text)]">{formatCLP(subtotalNet)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Margen</span>
-                    <span className="font-medium">{formatCLP(marginValue)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Precio de venta</span>
-                    <span className="font-medium">{formatCLP(subtotalWithMargin)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>IVA</span>
-                    <span className="font-medium">{formatCLP(taxValue)}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span>Total con IVA</span>
-                    <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Button variant="outline" size="sm" onClick={printBudget}>
-                      Imprimir
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            {/* Reemplazado por la planilla de visualización SummarySheet (solo pantalla) */}
+
+            {/* Visualización tipo planilla (solo pantalla) */}
+            <div className="no-print">
+              <ErrorBoundary>
+                <SummarySheet
+                  items={sheetItems}
+                  totals={sheetTotals}
+                  percents={{
+                    indirectos: toNumber(indirectPercent),
+                    margen: toNumber(marginPercent),
+                    iva: toNumber(taxPercent),
+                  }}
+                />
+              </ErrorBoundary>
+            </div>
 
           </div>
         </ScrollArea>
@@ -840,51 +876,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </tbody>
             </table>
           </section>
-          {/* Controles de parámetros y acción (solo en pantalla) - ubicado debajo de Patrones optimizados */}
-          <div className="no-print rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-3">
-            <div className="grid items-end gap-3 sm:grid-cols-5">
-              <div className="space-y-1">
-                <Label className="text-xs">% Indirectos</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={indirectPercent}
-                  onChange={(e) => setIndirectPercent(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">% Margen</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={marginPercent}
-                  onChange={(e) => setMarginPercent(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">IVA %</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={taxPercent}
-                  onChange={(e) => setTaxPercent(e.target.value)}
-                />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">Flete (CLP)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  value={freight}
-                  onChange={(e) => setFreight(e.target.value)}
-                />
-              </div>
-              <div className="flex sm:justify-end">
-                <Button variant="outline" onClick={printBudget}>Imprimir</Button>
-              </div>
-            </div>
-          </div>
-          {/* Totales al final */}
+          {/* Bloque de parámetros debajo de patrones removido (usamos sólo la fila compacta bajo Herrajes) */}
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-[var(--text)]">Totales</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -903,7 +895,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                   <span className="font-medium">{toNumber(taxPercent)}%</span>
                 </div>
               </div>
-
               {/* Totales */}
               <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
                 <div className="flex items-center justify-between">
@@ -921,6 +912,10 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 <div className="flex items-center justify-between">
                   <span>Indirectos</span>
                   <span className="font-medium">{formatCLP(indirects)}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Flete</span>
+                  <span className="font-medium">{formatCLP(freightValue)}</span>
                 </div>
                 <div className="flex items-center justify-between pt-2">
                   <span className="font-semibold text-[var(--text)]">Subtotal neto</span>
@@ -941,6 +936,11 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 <div className="flex items-center justify-between">
                   <span>Total con IVA</span>
                   <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
+                </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={printBudget}>
+                    Imprimir
+                  </Button>
                 </div>
               </div>
             </div>

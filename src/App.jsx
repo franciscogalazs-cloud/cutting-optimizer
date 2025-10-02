@@ -283,7 +283,6 @@ function App() {
     console.log("Exportando patron:", pattern, index);
   };
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
-  const totalMaterials = materials.reduce((sum, material) => sum + material.quantity, 0);
   const avgUsedM2 = (() => {
     const patterns = result?.patterns || [];
     if (!Array.isArray(patterns) || patterns.length === 0) return null;
@@ -340,20 +339,8 @@ function App() {
       intent: "default",
     },
   ];
-  const getTabBadgeVariant = (tab) => {
-    switch (tab) {
-      case "pieces":
-        return pieces.length > 0 ? "default" : "secondary";
-      case "materials":
-        return materials.length > 0 ? "default" : "secondary";
-      case "patterns":
-        return result?.patterns?.length > 0 ? "default" : "secondary";
-      case "stats":
-        return result ? "default" : "secondary";
-      default:
-        return "secondary";
-    }
-  };
+  // Nota: getTabBadgeVariant no se usa actualmente; removido para evitar warning de lint
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors">
       <Header
@@ -364,14 +351,15 @@ function App() {
         isOptimizing={isOptimizing}
         units={config.units}
       />
-  <main className="mx-auto flex max-w-7xl flex-col gap-8 px-3 py-4 sm:px-4 lg:px-6">
+  <main className="mx-auto flex max-w-5xl flex-col gap-8 px-3 py-4 sm:px-4 lg:px-6">
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {kpiItems.map((item) => (
             <KpiCard key={item.label} {...item} />
           ))}
         </section>
-        {/* Tarjetas de entrada principales: Agregar material y Agregar pieza */}
-        <section className="grid gap-4 md:grid-cols-2">
+
+        {/* Tarjetas de entrada principales: Agregar material (arriba) y Agregar pieza (abajo) */}
+        <section className="grid gap-4">
           <MaterialForm
             onAddMaterial={handleAddMaterial}
             units={config.units}
@@ -385,180 +373,161 @@ function App() {
             materials={materials}
             allowRotation={config.allowRotation}
             onToggleRotation={(value) => {
-              // Actualiza la configuración global y sincroniza todas las piezas existentes
               setConfig((prev) => ({ ...prev, allowRotation: value }));
               setPieces((current) => current.map((p) => ({ ...p, canRotate: value })));
             }}
           />
         </section>
-        <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-          <aside className="space-y-6 lg:sticky lg:top-24 lg:h-fit">
-            <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
-              <CardContent className="space-y-4 p-5 text-sm text-[var(--muted)]">
-                <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--text)]">
-                  <Calculator className="h-5 w-5 text-[var(--primary)]" />
-                  Panel de optimizacion
-                </h3>
-                <p>
-                  Usa el boton "Optimizar" en la barra superior para generar patrones. Cada tablero utiliza su propio
-                  grosor de sierra y margen.
-                </p>
-                <div className="flex items-center justify-between text-xs">
-                  <span>Rotacion global</span>
-                  <span className="font-medium text-[var(--text)]">{config.allowRotation ? "Permitida" : "Bloqueada"}</span>
-                </div>
-                <div className="space-y-1 text-xs">
-                  <div>
-                    Piezas totales: <strong>{totalPieces}</strong> ({pieces.length} tipos)
-                  </div>
-                  <div>
-                    Materiales cargados: <strong>{totalMaterials}</strong> ({materials.length} variantes)
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </aside>
-          <section className="space-y-6 min-w-0 w-full flex-1">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
-                <TabsTrigger value="pieces" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                  <span>Piezas</span>
-                </TabsTrigger>
-                <TabsTrigger value="materials" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                  <span>Materiales</span>
-                </TabsTrigger>
-                <TabsTrigger value="patterns" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                  <Grid3X3 className="h-4 w-4" />
-                  <span>Patrones</span>
-                </TabsTrigger>
-                <TabsTrigger value="edgebanding" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                  <Scissors className="h-4 w-4" />
-                  <span>Tapacantos</span>
-                </TabsTrigger>
-                <TabsTrigger value="budget" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                  <Calculator className="h-4 w-4" />
-                  <span>Presupuesto</span>
-                </TabsTrigger>
-                <TabsTrigger value="ai" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                  <BarChart3 className="h-4 w-4" />
-                  <span>IA</span>
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="pieces" className="space-y-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-[var(--text)]">Piezas a cortar</h2>
-                </div>
-                <PiecesTable
-                  pieces={pieces}
-                  units={config.units}
+
+        {/* Sección principal: Pestañas ocupan el mismo ancho que el formulario (sin aside) */}
+        <section className="space-y-6 w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
+              <TabsTrigger value="pieces" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
+                <span>Piezas</span>
+              </TabsTrigger>
+              <TabsTrigger value="materials" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
+                <span>Materiales</span>
+              </TabsTrigger>
+              <TabsTrigger value="patterns" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
+                <Grid3X3 className="h-4 w-4" />
+                <span>Patrones</span>
+              </TabsTrigger>
+              <TabsTrigger value="edgebanding" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
+                <Scissors className="h-4 w-4" />
+                <span>Tapacantos</span>
+              </TabsTrigger>
+              <TabsTrigger value="budget" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
+                <Calculator className="h-4 w-4" />
+                <span>Presupuesto</span>
+              </TabsTrigger>
+              <TabsTrigger value="ai" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
+                <BarChart3 className="h-4 w-4" />
+                <span>IA</span>
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="pieces" className="space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-semibold text-[var(--text)]">Piezas a cortar</h2>
+              </div>
+              <PiecesTable
+                pieces={pieces}
+                units={config.units}
+                materials={materials}
+                onDelete={handleDeletePiece}
+                onEdit={handleEditPiece}
+                onEditRequest={setEditingPiece}
+                onDuplicate={handleDuplicatePiece}
+              />
+            </TabsContent>
+
+            <TabsContent value="materials" className="space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-semibold text-[var(--text)]">Materiales disponibles</h2>
+              </div>
+              <MaterialsTable
+                materials={materials}
+                units={config.units}
+                onDelete={handleDeleteMaterial}
+                onEdit={handleEditMaterial}
+                onEditRequest={setEditingMaterial}
+                onDuplicate={handleDuplicateMaterial}
+              />
+            </TabsContent>
+
+            <TabsContent value="patterns" className="space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-semibold text-[var(--text)]">Patrones de corte</h2>
+                {result && (
+                  <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)} className="border-[var(--border)] text-[var(--text)]">
+                    <Download className="h-4 w-4" />
+                    Exportar
+                  </Button>
+                )}
+              </div>
+              {result?.patterns ? (
+                <AdvancedCuttingPattern
+                  patterns={result.patterns}
                   materials={materials}
-                  onDelete={handleDeletePiece}
-                  onEdit={handleEditPiece}
-                  onEditRequest={setEditingPiece}
-                  onDuplicate={handleDuplicatePiece}
-                />
-              </TabsContent>
-              <TabsContent value="materials" className="space-y-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-[var(--text)]">Materiales disponibles</h2>
-                </div>
-                <MaterialsTable
-                  materials={materials}
                   units={config.units}
-                  onDelete={handleDeleteMaterial}
-                  onEdit={handleEditMaterial}
-                  onEditRequest={setEditingMaterial}
-                  onDuplicate={handleDuplicateMaterial}
+                  onExportPattern={handleExportPattern}
                 />
-              </TabsContent>
-              <TabsContent value="patterns" className="space-y-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-[var(--text)]">Patrones de corte</h2>
-                  {result && (
-                    <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)} className="border-[var(--border)] text-[var(--text)]">
-                      <Download className="h-4 w-4" />
-                      Exportar
+              ) : (
+                <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
+                  <CardContent className="space-y-3 py-12">
+                    <Grid3X3 className="mx-auto h-12 w-12 text-[var(--muted)]" />
+                    <h3 className="text-lg font-medium text-[var(--text)]">No hay patrones generados</h3>
+                    <p className="text-sm text-[var(--muted)]">
+                      Carga piezas y materiales, luego ejecuta la optimizacion para visualizar patrones.
+                    </p>
+                    <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
+                      <Play className="h-4 w-4" />
+                      Optimizar cortes
                     </Button>
-                  )}
-                </div>
-                {result?.patterns ? (
-                  <AdvancedCuttingPattern
-                    patterns={result.patterns}
-                    materials={materials}
-                    units={config.units}
-                    onExportPattern={handleExportPattern}
-                  />
-                ) : (
-                  <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
-                    <CardContent className="space-y-3 py-12">
-                      <Grid3X3 className="mx-auto h-12 w-12 text-[var(--muted)]" />
-                      <h3 className="text-lg font-medium text-[var(--text)]">No hay patrones generados</h3>
-                      <p className="text-sm text-[var(--muted)]">
-                        Carga piezas y materiales, luego ejecuta la optimizacion para visualizar patrones.
-                      </p>
-                      <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
-                        <Play className="h-4 w-4" />
-                        Optimizar cortes
-                      </Button>
-                    </CardContent>
-                  </Card>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="edgebanding">
+              <EdgeBandingPanel pieces={pieces} units={config.units} onEditPiece={setEditingPiece} />
+            </TabsContent>
+
+            <TabsContent value="stats" className="space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 className="text-lg font-semibold text-[var(--text)]">Estadisticas de optimizacion</h2>
+                {result && (
+                  <Badge variant="outline" className="border-[var(--border)] text-[var(--muted)]">
+                    {result.algorithm}
+                  </Badge>
                 )}
-              </TabsContent>
-              <TabsContent value="edgebanding">
-                <EdgeBandingPanel pieces={pieces} units={config.units} onEditPiece={setEditingPiece} />
-              </TabsContent>
-              <TabsContent value="stats" className="space-y-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <h2 className="text-lg font-semibold text-[var(--text)]">Estadisticas de optimizacion</h2>
-                  {result && (
-                    <Badge variant="outline" className="border-[var(--border)] text-[var(--muted)]">
-                      {result.algorithm}
-                    </Badge>
-                  )}
-                </div>
-                {result ? (
-                  <StatsPanel result={result} pieces={pieces} materials={materials} config={config} />
-                ) : (
-                  <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
-                    <CardContent className="space-y-3 py-12">
-                      <TrendingUp className="mx-auto h-12 w-12 text-[var(--muted)]" />
-                      <h3 className="text-lg font-medium text-[var(--text)]">Sin estadisticas todavia</h3>
-                      <p className="text-sm text-[var(--muted)]">
-                        Ejecuta la optimizacion para analizar el uso de materiales y el desperdicio.
-                      </p>
-                      <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
-                        <Calculator className="h-4 w-4" />
-                        Generar estadisticas
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-              <TabsContent value="budget" className="space-y-4">
-                {result ? (
-                  <BudgetPanel result={result} pieces={pieces} materials={materials} units={config.units} />
-                ) : (
-                  <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
-                    <CardContent className="space-y-3 py-12">
-                      <Calculator className="mx-auto h-12 w-12 text-[var(--muted)]" />
-                      <h3 className="text-lg font-medium text-[var(--text)]">Presupuesto no disponible</h3>
-                      <p className="text-sm text-[var(--muted)]">
-                        Ejecuta la optimizacion para generar automaticamente un resumen de costos.
-                      </p>
-                      <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
-                        <Play className="h-4 w-4" />
-                        Optimizar cortes
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-              <TabsContent value="ai" className="space-y-4">
-                <AIDemo pieces={pieces} materials={materials} config={config} />
-              </TabsContent>
-            </Tabs>
-          </section>
-        </div>
+              </div>
+              {result ? (
+                <StatsPanel result={result} pieces={pieces} materials={materials} config={config} />
+              ) : (
+                <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
+                  <CardContent className="space-y-3 py-12">
+                    <TrendingUp className="mx-auto h-12 w-12 text-[var(--muted)]" />
+                    <h3 className="text-lg font-medium text-[var(--text)]">Sin estadisticas todavia</h3>
+                    <p className="text-sm text-[var(--muted)]">
+                      Ejecuta la optimizacion para analizar el uso de materiales y el desperdicio.
+                    </p>
+                    <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
+                      <Calculator className="h-4 w-4" />
+                      Generar estadisticas
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="budget" className="space-y-4">
+              {result ? (
+                <BudgetPanel result={result} pieces={pieces} materials={materials} units={config.units} />
+              ) : (
+                <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
+                  <CardContent className="space-y-3 py-12">
+                    <Calculator className="mx-auto h-12 w-12 text-[var(--muted)]" />
+                    <h3 className="text-lg font-medium text-[var(--text)]">Presupuesto no disponible</h3>
+                    <p className="text-sm text-[var(--muted)]">
+                      Ejecuta la optimizacion para generar automaticamente un resumen de costos.
+                    </p>
+                    <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
+                      <Play className="h-4 w-4" />
+                      Optimizar cortes
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="ai" className="space-y-4">
+              <AIDemo pieces={pieces} materials={materials} config={config} />
+            </TabsContent>
+          </Tabs>
+        </section>
+
         {error && (
           <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
             <CardContent className="text-sm text-[var(--danger)]">
@@ -567,6 +536,8 @@ function App() {
           </Card>
         )}
       </main>
+
+      {/* Modales */}
       <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
       <ExportModal
         isOpen={showExportModal}
@@ -585,11 +556,9 @@ function App() {
         onSave={(data) => {
           if (!editingPiece) return;
           if (editingPiece.isDuplicateDraft) {
-            // Guardar como nueva pieza
             const payload = { ...editingPiece, ...data };
             handleAddPiece(payload);
           } else {
-            // Editar pieza existente
             handleEditPiece(editingPiece.id, data);
           }
         }}
@@ -602,17 +571,13 @@ function App() {
         onSave={(data) => {
           if (!editingMaterial) return;
           if (editingMaterial.isDuplicateDraft) {
-            // Guardar como nuevo material
             const payload = { ...editingMaterial, ...data };
             handleAddMaterial(payload);
           } else {
-            // Editar material existente
             handleEditMaterial(editingMaterial.id, data);
           }
         }}
       />
-
-      {/* IA integrada dentro de la vista de patrones (pestaña IA) */}
     </div>
   );
 }

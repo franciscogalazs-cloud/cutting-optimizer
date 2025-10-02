@@ -7,7 +7,7 @@
   --muted: #64748b;
   --border: #e5e7eb;
   --stroke: #e5e7eb;
-  --primary: #2563eb;
+  --primary: #16a34a;
   --accent: #22c55e;
   --accent-2: #0ea5e9;
   --success: #16a34a;
@@ -73,7 +73,7 @@ textarea {
 article input:focus-visible,
 article select:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.6); /* emerald por defecto */
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 60%, transparent);
 }
 
 /* Scrollbar sutil para contenedores desplazables */

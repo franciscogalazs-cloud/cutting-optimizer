@@ -194,8 +194,22 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
+          {/* Nombre del material primero */}
+          <div className="space-y-2">
+            <Label htmlFor="mat-material">Nombre del material</Label>
+            <Input
+              id="mat-material"
+              type="text"
+              value={formData.material}
+              onChange={(event) => handleChange('material', event.target.value)}
+              placeholder="Melamina"
+              className="w-full"
+            />
+          </div>
+
+          {/* En la misma línea: Largo, Ancho, Grosor y Margen */}
+          <div className="grid gap-3 md:grid-cols-4 sm:grid-cols-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="mat-length">Largo ({units})</Label>
               <Input
                 id="mat-length"
@@ -209,7 +223,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
               />
               {errors.length && <p className="text-xs text-[var(--danger)]">{errors.length}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="mat-width">Ancho ({units})</Label>
               <Input
                 id="mat-width"
@@ -223,26 +237,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
               />
               {errors.width && <p className="text-xs text-[var(--danger)]">{errors.width}</p>}
             </div>
-          </div>
-
-          {/* Bloque informativo de cantidad automática removido a pedido del usuario */}
-
-          {/* campo precio eliminado: el precio se aplica directamente en Presupuesto */}
-
-          <div className="space-y-2">
-            <Label htmlFor="mat-material">Nombre del material</Label>
-            <Input
-              id="mat-material"
-              type="text"
-              value={formData.material}
-              onChange={(event) => handleChange('material', event.target.value)}
-              placeholder="Melamina"
-              className="w-full"
-            />
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="mat-kerf">Grosor de sierra ({units})</Label>
               <Input
                 id="mat-kerf"
@@ -256,7 +251,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
               />
               {errors.kerf && <p className="text-xs text-[var(--danger)]">{errors.kerf}</p>}
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2 min-w-0">
               <Label htmlFor="mat-margin">Margen ({units})</Label>
               <Input
                 id="mat-margin"

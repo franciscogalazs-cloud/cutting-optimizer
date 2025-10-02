@@ -149,6 +149,7 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
 
   const nextPattern = () => setCurrentPatternIndex((prev) => (prev + 1) % validPatterns.length);
   const prevPattern = () => setCurrentPatternIndex((prev) => (prev - 1 + validPatterns.length) % validPatterns.length);
+  const pieceCount = Array.isArray(currentPattern?.pieces) ? currentPattern.pieces.length : 0;
 
   return (
     <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
@@ -180,7 +181,8 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
         
         <section className="grid grid-rows-[auto,1fr] min-h-[calc(100vh-160px)]">
           <div>
-            <div className="relative">
+            <div className="flex justify-center">
+              <div className="relative inline-block">
               <TooltipProvider>
                 <div className="absolute right-2 top-2 z-10 flex flex-col gap-2">
                   <Tooltip>
@@ -245,12 +247,16 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
                 highlightPieceIndex={hoveredPiece}
                 highlightEdge={hoveredEdge}
               />
+              </div>
             </div>
             <h4 className="mt-6 text-sm font-medium text-[var(--text)]">Piezas en este patrón</h4>
           </div>
 
-          <div className="overflow-auto mt-3">
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-3">
+            <div
+              className="grid gap-3"
+              style={{ gridTemplateColumns: `repeat(${Math.max(1, pieceCount)}, minmax(0, 1fr))` }}
+            >
               {currentPattern.pieces.map((piece, index) => {
               const fillColor = piece.color ?? theme.palette[index % theme.palette.length];
               const isHovered = hoveredPiece === index;

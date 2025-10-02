@@ -6,13 +6,14 @@ export const EdgeTypeSelect = ({
   onChange,
   options = EDGE_TYPE_OPTIONS,
   disabled = false,
+  className,
 }) => {
   const fallback = options[0] ?? 'General';
   const current = value && options.includes(value) ? value : fallback;
 
   return (
     <Select disabled={disabled} value={current} onValueChange={(next) => onChange?.(next)}>
-      <SelectTrigger className="w-32">
+      <SelectTrigger className={className ?? 'w-32'}>
         <SelectValue />
       </SelectTrigger>
       <SelectContent>

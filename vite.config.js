@@ -5,6 +5,8 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import pkg from './package.json' with { type: 'json' }
 import { execSync } from 'node:child_process'
+/* eslint-env node */
+/* global process */
 
 // Emular __dirname en ESM
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -26,13 +28,15 @@ export default defineConfig(({ command }) => ({
     },
   },
   define: (() => {
-    const commit = process.env.GITHUB_SHA?.slice(0, 7) ?? (() => {
+    const commit = (typeof process !== 'undefined' && process?.env?.GITHUB_SHA)
+      ? process.env.GITHUB_SHA.slice(0, 7)
+      : (() => {
       try {
         return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim() || 'local';
       } catch {
         return 'local';
       }
-    })();
+      })();
     const info = {
       version: pkg.version || '0.0.0',
       date: new Date().toISOString(),

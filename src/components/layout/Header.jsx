@@ -20,7 +20,7 @@ export const Header = ({
 
   return (
     <header className="sticky top-0 z-40 border-b border-[var(--stroke)] bg-[var(--bg)]/95 backdrop-blur">
-  <div className="mx-auto flex max-w-7xl items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4 lg:px-6">
+  <div className="mx-auto flex max-w-5xl items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4 lg:px-6">
   <img
     src={brandUrl("brand/industrial-plate/stencil_main.svg")}
     onError={(e) => {
