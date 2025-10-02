@@ -159,19 +159,17 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
   };
 
   return (
-    <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
-      <CardHeader className="space-y-1">
-        <CardTitle className="flex items-center gap-2 text-[var(--text)]">
-          <Package className="h-5 w-5 text-[var(--primary)]" />
-          Agregar material
-        </CardTitle>
-        <p className="text-xs text-[var(--muted)]">
+    <Card className="rounded-2xl shadow-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden">
+      <CardHeader className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 font-semibold uppercase tracking-wide break-words bg-emerald-100 text-slate-900 dark:bg-emerald-600/30 dark:text-emerald-200">
+        <Package className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+        <span>Agregar material</span>
+      </CardHeader>
+      <CardContent className="card-scroll p-4 space-y-3 max-h-[420px] overflow-auto">
+        <p className="text-xs text-slate-500 dark:text-slate-400">
           Completa las dimensiones reales del tablero o usa un preset como base.
         </p>
-      </CardHeader>
-      <CardContent className="space-y-5">
         <div className="space-y-2">
-          <Label className="text-xs text-[var(--muted)]">Presets comunes</Label>
+          <Label className="text-xs text-slate-500 dark:text-slate-400">Presets comunes</Label>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((preset) => {
               const lengthValue = units === 'mm' ? preset.lengthCm * 10 : preset.lengthCm;
@@ -182,11 +180,11 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="border-[var(--border)] bg-[var(--surface)] text-xs text-[var(--text)] hover:bg-[var(--primary)]/10"
+                  className="border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 text-xs text-slate-900 dark:text-slate-100 hover:bg-emerald-100/40 dark:hover:bg-emerald-600/10"
                   onClick={() => applyPreset(preset)}
                 >
                   <span className="font-medium">{preset.name}</span>
-                  <span className="block text-[var(--muted)]">
+                  <span className="block text-slate-500 dark:text-slate-400">
                     {lengthValue} × {widthValue} {units}
                   </span>
                 </Button>
@@ -195,7 +193,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="mat-length">Largo ({units})</Label>
@@ -206,7 +204,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
                 min="0"
                 value={formData.length}
                 onChange={(event) => handleChange('length', event.target.value)}
-                className={errors.length ? 'border-red-500' : ''}
+                className={'w-full ' + (errors.length ? 'border-red-500' : '')}
                 placeholder="2440"
               />
               {errors.length && <p className="text-xs text-[var(--danger)]">{errors.length}</p>}
@@ -220,7 +218,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
                 min="0"
                 value={formData.width}
                 onChange={(event) => handleChange('width', event.target.value)}
-                className={errors.width ? 'border-red-500' : ''}
+                className={'w-full ' + (errors.width ? 'border-red-500' : '')}
                 placeholder="1220"
               />
               {errors.width && <p className="text-xs text-[var(--danger)]">{errors.width}</p>}
@@ -239,10 +237,11 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
               value={formData.material}
               onChange={(event) => handleChange('material', event.target.value)}
               placeholder="Melamina"
+              className="w-full"
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="mat-kerf">Grosor de sierra ({units})</Label>
               <Input
@@ -252,7 +251,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
                 min="0"
                 value={formData.kerf}
                 onChange={(event) => handleChange('kerf', event.target.value)}
-                className={errors.kerf ? 'border-red-500' : ''}
+                className={'w-full ' + (errors.kerf ? 'border-red-500' : '')}
                 placeholder="3"
               />
               {errors.kerf && <p className="text-xs text-[var(--danger)]">{errors.kerf}</p>}
@@ -266,14 +265,14 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
                 min="0"
                 value={formData.margin}
                 onChange={(event) => handleChange('margin', event.target.value)}
-                className={errors.margin ? 'border-red-500' : ''}
+                className={'w-full ' + (errors.margin ? 'border-red-500' : '')}
                 placeholder="5"
               />
               {errors.margin && <p className="text-xs text-[var(--danger)]">{errors.margin}</p>}
             </div>
           </div>
 
-          <Button type="submit" className="w-full bg-[var(--primary)] text-white hover:brightness-105">
+          <Button type="submit" className="mt-4 w-full rounded-xl py-2 font-bold bg-slate-900 text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900">
             <Package className="h-4 w-4" />
             Agregar material
           </Button>

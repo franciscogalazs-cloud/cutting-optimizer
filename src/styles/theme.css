@@ -68,3 +68,15 @@ textarea {
   background: var(--accent) !important;
   color: var(--surface) !important;
 }
+
+/* UI tarjetas industriales: foco y scrollbars sutiles */
+article input:focus-visible,
+article select:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.6); /* emerald por defecto */
+}
+
+/* Scrollbar sutil para contenedores desplazables */
+.card-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.card-scroll::-webkit-scrollbar-thumb { background-color: rgba(100,116,139,0.5); border-radius: 9999px; }
+.card-scroll { scrollbar-color: rgba(100,116,139,0.5) transparent; scrollbar-width: thin; }

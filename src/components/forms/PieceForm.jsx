@@ -160,18 +160,14 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
   };
 
   return (
-    <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
-      <CardHeader className="space-y-1">
-        <CardTitle className="flex items-center gap-2 text-[var(--text)]">
-          <Plus className="h-5 w-5 text-[var(--primary)]" />
-          Agregar pieza
-        </CardTitle>
-        <p className="text-xs text-[var(--muted)]">
-          Ingresa las dimensiones en {units}. Puedes activar tapacantos para cada lado individualmente.
-        </p>
+    <Card className="rounded-2xl shadow-lg border border-cyan-300/60 dark:border-cyan-700 bg-slate-50 dark:bg-slate-800 overflow-hidden">
+      <CardHeader className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 font-semibold uppercase tracking-wide break-words bg-cyan-100 text-slate-900 dark:bg-cyan-600/30 dark:text-cyan-200">
+        <Plus className="h-4 w-4 text-cyan-700 dark:text-cyan-300" />
+        <span>Agregar pieza</span>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="p-4 pb-0 text-xs text-slate-500 dark:text-slate-400">Ingresa las dimensiones en {units}. Puedes activar tapacantos para cada lado individualmente.</div>
+        <form onSubmit={handleSubmit} className="card-scroll p-4 space-y-4 max-h-[420px] overflow-auto">
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="piece-length">Largo ({units})</Label>
@@ -182,7 +178,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
                 min="0"
                 value={formData.length}
                 onChange={(event) => handleFieldChange('length', event.target.value)}
-                className={errors.length ? 'border-red-500' : ''}
+                className={'w-full ' + (errors.length ? 'border-red-500' : '')}
               />
               {errors.length && <p className="text-xs text-[var(--danger)]">{errors.length}</p>}
             </div>
@@ -195,7 +191,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
                 min="0"
                 value={formData.width}
                 onChange={(event) => handleFieldChange('width', event.target.value)}
-                className={errors.width ? 'border-red-500' : ''}
+                className={'w-full ' + (errors.width ? 'border-red-500' : '')}
               />
               {errors.width && <p className="text-xs text-[var(--danger)]">{errors.width}</p>}
             </div>
@@ -210,7 +206,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
                 min="1"
                 value={formData.quantity}
                 onChange={(event) => handleFieldChange('quantity', event.target.value)}
-                className={errors.quantity ? 'border-red-500' : ''}
+                className={'w-full ' + (errors.quantity ? 'border-red-500' : '')}
               />
               {errors.quantity && <p className="text-xs text-[var(--danger)]">{errors.quantity}</p>}
             </div>
@@ -222,7 +218,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
                 value={formData.label}
                 onChange={(event) => handleFieldChange('label', event.target.value)}
                 placeholder="Ej: Puerta, Estante..."
-                className={errors.label ? 'border-red-500' : ''}
+                className={'w-full ' + (errors.label ? 'border-red-500' : '')}
               />
               {errors.label && <p className="text-xs text-[var(--danger)]">{errors.label}</p>}
             </div>
@@ -298,7 +294,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
             </div>
           </div>
 
-          <Button type="submit" className="w-full bg-[var(--primary)] text-white hover:brightness-105">
+          <Button type="submit" className="mt-1 w-full rounded-xl py-2 font-bold bg-slate-900 text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900">
             <Plus className="h-4 w-4" />
             Agregar pieza
           </Button>

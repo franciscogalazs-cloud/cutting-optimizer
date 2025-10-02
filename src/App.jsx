@@ -370,26 +370,29 @@ function App() {
             <KpiCard key={item.label} {...item} />
           ))}
         </section>
+        {/* Tarjetas de entrada principales: Agregar material y Agregar pieza */}
+        <section className="grid gap-4 md:grid-cols-2">
+          <MaterialForm
+            onAddMaterial={handleAddMaterial}
+            units={config.units}
+            kerfWidth={config.kerfWidth}
+            margin={config.margin}
+            onConfigChange={(newConfig) => setConfig((prev) => ({ ...prev, ...newConfig }))}
+          />
+          <PieceForm
+            onAddPiece={handleAddPiece}
+            units={config.units}
+            materials={materials}
+            allowRotation={config.allowRotation}
+            onToggleRotation={(value) => {
+              // Actualiza la configuración global y sincroniza todas las piezas existentes
+              setConfig((prev) => ({ ...prev, allowRotation: value }));
+              setPieces((current) => current.map((p) => ({ ...p, canRotate: value })));
+            }}
+          />
+        </section>
         <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
           <aside className="space-y-6 lg:sticky lg:top-24 lg:h-fit">
-            <MaterialForm
-              onAddMaterial={handleAddMaterial}
-              units={config.units}
-              kerfWidth={config.kerfWidth}
-              margin={config.margin}
-              onConfigChange={(newConfig) => setConfig((prev) => ({ ...prev, ...newConfig }))}
-            />
-            <PieceForm
-              onAddPiece={handleAddPiece}
-              units={config.units}
-              materials={materials}
-              allowRotation={config.allowRotation}
-              onToggleRotation={(value) => {
-                // Actualiza la configuración global y sincroniza todas las piezas existentes
-                setConfig((prev) => ({ ...prev, allowRotation: value }));
-                setPieces((current) => current.map((p) => ({ ...p, canRotate: value })));
-              }}
-            />
             <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
               <CardContent className="space-y-4 p-5 text-sm text-[var(--muted)]">
                 <h3 className="flex items-center gap-2 text-base font-semibold text-[var(--text)]">
