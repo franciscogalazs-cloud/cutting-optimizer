@@ -7,7 +7,7 @@ function toSubtotal(item) {
   return (item.subtotal ?? item.unitario * metros2 * item.cantidad) || 0;
 }
 
-export default function SummarySheet({ items, totals, percents, className }) {
+export default function SummarySheet({ items, totals, percents, className, onPrint }) {
   const aggItems = React.useMemo(() => {
     const map = new Map();
     for (const it of items || []) {
@@ -53,7 +53,7 @@ export default function SummarySheet({ items, totals, percents, className }) {
       <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)] max-h-[70vh] overflow-auto overscroll-contain">
         <div className="sticky top-0 z-20 px-4 sm:py-3 py-2 flex items-center justify-between flex-wrap gap-2 bg-[var(--surface)] border-b border-[var(--border)]">
           <h2 className="text-base font-semibold text-[var(--text)]">Planilla de costos</h2>
-          <Button className="px-3" variant="outline" size="sm" onClick={() => window.print()} aria-label="Imprimir presupuesto">Imprimir</Button>
+          <Button className="px-3" variant="outline" size="sm" onClick={onPrint ?? (() => window.print())} aria-label="Imprimir presupuesto">Imprimir</Button>
         </div>
 
         <div className="px-2 sm:px-4 pb-4">
@@ -89,9 +89,9 @@ export default function SummarySheet({ items, totals, percents, className }) {
                 const rows = [
                   { label: 'Indirectos', value: totals.indirectos, strong: false, primary: false, count: Number.isFinite(pctIndirectos) ? `${pctIndirectos}%` : '' },
                   { label: 'Flete', value: totals.flete, strong: false, primary: false, count: 1 },
-                  { label: 'Subtotal neto', value: totals.subtotalNeto, strong: true, primary: false },
+                  { label: 'Costo', value: totals.subtotalNeto, strong: true, primary: false },
                   { label: 'Margen', value: totals.margen, strong: false, primary: false, count: Number.isFinite(pctMargen) ? `${pctMargen}%` : '' },
-                  { label: 'Precio de venta', value: totals.precioVenta, strong: false, primary: false },
+                  { label: 'Neto', value: totals.precioVenta, strong: false, primary: false },
                   { label: 'IVA', value: totals.iva, strong: false, primary: false, count: Number.isFinite(pctIva) ? `${pctIva}%` : '' },
                   { label: 'Total con IVA', value: totals.totalConIVA, strong: true, primary: true },
                 ];
@@ -148,9 +148,9 @@ export default function SummarySheet({ items, totals, percents, className }) {
                   const rows = [
                     { label: 'Indirectos', value: totals.indirectos, strong: false, primary: false, count: Number.isFinite(pctIndirectos) ? `${pctIndirectos}%` : '' },
                     { label: 'Flete', value: totals.flete, strong: false, primary: false, count: 1 },
-                    { label: 'Subtotal neto', value: totals.subtotalNeto, strong: true, primary: false },
+                    { label: 'Costo', value: totals.subtotalNeto, strong: true, primary: false },
                     { label: 'Margen', value: totals.margen, strong: false, primary: false, count: Number.isFinite(pctMargen) ? `${pctMargen}%` : '' },
-                    { label: 'Precio de venta', value: totals.precioVenta, strong: false, primary: false },
+                    { label: 'Neto', value: totals.precioVenta, strong: false, primary: false },
                     { label: 'IVA', value: totals.iva, strong: false, primary: false, count: Number.isFinite(pctIva) ? `${pctIva}%` : '' },
                     { label: 'Total con IVA', value: totals.totalConIVA, strong: true, primary: true },
                   ];

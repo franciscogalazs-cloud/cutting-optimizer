@@ -307,9 +307,9 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       };
       addSummary('Indirectos', sheetTotals.indirectos, Number.isFinite(Number(indirectPercent)) ? `${Number(indirectPercent)}%` : '');
       addSummary('Flete', sheetTotals.flete, '1');
-      addSummary('Subtotal neto', sheetTotals.subtotalNeto);
+  addSummary('Costo', sheetTotals.subtotalNeto);
       addSummary('Margen', sheetTotals.margen, Number.isFinite(Number(marginPercent)) ? `${Number(marginPercent)}%` : '');
-      addSummary('Precio de venta', sheetTotals.precioVenta);
+  addSummary('Neto', sheetTotals.precioVenta);
       addSummary('IVA', sheetTotals.iva, Number.isFinite(Number(taxPercent)) ? `${Number(taxPercent)}%` : '');
       addSummary('Total con IVA', sheetTotals.totalConIVA);
 
@@ -343,12 +343,15 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       /* Preferir menos hojas */
       @page { size: A4; margin: 6mm; }
 
-      /* Mostrar solo la versión de impresión */
+  /* Mostrar solo la versión de impresión */
       .no-print { display: none !important; }
       .print-only { display: block !important; }
+  /* Forzar ocultar posibles contenedores de parámetros en impresión */
+  #budget-print-root [data-print-hide] { display: none !important; }
       .hide-on-print { display: none !important; }
-      /* Expandir contenedores con scroll para que entre todo */
+    /* Expandir contenedores con scroll para que entre todo */
   .max-h-[80vh] { max-height: none !important; }
+  .max-h-[70vh] { max-height: none !important; }
       .overflow-auto, .overflow-y-auto, .overflow-x-auto { overflow: visible !important; }
       /* Evitar posicionamiento sticky que puede romper el layout en papel */
       .sticky { position: static !important; left: auto !important; right: auto !important; top: auto !important; }
@@ -493,17 +496,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                     <Plus className="h-4 w-4" />
                     Agregar material
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      if (window.confirm('Recalcular materiales desde patrones actuales? Esto reemplazará la lista.')) {
-                        setBaseMaterials(defaultBaseRows);
-                      }
-                    }}
-                  >
-                    Recalcular
-                  </Button>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -598,17 +590,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                     <Button variant="outline" size="sm" onClick={() => setEdgeItems((prev) => [...prev, createEdgeRow()])}>
                       <Plus className="h-4 w-4" />
                       Agregar tapacanto
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        if (window.confirm('Recalcular tapacantos desde piezas? Esto reemplazará la lista.')) {
-                          setEdgeItems(defaultEdgeRows);
-                        }
-                      }}
-                    >
-                      Recalcular
                     </Button>
                   </div>
                 </CardHeader>
@@ -831,6 +812,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                     margen: toNumber(marginPercent),
                     iva: toNumber(taxPercent),
                   }}
+                  onPrint={printBudget}
                 />
               </ErrorBoundary>
             </div>
@@ -843,11 +825,18 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             <div className="flex items-center gap-3">
               <img src={absoluteUrl('brand/industrial-plate/stencil_main.svg')} alt="Logo" className="print-logo" style={{ height: 64 }} />
               <div>
-                <h1 className="text-xl font-semibold text-[var(--text)]">Resumen de presupuesto</h1>
+                <h1 className="text-xl font-semibold text-[var(--text)]">PRESUPUESTO</h1>
                 <p className="text-xs text-[var(--muted)]">Generado: {printGeneratedAt} · Folio: {printFolio}</p>
               </div>
             </div>
-            <div className="text-right text-xs text-[var(--muted)]">Cliente</div>
+            {(client?.name || client?.email || client?.phone) ? (
+              <div className="text-right text-xs text-[var(--muted)]">
+                <div className="font-semibold text-[var(--text)]">Cliente</div>
+                {client.name ? <div>{client.name}</div> : null}
+                {client.email ? <div>{client.email}</div> : null}
+                {client.phone ? <div>{client.phone}</div> : null}
+              </div>
+            ) : null}
           </header>
           
           {/* Datos del cliente */}
@@ -956,6 +945,22 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-herrajes')}>Agregar herraje</Button>
             </div>
           </section>
+
+          {/* Planilla de costos (consolidado) */}
+          <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Planilla de costos</h2>
+            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-white">
+              <SummarySheet
+                items={sheetItems}
+                totals={sheetTotals}
+                percents={{
+                  indirectos: toNumber(indirectPercent),
+                  margen: toNumber(marginPercent),
+                  iva: toNumber(taxPercent),
+                }}
+              />
+            </div>
+          </section>
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-[var(--text)]">Patrones optimizados</h2>
             <table className="w-full border-collapse text-sm">
@@ -982,73 +987,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             </table>
           </section>
           {/* Bloque de parámetros debajo de patrones removido (usamos sólo la fila compacta bajo Herrajes) */}
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Totales</h2>
-            <div className="grid gap-4 sm:grid-cols-2">
-              {/* Parámetros */}
-              <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
-                <div className="flex items-center justify-between">
-                  <span>% Indirectos</span>
-                  <span className="font-medium">{toNumber(indirectPercent)}%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>% Margen</span>
-                  <span className="font-medium">{toNumber(marginPercent)}%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>IVA %</span>
-                  <span className="font-medium">{toNumber(taxPercent)}%</span>
-                </div>
-              </div>
-              {/* Totales */}
-              <div className="space-y-2 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--bg)]/40 p-4 text-sm">
-                <div className="flex items-center justify-between">
-                  <span>Materiales base</span>
-                  <span className="font-medium">{formatCLP(materialsTotal)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Tapacantos</span>
-                  <span className="font-medium">{formatCLP(edgesTotal)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Herrajes</span>
-                  <span className="font-medium">{formatCLP(hardwareTotal)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Indirectos</span>
-                  <span className="font-medium">{formatCLP(indirects)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Flete</span>
-                  <span className="font-medium">{formatCLP(freightValue)}</span>
-                </div>
-                <div className="flex items-center justify-between pt-2">
-                  <span className="font-semibold text-[var(--text)]">Subtotal neto</span>
-                  <span className="font-semibold text-[var(--text)]">{formatCLP(subtotalNet)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Margen</span>
-                  <span className="font-medium">{formatCLP(marginValue)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Precio de venta</span>
-                  <span className="font-medium">{formatCLP(subtotalWithMargin)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>IVA</span>
-                  <span className="font-medium">{formatCLP(taxValue)}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Total con IVA</span>
-                  <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={printBudget}>Imprimir</Button>
-                  <Button variant="outline" size="sm" onClick={exportBudgetCsv}>Exportar CSV</Button>
-                </div>
-              </div>
-            </div>
-          </section>
+          {/* Se elimina el bloque "Totales" en impresión para evitar duplicados (queda la Planilla de costos) */}
         </div>
       </div>
     </>
