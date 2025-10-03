@@ -244,6 +244,87 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     return `P-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
   }, []);
 
+  // ===== Exportación CSV =====
+  const aggregateItems = (items) => {
+    const map = new Map();
+    for (const it of items || []) {
+      const key = `${(it.detalle || '').trim()}|${Number(it.unitario) || 0}|${it.metros2 != null ? Number(it.metros2).toFixed(4) : 'na'}`;
+      const prev = map.get(key);
+      const subtotal = Number(it.subtotal ?? (Number(it.unitario) || 0) * (Number(it.cantidad) || 0));
+      if (prev) {
+        const cantidad = (Number(prev.cantidad) || 0) + (Number(it.cantidad) || 0);
+        const sub = (Number(prev.subtotal) || 0) + (Number(subtotal) || 0);
+        map.set(key, { ...prev, cantidad, subtotal: sub });
+      } else {
+        map.set(key, {
+          detalle: it.detalle,
+          cantidad: Number(it.cantidad) || 0,
+          metros2: it.metros2,
+          unitario: Number(it.unitario) || 0,
+          subtotal: Number(subtotal) || 0,
+        });
+      }
+    }
+    return Array.from(map.values());
+  };
+
+  const exportBudgetCsv = () => {
+    try {
+      const sep = ','; // separador CSV estándar
+      const esc = (v) => {
+        const s = String(v ?? '').replaceAll('"', '""');
+        return `"${s}"`;
+      };
+      const agg = aggregateItems(sheetItems);
+      const lines = [];
+      lines.push([esc('Planilla de costos'), esc(''), esc(''), esc('')].join(sep));
+      lines.push([esc('Generado'), esc(printGeneratedAt), esc('Folio'), esc(printFolio)].join(sep));
+      lines.push('');
+      lines.push([esc('Cant.'), esc('Detalle'), esc('Unitario (CLP)'), esc('Subtotal (CLP)')].join(sep));
+      for (const it of agg) {
+        const cant = (() => {
+          const name = (it.detalle || '').toLowerCase();
+          if (name.startsWith('tapacanto')) {
+            return `${(Number(it.cantidad) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })} ml`;
+          }
+          return (Number(it.cantidad) || 0).toLocaleString('es-CL');
+        })();
+        lines.push([
+          esc(cant),
+          esc(it.detalle || ''),
+          esc(formatCLP(it.unitario)),
+          esc(formatCLP(it.subtotal)),
+        ].join(sep));
+      }
+      lines.push('');
+      const addSummary = (label, value, count) => {
+        lines.push([
+          esc(count ?? ''),
+          esc(label),
+          esc(formatCLP(value)),
+          esc(formatCLP(value)),
+        ].join(sep));
+      };
+      addSummary('Indirectos', sheetTotals.indirectos, Number.isFinite(Number(indirectPercent)) ? `${Number(indirectPercent)}%` : '');
+      addSummary('Flete', sheetTotals.flete, '1');
+      addSummary('Subtotal neto', sheetTotals.subtotalNeto);
+      addSummary('Margen', sheetTotals.margen, Number.isFinite(Number(marginPercent)) ? `${Number(marginPercent)}%` : '');
+      addSummary('Precio de venta', sheetTotals.precioVenta);
+      addSummary('IVA', sheetTotals.iva, Number.isFinite(Number(taxPercent)) ? `${Number(taxPercent)}%` : '');
+      addSummary('Total con IVA', sheetTotals.totalConIVA);
+
+      const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `presupuesto-${printFolio}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {}
+  };
+
   const printBudget = () => {
     // Cierra posibles popups/portales (Radix Select, Dialog, etc.) antes de imprimir
     try {
@@ -407,10 +488,23 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 <CardTitle className="flex items-center gap-2">
                   <span>Materiales base</span>
                 </CardTitle>
-                <Button variant="outline" size="sm" onClick={() => setBaseMaterials((prev) => [...prev, createMaterialRow()])}>
-                  <Plus className="h-4 w-4" />
-                  Agregar material
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => setBaseMaterials((prev) => [...prev, createMaterialRow()])}>
+                    <Plus className="h-4 w-4" />
+                    Agregar material
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (window.confirm('Recalcular materiales desde patrones actuales? Esto reemplazará la lista.')) {
+                        setBaseMaterials(defaultBaseRows);
+                      }
+                    }}
+                  >
+                    Recalcular
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 {baseMaterials.map((material) => (
@@ -504,6 +598,17 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                     <Button variant="outline" size="sm" onClick={() => setEdgeItems((prev) => [...prev, createEdgeRow()])}>
                       <Plus className="h-4 w-4" />
                       Agregar tapacanto
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        if (window.confirm('Recalcular tapacantos desde piezas? Esto reemplazará la lista.')) {
+                          setEdgeItems(defaultEdgeRows);
+                        }
+                      }}
+                    >
+                      Recalcular
                     </Button>
                   </div>
                 </CardHeader>
@@ -938,9 +1043,8 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                   <span className="font-semibold text-[var(--primary)]">{formatCLP(totalWithTax)}</span>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="outline" size="sm" onClick={printBudget}>
-                    Imprimir
-                  </Button>
+                  <Button variant="outline" size="sm" onClick={printBudget}>Imprimir</Button>
+                  <Button variant="outline" size="sm" onClick={exportBudgetCsv}>Exportar CSV</Button>
                 </div>
               </div>
             </div>

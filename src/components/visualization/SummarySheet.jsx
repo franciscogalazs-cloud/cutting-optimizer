@@ -68,12 +68,12 @@ export default function SummarySheet({ items, totals, percents, className }) {
                       <div className="min-w-0">
                         <div className="text-[13px] font-medium text-[var(--text)] truncate" title={it.detalle}>{it.detalle}</div>
                         <div className="mt-1 text-[12px] text-[var(--muted)] flex flex-wrap gap-x-3 gap-y-1">
-                          <span className="font-mono tabular-nums">Cant.: {formatCountForItem(it.detalle, Number(it.cantidad) || 0)}</span>
-                          <span className="font-mono tabular-nums">Unit.: {formatCLP(it.unitario)}</span>
+                          <span className="tabular-nums">Cant.: {formatCountForItem(it.detalle, Number(it.cantidad) || 0)}</span>
+                          <span className="tabular-nums">Unit.: {formatCLP(it.unitario)}</span>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-[13px] font-semibold font-mono tabular-nums">{formatCLP(sub)}</div>
+                        <div className="text-[13px] font-semibold tabular-nums">{formatCLP(sub)}</div>
                       </div>
                     </div>
                   </div>
@@ -101,10 +101,10 @@ export default function SummarySheet({ items, totals, percents, className }) {
                       <div className="min-w-0">
                         <div className={[ 'text-[13px]', row.strong ? 'font-semibold' : 'font-medium', 'text-[var(--text)]' ].join(' ')}>{row.label}</div>
                         {row.count != null && row.count !== '' && (
-                          <div className="mt-1 text-[12px] text-[var(--muted)] font-mono tabular-nums">Cant.: {formatCountForSummary(row.label, row.count)}</div>
+                          <div className="mt-1 text-[12px] text-[var(--muted)] tabular-nums">Cant.: {formatCountForSummary(row.label, row.count)}</div>
                         )}
                       </div>
-                      <div className={[ 'text-right text-[13px] font-mono tabular-nums', row.strong ? 'font-semibold' : 'font-normal', row.primary ? 'text-[var(--primary)]' : '' ].join(' ')}>
+                      <div className={[ 'text-right text-[13px] tabular-nums', row.strong ? 'font-semibold' : 'font-normal', row.primary ? 'text-[var(--primary)]' : '' ].join(' ')}>
                         {formatCLP(row.value)}
                       </div>
                     </div>
@@ -131,10 +131,10 @@ export default function SummarySheet({ items, totals, percents, className }) {
                   const sub = (it?.subtotal) ?? toSubtotal(it);
                   return (
                     <tr key={idx} className="odd:bg-[var(--bg)]/30">
-                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 align-top text-left font-mono tabular-nums whitespace-nowrap">{formatCountForItem(it.detalle, Number(it.cantidad) || 0)}</td>
+                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 align-top text-left tabular-nums whitespace-nowrap">{formatCountForItem(it.detalle, Number(it.cantidad) || 0)}</td>
                       <th scope="row" className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-left font-normal text-[var(--text)] truncate max-w-[1px]">{it.detalle}</th>
-                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right font-mono tabular-nums whitespace-nowrap">{formatCLP(it.unitario)}</td>
-                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right font-mono tabular-nums whitespace-nowrap">{formatCLP(sub)}</td>
+                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right tabular-nums whitespace-nowrap">{formatCLP(it.unitario)}</td>
+                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right tabular-nums whitespace-nowrap">{formatCLP(sub)}</td>
                     </tr>
                   );
                 })}
@@ -156,10 +156,10 @@ export default function SummarySheet({ items, totals, percents, className }) {
                   ];
                   return rows.map((row, i) => (
                     <tr key={`summary-${i}`} className="odd:bg-[var(--bg)]/30">
-                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-left font-mono tabular-nums whitespace-nowrap">{formatCountForSummary(row.label, row.count)}</td>
+                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-left tabular-nums whitespace-nowrap">{formatCountForSummary(row.label, row.count)}</td>
                       <th scope="row" className={[ 'border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-left', row.strong ? 'font-semibold' : 'font-normal' ].join(' ')}>{row.label}</th>
-                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right font-mono tabular-nums whitespace-nowrap">{formatCLP(row.value)}</td>
-                      <td className={[ 'border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right font-mono tabular-nums whitespace-nowrap', row.strong ? 'font-semibold' : 'font-normal', row.primary ? 'text-[var(--primary)]' : '' ].join(' ')}>{formatCLP(row.value)}</td>
+                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right tabular-nums whitespace-nowrap">{formatCLP(row.value)}</td>
+                      <td className={[ 'border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right tabular-nums whitespace-nowrap', row.strong ? 'font-semibold' : 'font-normal', row.primary ? 'text-[var(--primary)]' : '' ].join(' ')}>{formatCLP(row.value)}</td>
                     </tr>
                   ));
                 })()}

@@ -41,11 +41,11 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, onDuplicate
                 <div className="min-w-0">
                   <div className="text-[13px] font-medium text-[var(--text)] truncate" title={material.material}>{material.material}</div>
                   <div className="mt-1 text-[12px] text-[var(--muted)] grid grid-cols-2 gap-x-4 gap-y-1">
-                    <span>Largo: <span className="font-mono tabular-nums">{material.length}</span> {units}</span>
-                    <span>Ancho: <span className="font-mono tabular-nums">{material.width}</span> {units}</span>
-                    <span>Sierra: <span className="font-mono tabular-nums">{material.kerf}</span> {units}</span>
-                    <span>Margen: <span className="font-mono tabular-nums">{material.margin}</span> {units}</span>
-                    <span>Área: <span className="font-mono tabular-nums">{formatSquareMeters(rectangleAreaToSquareMeters(material.length, material.width, material.quantity, units))}</span></span>
+                    <span>Largo: <span className="tabular-nums">{material.length}</span> {units}</span>
+                    <span>Ancho: <span className="tabular-nums">{material.width}</span> {units}</span>
+                    <span>Sierra: <span className="tabular-nums">{material.kerf}</span> {units}</span>
+                    <span>Margen: <span className="tabular-nums">{material.margin}</span> {units}</span>
+                    <span>Área: <span className="tabular-nums">{formatSquareMeters(rectangleAreaToSquareMeters(material.length, material.width, material.quantity, units))}</span></span>
                   </div>
                 </div>
                 <div className="shrink-0">

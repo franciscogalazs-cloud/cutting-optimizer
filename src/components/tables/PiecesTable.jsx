@@ -55,10 +55,10 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
                 <div className="min-w-0">
                   <div className="text-[13px] font-medium text-[var(--text)] truncate" title={piece.label}>{piece.label}</div>
                   <div className="mt-1 text-[12px] text-[var(--muted)] grid grid-cols-2 gap-x-4 gap-y-1">
-                    <span>Largo: <span className="font-mono tabular-nums">{piece.length}</span> {units}</span>
-                    <span>Ancho: <span className="font-mono tabular-nums">{piece.width}</span> {units}</span>
+                    <span>Largo: <span className="tabular-nums">{piece.length}</span> {units}</span>
+                    <span>Ancho: <span className="tabular-nums">{piece.width}</span> {units}</span>
                     <span>Cantidad: <Badge variant="secondary" className="bg-[var(--surface)] text-[var(--text)]">{piece.quantity}</Badge></span>
-                    <span>Área: <span className="font-mono tabular-nums">{((piece.length * piece.width * piece.quantity) / 10000).toLocaleString()}</span> m2</span>
+                    <span>Área: <span className="tabular-nums">{((piece.length * piece.width * piece.quantity) / 10000).toLocaleString()}</span> m2</span>
                     <span className="col-span-2">
                       <span>Material: </span>
                       <Select
