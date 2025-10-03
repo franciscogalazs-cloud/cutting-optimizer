@@ -14,6 +14,8 @@ export class GuillotineOptimizer {
       margin: config.margin ?? 0,
       allowRotation: config.allowRotation ?? true,
       orientation: config.orientation ?? 'rows', // 'rows' (filas) | 'cols' (columnas)
+      separation: config.separation ?? 0, // separación adicional entre piezas además del kerf
+      rotationPenalty: config.rotationPenalty ?? 0, // no se usa en guillotine, pero se acepta en config
       ...config,
     };
   }
@@ -135,6 +137,7 @@ export class GuillotineOptimizer {
 
   packShelves(pattern, leftovers, material) {
     const kerf = Number(pattern.kerf) || 0;
+    const clearance = kerf + (Number(this.config.separation) || 0);
     const margin = Number(pattern.margin) || 0;
     const widthAvail = Math.max(0, pattern.materialLength - margin * 2);
     const heightAvail = Math.max(0, pattern.materialWidth - margin * 2);
@@ -190,13 +193,13 @@ export class GuillotineOptimizer {
           edges: piece.edges,
         }));
 
-        // actualizar cursores (kerf solo ENTRE piezas)
+        // actualizar cursores (usar clearance = kerf + separation entre piezas)
         x += chosen.width;
         remainW -= chosen.width;
         // si aún queda espacio para otra pieza, sumar kerf de separación
         if (remainW > 0) {
-          x += kerf;
-          remainW = Math.max(0, remainW - kerf);
+          x += clearance;
+          remainW = Math.max(0, remainW - clearance);
         }
         placedInShelf = true;
 
@@ -215,26 +218,32 @@ export class GuillotineOptimizer {
       // pasar a siguiente shelf
       y += shelfHeight;
       remainH -= shelfHeight;
-      // corte horizontal completo (kerf) solo si queda altura para más filas
+      // corte horizontal completo: usar clearance entre filas si queda altura
       if (remainH > 0) {
-        y += kerf;
-        remainH = Math.max(0, remainH - kerf);
+        y += clearance;
+        remainH = Math.max(0, remainH - clearance);
       }
     }
   }
 
   getOrientations(piece) {
-    const allowRot = (this.config.allowRotation && (piece.canRotate ?? true));
+    const required = piece.requiredRotation; // 'original' | 'rotated' | true | false
+    const canRotate = (this.config.allowRotation && (piece.canRotate ?? true)) || required === 'rotated' || required === true;
+    const allowOriginal = required === 'rotated' || required === true ? false : true;
+    const allowRotated = required === 'original' || required === false ? false : canRotate;
     const a = { width: Number(piece.length) || 0, height: Number(piece.width) || 0, rotated: false };
-    const b = allowRot
-      ? { width: Number(piece.width) || 0, height: Number(piece.length) || 0, rotated: true }
-      : { ...a };
-    return { a, b };
+    const b = { width: Number(piece.width) || 0, height: Number(piece.length) || 0, rotated: true };
+    if (allowOriginal && allowRotated) return { a, b };
+    if (allowOriginal) return { a, b: a };
+    if (allowRotated) return { a: b, b };
+    // Si ninguna es permitida, por seguridad devolver original
+    return { a, b: a };
   }
 
   // Empaquetado por columnas (cortes verticales): transposición del esquema de filas
   packColumns(pattern, leftovers, material) {
     const kerf = Number(pattern.kerf) || 0;
+    const clearance = kerf + (Number(this.config.separation) || 0);
     const margin = Number(pattern.margin) || 0;
     const widthAvail = Math.max(0, pattern.materialLength - margin * 2);
     const heightAvail = Math.max(0, pattern.materialWidth - margin * 2);
@@ -289,8 +298,8 @@ export class GuillotineOptimizer {
         y += chosen.height;
         remainH -= chosen.height;
         if (remainH > 0) {
-          y += kerf;
-          remainH = Math.max(0, remainH - kerf);
+          y += clearance;
+          remainH = Math.max(0, remainH - clearance);
         }
         placedInCol = true;
 
@@ -305,8 +314,8 @@ export class GuillotineOptimizer {
       x += colWidth;
       remainW -= colWidth;
       if (remainW > 0) {
-        x += kerf;
-        remainW = Math.max(0, remainW - kerf);
+        x += clearance;
+        remainW = Math.max(0, remainW - clearance);
       }
     }
   }

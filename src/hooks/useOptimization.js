@@ -56,6 +56,8 @@ export const useOptimization = () => {
       const normalizedConfig = {
         ...config,
         kerf: config.kerf ?? config.kerfWidth,
+        separation: config.separation ?? 0,
+        rotationPenalty: config.rotationPenalty ?? 0,
       };
 
       const optimizer = createOptimizer(normalizedConfig);

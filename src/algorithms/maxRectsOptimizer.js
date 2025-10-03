@@ -8,6 +8,8 @@ export class MaxRectsOptimizer {
       kerf: config.kerf ?? 3,
       margin: config.margin ?? 5,
       allowRotation: config.allowRotation ?? true,
+      separation: config.separation ?? 0, // separación adicional entre piezas
+      rotationPenalty: config.rotationPenalty ?? 0, // penalización por rotar si no es obligatorio
       ...config,
     };
   }
@@ -34,6 +36,13 @@ export class MaxRectsOptimizer {
     result.executionTime = Date.now() - startTime;
     result.algorithm = 'MaxRects';
     return result;
+  }
+
+  // Clearance mínimo entre piezas y cortes: kerf + separación
+  getClearance(pattern) {
+    const kerf = this.getKerf(pattern);
+    const sep = Number(this.config.separation) || 0;
+    return (Number(kerf) || 0) + sep;
   }
 
   expandPieces(pieces) {
@@ -85,17 +94,22 @@ export class MaxRectsOptimizer {
     let bestRect = null;
     let bestWaste = Infinity;
     let bestBalanceScore = Infinity;
-    const tryOrientations = [
-      { width: piece.length, height: piece.width, rotated: false },
-    ];
-    if (this.config.allowRotation && (piece.canRotate ?? true)) {
-      tryOrientations.push({ width: piece.width, height: piece.length, rotated: true });
-    }
-    for (const orient of tryOrientations) {
+    const orientations = [];
+    const required = piece.requiredRotation; // 'original' | 'rotated' | true | false | undefined
+    const allowRotation = (this.config.allowRotation && (piece.canRotate ?? true)) || required === 'rotated' || required === true;
+    const allowOriginal = required === 'rotated' || required === true ? false : true;
+    const allowRotated = required === 'original' || required === false ? false : allowRotation;
+    if (allowOriginal) orientations.push({ width: piece.length, height: piece.width, rotated: false });
+    if (allowRotated) orientations.push({ width: piece.width, height: piece.length, rotated: true });
+    const rotationPenalty = Number(this.config.rotationPenalty) || 0;
+    for (const orient of orientations) {
       for (const rect of pattern.freeRects) {
         if (orient.width <= rect.width && orient.height <= rect.height) {
           const waste = rect.width * rect.height - orient.width * orient.height;
-          const balanceScore = Math.abs((rect.width - orient.width) - (rect.height - orient.height)) + (orient.rotated ? -0.001 : 0);
+          let balanceScore = Math.abs((rect.width - orient.width) - (rect.height - orient.height));
+          if (orient.rotated && (required !== 'rotated' && required !== true)) {
+            balanceScore += rotationPenalty;
+          }
           if (waste < bestWaste - 1e-6 || (Math.abs(waste - bestWaste) <= 1e-6 && balanceScore < bestBalanceScore)) {
             bestWaste = waste;
             bestBalanceScore = balanceScore;
@@ -135,34 +149,34 @@ export class MaxRectsOptimizer {
 
   splitFreeRects(pattern, position) {
     // Divide el rectángulo libre donde se colocó la pieza en hasta 2 nuevos rectángulos
-    const kerf = this.getKerf(pattern);
+    const clearance = this.getClearance(pattern);
     const rect = pattern.freeRects[position.rectIndex];
     const newRects = [];
     // Derecha
-    if (rect.width > position.width + kerf) {
+    if (rect.width > position.width + clearance) {
       newRects.push({
-        x: rect.x + position.width + kerf,
+        x: rect.x + position.width + clearance,
         y: rect.y,
-        width: rect.width - position.width - kerf,
+        width: rect.width - position.width - clearance,
         height: position.height,
       });
     }
     // Abajo
-    if (rect.height > position.height + kerf) {
+    if (rect.height > position.height + clearance) {
       newRects.push({
         x: rect.x,
-        y: rect.y + position.height + kerf,
+        y: rect.y + position.height + clearance,
         width: rect.width,
-        height: rect.height - position.height - kerf,
+        height: rect.height - position.height - clearance,
       });
     }
     // Resto del Ã¡rea no ocupada
-    if (rect.width > position.width + kerf && rect.height > position.height + kerf) {
+    if (rect.width > position.width + clearance && rect.height > position.height + clearance) {
       newRects.push({
-        x: rect.x + position.width + kerf,
-        y: rect.y + position.height + kerf,
-        width: rect.width - position.width - kerf,
-        height: rect.height - position.height - kerf,
+        x: rect.x + position.width + clearance,
+        y: rect.y + position.height + clearance,
+        width: rect.width - position.width - clearance,
+        height: rect.height - position.height - clearance,
       });
     }
     // Eliminar el rectÃ¡ngulo original y agregar los nuevos

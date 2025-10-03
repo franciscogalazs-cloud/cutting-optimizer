@@ -8,6 +8,7 @@ export class BacktrackingOptimizer {
       kerf: config.kerf ?? 3,
       margin: config.margin ?? 5,
       allowRotation: config.allowRotation ?? true,
+      separation: config.separation ?? 0,
       maxPatterns: config.maxPatterns ?? null,
       ...config,
     };
@@ -170,7 +171,8 @@ export class BacktrackingOptimizer {
   generatePossiblePositions(pattern, piece) {
     const margin = this.getMargin(pattern);
     const kerf = this.getKerf(pattern);
-    const canRotatePiece = this.config.allowRotation && (piece.canRotate ?? true);
+  const required = piece.requiredRotation; // 'original' | 'rotated' | true | false
+  const canRotatePiece = (this.config.allowRotation && (piece.canRotate ?? true)) || required === 'rotated' || required === true;
     const positions = [{ x: margin, y: margin, rotated: false }];
     if (canRotatePiece) {
       positions.push({ x: margin, y: margin, rotated: true });
@@ -199,10 +201,12 @@ export class BacktrackingOptimizer {
 
   tryPlacePiece(piece, pattern, pos) {
     const margin = this.getMargin(pattern);
-    const kerf = this.getKerf(pattern);
+  const kerf = this.getKerf(pattern);
+  const clearance = kerf + (this.config.separation ?? 0);
     const materialLength = pattern.materialLength - margin * 2;
     const materialWidth = pattern.materialWidth - margin * 2;
-    const canRotate = this.config.allowRotation && (piece.canRotate ?? true);
+  const required = piece.requiredRotation;
+  const canRotate = (this.config.allowRotation && (piece.canRotate ?? true)) || required === 'rotated' || required === true;
     const length = pos.rotated && canRotate ? piece.width : piece.length;
     const width = pos.rotated && canRotate ? piece.length : piece.width;
 
@@ -212,10 +216,10 @@ export class BacktrackingOptimizer {
     for (const placedPiece of pattern.pieces) {
       if (this.rectanglesOverlap(
         pos.x, pos.y, length, width,
-        placedPiece.x - kerf / 2,
-        placedPiece.y - kerf / 2,
-        placedPiece.width + kerf,
-        placedPiece.height + kerf,
+        placedPiece.x - clearance / 2,
+        placedPiece.y - clearance / 2,
+        placedPiece.width + clearance,
+        placedPiece.height + clearance,
       )) {
         return null;
       }

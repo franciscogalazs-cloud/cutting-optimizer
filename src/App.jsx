@@ -47,6 +47,8 @@ function App() {
     kerfWidth: 3,
     margin: 5,
     allowRotation: true,
+    separation: 0,
+    rotationPenalty: 0,
   });
   const [activeTab, setActiveTab] = useState("pieces");
   useEffect(() => {

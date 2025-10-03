@@ -149,7 +149,7 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
 
   const nextPattern = () => setCurrentPatternIndex((prev) => (prev + 1) % validPatterns.length);
   const prevPattern = () => setCurrentPatternIndex((prev) => (prev - 1 + validPatterns.length) % validPatterns.length);
-  const pieceCount = Array.isArray(currentPattern?.pieces) ? currentPattern.pieces.length : 0;
+  // pieceCount removido: no se usa en la UI
 
   return (
     <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">

@@ -6,6 +6,8 @@ export class BestFitDecreasing {
       kerf: config.kerf ?? 3,
       margin: config.margin ?? 5,
       allowRotation: config.allowRotation ?? true,
+      separation: config.separation ?? 0,
+      rotationPenalty: config.rotationPenalty ?? 0,
       ...config,
     };
   }
@@ -25,14 +27,13 @@ export class BestFitDecreasing {
     const originalWidth = piece.width || 0;
     
     // Probar ambas orientaciones de la pieza
-    const orientations = [
-      { width: originalLength, height: originalWidth, rotated: false }, // Orientación original
-    ];
-    
-    // Agregar orientación rotada si es permitido y las dimensiones son diferentes
-    if (this.config.allowRotation && (piece.canRotate ?? true) && originalLength !== originalWidth) {
-      orientations.push({ width: originalWidth, height: originalLength, rotated: true }); // Orientación rotada
-    }
+    const orientations = [];
+    const required = piece.requiredRotation; // 'original' | 'rotated' | true | false | undefined
+    const allowRotation = (this.config.allowRotation && (piece.canRotate ?? true)) || required === 'rotated' || required === true;
+    const allowOriginal = required === 'rotated' || required === true ? false : true;
+    const allowRotated = required === 'original' || required === false ? false : allowRotation;
+    if (allowOriginal) orientations.push({ width: originalLength, height: originalWidth, rotated: false });
+    if (allowRotated && originalLength !== originalWidth) orientations.push({ width: originalWidth, height: originalLength, rotated: true });
     
     for (const orientation of orientations) {
       // Verificar si la orientación cabe en el material sin considerar márgenes
@@ -49,10 +50,13 @@ export class BestFitDecreasing {
       );
 
       for (const position of candidatePositions) {
-        if (this.isValidPosition(position.x, position.y, orientation.width, orientation.height, pattern, kerf)) {
-          const score = this.calculatePositionScore(
+  if (this.isValidPosition(position.x, position.y, orientation.width, orientation.height, pattern)) {
+          let score = this.calculatePositionScore(
             position.x, position.y, orientation.width, orientation.height, pattern
           );
+          if (orientation.rotated && (required !== 'rotated' && required !== true)) {
+            score += this.config.rotationPenalty || 0;
+          }
           const orientationPreference = orientation.width <= orientation.height ? 0.75 : 0;
           const adjustedScore = score - orientationPreference;
 
@@ -179,19 +183,20 @@ export class BestFitDecreasing {
     return score;
   }
 
-  isValidPosition(x, y, width, height, pattern, kerf) {
+  isValidPosition(x, y, width, height, pattern) {
     // Verificar que la pieza esté dentro de los límites del material
     if (x < 0 || y < 0 || x + width > pattern.materialLength || y + height > pattern.materialWidth) {
       return false;
     }
 
     // Verificar colisiones con piezas existentes (incluyendo kerf)
+  const clearance = (pattern.kerf ?? this.config.kerf) + (this.config.separation ?? 0);
     for (const existingPiece of pattern.pieces) {
       const collision = !(
-        x >= existingPiece.x + existingPiece.width + kerf ||
-        x + width + kerf <= existingPiece.x ||
-        y >= existingPiece.y + existingPiece.height + kerf ||
-        y + height + kerf <= existingPiece.y
+        x >= existingPiece.x + existingPiece.width + clearance ||
+        x + width + clearance <= existingPiece.x ||
+        y >= existingPiece.y + existingPiece.height + clearance ||
+        y + height + clearance <= existingPiece.y
       );
 
       if (collision) {

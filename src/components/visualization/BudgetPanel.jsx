@@ -244,86 +244,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     return `P-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
   }, []);
 
-  // ===== Exportación CSV =====
-  const aggregateItems = (items) => {
-    const map = new Map();
-    for (const it of items || []) {
-      const key = `${(it.detalle || '').trim()}|${Number(it.unitario) || 0}|${it.metros2 != null ? Number(it.metros2).toFixed(4) : 'na'}`;
-      const prev = map.get(key);
-      const subtotal = Number(it.subtotal ?? (Number(it.unitario) || 0) * (Number(it.cantidad) || 0));
-      if (prev) {
-        const cantidad = (Number(prev.cantidad) || 0) + (Number(it.cantidad) || 0);
-        const sub = (Number(prev.subtotal) || 0) + (Number(subtotal) || 0);
-        map.set(key, { ...prev, cantidad, subtotal: sub });
-      } else {
-        map.set(key, {
-          detalle: it.detalle,
-          cantidad: Number(it.cantidad) || 0,
-          metros2: it.metros2,
-          unitario: Number(it.unitario) || 0,
-          subtotal: Number(subtotal) || 0,
-        });
-      }
-    }
-    return Array.from(map.values());
-  };
-
-  const exportBudgetCsv = () => {
-    try {
-      const sep = ','; // separador CSV estándar
-      const esc = (v) => {
-        const s = String(v ?? '').replaceAll('"', '""');
-        return `"${s}"`;
-      };
-      const agg = aggregateItems(sheetItems);
-      const lines = [];
-      lines.push([esc('Planilla de costos'), esc(''), esc(''), esc('')].join(sep));
-      lines.push([esc('Generado'), esc(printGeneratedAt), esc('Folio'), esc(printFolio)].join(sep));
-      lines.push('');
-      lines.push([esc('Cant.'), esc('Detalle'), esc('Unitario (CLP)'), esc('Subtotal (CLP)')].join(sep));
-      for (const it of agg) {
-        const cant = (() => {
-          const name = (it.detalle || '').toLowerCase();
-          if (name.startsWith('tapacanto')) {
-            return `${(Number(it.cantidad) || 0).toLocaleString('es-CL', { maximumFractionDigits: 2 })} ml`;
-          }
-          return (Number(it.cantidad) || 0).toLocaleString('es-CL');
-        })();
-        lines.push([
-          esc(cant),
-          esc(it.detalle || ''),
-          esc(formatCLP(it.unitario)),
-          esc(formatCLP(it.subtotal)),
-        ].join(sep));
-      }
-      lines.push('');
-      const addSummary = (label, value, count) => {
-        lines.push([
-          esc(count ?? ''),
-          esc(label),
-          esc(formatCLP(value)),
-          esc(formatCLP(value)),
-        ].join(sep));
-      };
-      addSummary('Indirectos', sheetTotals.indirectos, Number.isFinite(Number(indirectPercent)) ? `${Number(indirectPercent)}%` : '');
-      addSummary('Flete', sheetTotals.flete, '1');
-  addSummary('Costo', sheetTotals.subtotalNeto);
-      addSummary('Margen', sheetTotals.margen, Number.isFinite(Number(marginPercent)) ? `${Number(marginPercent)}%` : '');
-  addSummary('Neto', sheetTotals.precioVenta);
-      addSummary('IVA', sheetTotals.iva, Number.isFinite(Number(taxPercent)) ? `${Number(taxPercent)}%` : '');
-      addSummary('Total con IVA', sheetTotals.totalConIVA);
-
-      const blob = new Blob([lines.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `presupuesto-${printFolio}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch {}
-  };
+  // Exportación CSV removida por solicitud
 
   const printBudget = () => {
     // Cierra posibles popups/portales (Radix Select, Dialog, etc.) antes de imprimir
@@ -339,7 +260,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
 
     const node = printAreaRef.current;
     if (!node) return window.print();
-    const extraCss = `
+  const extraCss = `
       /* Preferir menos hojas */
       @page { size: A4; margin: 6mm; }
 
@@ -348,6 +269,8 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       .print-only { display: block !important; }
   /* Forzar ocultar posibles contenedores de parámetros en impresión */
   #budget-print-root [data-print-hide] { display: none !important; }
+  /* Ocultar bloques marcados como redundantes en modo compacto */
+  #budget-print-root [data-print-compact-hide] { display: none !important; }
       .hide-on-print { display: none !important; }
     /* Expandir contenedores con scroll para que entre todo */
   .max-h-[80vh] { max-height: none !important; }
@@ -362,31 +285,31 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   /* .shadow-[var(--shadow)], .shadow, .ring, .border { box-shadow: none !important; } */
 
   /* ===== Compactación del contenido del presupuesto ===== */
-  #budget-print-root { font-size: 10px; line-height: 1.25; }
-      #budget-print-root h1 { font-size: 16px; margin: 0 0 6px 0; }
-      #budget-print-root h2 { font-size: 14px; margin: 6px 0; }
-      #budget-print-root h3, #budget-print-root h4 { font-size: 12px; margin: 4px 0; }
+  #budget-print-root { font-size: 9px; line-height: 1.2; }
+    #budget-print-root h1 { font-size: 14px; margin: 0 0 4px 0; }
+    #budget-print-root h2 { font-size: 12px; margin: 4px 0; }
+    #budget-print-root h3, #budget-print-root h4 { font-size: 11px; margin: 3px 0; }
   #budget-print-root svg { display: none !important; }
-  #budget-print-root img.print-logo { display: inline-block !important; max-height: 84px; }
+  #budget-print-root img.print-logo { display: inline-block !important; max-height: 56px; }
       #budget-print-root .shadow, #budget-print-root [class*="shadow-"] { box-shadow: none !important; }
       #budget-print-root .rounded, #budget-print-root [class*="rounded-"] { border-radius: 4px !important; }
       #budget-print-root .border, #budget-print-root [class*="border-"] { border-color: #e5e7eb !important; }
 
       /* Reducir paddings y gaps frecuentes */
-  #budget-print-root .p-4 { padding: 6px !important; }
-  #budget-print-root .p-3 { padding: 5px !important; }
-  #budget-print-root .p-2 { padding: 3px !important; }
-      #budget-print-root .px-4 { padding-left: 8px !important; padding-right: 8px !important; }
-  #budget-print-root .px-3 { padding-left: 5px !important; padding-right: 5px !important; }
-  #budget-print-root .py-4 { padding-top: 6px !important; padding-bottom: 6px !important; }
-  #budget-print-root .py-3 { padding-top: 5px !important; padding-bottom: 5px !important; }
-  #budget-print-root .py-2 { padding-top: 3px !important; padding-bottom: 3px !important; }
-  #budget-print-root .gap-6 { gap: 6px !important; }
-  #budget-print-root .gap-4 { gap: 5px !important; }
-  #budget-print-root .gap-3 { gap: 3px !important; }
-  #budget-print-root .space-y-6 > * + * { margin-top: 6px !important; }
-  #budget-print-root .space-y-4 > * + * { margin-top: 5px !important; }
-  #budget-print-root .space-y-3 > * + * { margin-top: 3px !important; }
+  #budget-print-root .p-4 { padding: 5px !important; }
+  #budget-print-root .p-3 { padding: 4px !important; }
+  #budget-print-root .p-2 { padding: 2px !important; }
+    #budget-print-root .px-4 { padding-left: 6px !important; padding-right: 6px !important; }
+  #budget-print-root .px-3 { padding-left: 4px !important; padding-right: 4px !important; }
+  #budget-print-root .py-4 { padding-top: 5px !important; padding-bottom: 5px !important; }
+  #budget-print-root .py-3 { padding-top: 4px !important; padding-bottom: 4px !important; }
+  #budget-print-root .py-2 { padding-top: 2px !important; padding-bottom: 2px !important; }
+  #budget-print-root .gap-6 { gap: 5px !important; }
+  #budget-print-root .gap-4 { gap: 4px !important; }
+  #budget-print-root .gap-3 { gap: 2px !important; }
+  #budget-print-root .space-y-6 > * + * { margin-top: 5px !important; }
+  #budget-print-root .space-y-4 > * + * { margin-top: 4px !important; }
+  #budget-print-root .space-y-3 > * + * { margin-top: 2px !important; }
 
       /* Inputs/selects como texto simple para ahorrar espacio */
       #budget-print-root input, #budget-print-root select, #budget-print-root textarea {
@@ -398,7 +321,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
 
       /* Tablas compactas */
       #budget-print-root table { border-collapse: collapse !important; width: 100% !important; }
-      #budget-print-root th, #budget-print-root td { padding: 3px 5px !important; }
+      #budget-print-root th, #budget-print-root td { padding: 2px 4px !important; }
       #budget-print-root th { background: #f8fafc !important; }
       #budget-print-root tr { break-inside: avoid; }
       #budget-print-root section, #budget-print-root .card, #budget-print-root .Card, #budget-print-root .border { break-inside: avoid; }
@@ -838,9 +761,24 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </div>
             ) : null}
           </header>
-          
-          {/* Datos del cliente */}
+          {/* Planilla de costos primero en impresión */}
           <section className="space-y-2">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Planilla de costos</h2>
+            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-white">
+              <SummarySheet
+                items={sheetItems}
+                totals={sheetTotals}
+                percents={{
+                  indirectos: toNumber(indirectPercent),
+                  margen: toNumber(marginPercent),
+                  iva: toNumber(taxPercent),
+                }}
+              />
+            </div>
+          </section>
+          
+          {/* Datos del cliente (redundante en compacto) */}
+          <section className="space-y-2" data-print-compact-hide>
             <div className="text-sm text-[var(--muted)]">Datos del cliente</div>
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-white p-4">
               <div className="grid grid-cols-3 gap-4 text-sm">
@@ -862,8 +800,8 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-cliente')}>Agregar / Editar</Button>
             </div>
           </section>
-          {/* Materiales base */}
-          <section className="space-y-2">
+          {/* Materiales base (redundante en compacto) */}
+          <section className="space-y-2" data-print-compact-hide>
             <h2 className="text-lg font-semibold text-[var(--text)]">Materiales base</h2>
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -891,8 +829,8 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-materiales')}>Agregar material</Button>
             </div>
           </section>
-          {/* Tapacantos */}
-          <section className="space-y-2">
+          {/* Tapacantos (redundante en compacto) */}
+          <section className="space-y-2" data-print-compact-hide>
             <h2 className="text-lg font-semibold text-[var(--text)]">Tapacantos</h2>
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -918,8 +856,8 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-tapacantos')}>Agregar tapacanto</Button>
             </div>
           </section>
-          {/* Herrajes */}
-          <section className="space-y-2">
+          {/* Herrajes (redundante en compacto) */}
+          <section className="space-y-2" data-print-compact-hide>
             <h2 className="text-lg font-semibold text-[var(--text)]">Herrajes</h2>
             <table className="w-full border-collapse text-sm">
               <thead>
@@ -946,21 +884,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             </div>
           </section>
 
-          {/* Planilla de costos (consolidado) */}
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Planilla de costos</h2>
-            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-white">
-              <SummarySheet
-                items={sheetItems}
-                totals={sheetTotals}
-                percents={{
-                  indirectos: toNumber(indirectPercent),
-                  margen: toNumber(marginPercent),
-                  iva: toNumber(taxPercent),
-                }}
-              />
-            </div>
-          </section>
+          {/* (Planilla ya está mostrada al inicio) */}
           <section className="space-y-2">
             <h2 className="text-lg font-semibold text-[var(--text)]">Patrones optimizados</h2>
             <table className="w-full border-collapse text-sm">
