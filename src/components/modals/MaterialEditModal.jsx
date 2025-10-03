@@ -49,7 +49,7 @@ export const MaterialEditModal = ({ open, onClose, material, onSave, units = 'mm
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md bg-white">
         <DialogHeader>
           <DialogTitle>Editar Material</DialogTitle>
         </DialogHeader>

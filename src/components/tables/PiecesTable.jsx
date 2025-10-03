@@ -47,7 +47,91 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="w-full max-w-none min-w-0 overflow-auto">
+        {/* Móvil: tarjetas apiladas sin scroll horizontal */}
+        <div className="block sm:hidden space-y-2">
+          {pieces.map((piece) => (
+            <div key={piece.id} className="rounded-md border border-[var(--border)] bg-[var(--bg)]/20 p-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <div className="text-[13px] font-medium text-[var(--text)] truncate" title={piece.label}>{piece.label}</div>
+                  <div className="mt-1 text-[12px] text-[var(--muted)] grid grid-cols-2 gap-x-4 gap-y-1">
+                    <span>Largo: <span className="font-mono tabular-nums">{piece.length}</span> {units}</span>
+                    <span>Ancho: <span className="font-mono tabular-nums">{piece.width}</span> {units}</span>
+                    <span>Cantidad: <Badge variant="secondary" className="bg-[var(--surface)] text-[var(--text)]">{piece.quantity}</Badge></span>
+                    <span>Área: <span className="font-mono tabular-nums">{((piece.length * piece.width * piece.quantity) / 10000).toLocaleString()}</span> m2</span>
+                    <span className="col-span-2">
+                      <span>Material: </span>
+                      <Select
+                        value={materialNames.includes(piece.material) ? piece.material : undefined}
+                        onValueChange={(value) => onEdit && onEdit(piece.id, { material: value })}
+                        disabled={materialNames.length === 0}
+                      >
+                        <SelectTrigger className="inline-flex w-auto min-w-[10rem] border-[var(--border)] bg-[var(--surface)] text-[var(--text)]">
+                          <SelectValue placeholder={materialNames.length === 0 ? 'Sin materiales' : 'Selecciona material'} />
+                        </SelectTrigger>
+                        <SelectContent position="popper" sideOffset={4} className="z-50">
+                          {materialNames.map((name) => {
+                            const sample = nameToSample.get(name);
+                            const label = sample && sample.length && sample.width
+                              ? `${name} - ${sample.length}x${sample.width} ${units}`
+                              : name;
+                            return (
+                              <SelectItem key={name} value={name}>
+                                {label}
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </span>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  <div className="inline-flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2 text-[var(--text)]"
+                      title="Rotar largo/ancho"
+                      onClick={() => onEdit && onEdit(piece.id, { length: piece.width, width: piece.length })}
+                    >
+                      <RotateCcw className="mr-1 h-3 w-3" />
+                      Rotar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onDuplicate?.(piece)}
+                      className="h-8 w-8 p-0 text-[var(--text)]"
+                      title="Duplicar pieza"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onEditRequest?.(piece)}
+                      className="h-8 w-8 p-0 text-[var(--text)]"
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => onDelete?.(piece.id)}
+                      className="h-8 w-8 p-0 text-[var(--danger)] hover:text-[var(--danger)]"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* sm+: tabla completa */}
+        <div className="hidden sm:block w-full max-w-none min-w-0 overflow-auto">
           <table className="w-full table-auto caption-bottom text-sm">
             <colgroup>
               <col />

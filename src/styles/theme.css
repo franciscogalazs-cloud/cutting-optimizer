@@ -1,5 +1,6 @@
 :root {
-  --bg: #f7f7fb;
+  /* Fondo más claro (blanco) para eliminar apariencia oscura */
+  --bg: #ffffff;
   --surface: #ffffff;
   --card: #ffffff;
   --fg: #0f172a;
@@ -50,6 +51,20 @@ input,
 select,
 textarea {
   font-family: inherit;
+}
+
+/* Dialog/Modal: forzar fondo blanco y bordes del tema */
+[data-slot="dialog-content"],
+[data-slot="alert-dialog-content"] {
+  background: #ffffff !important;
+  color: var(--text) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Encabezados dentro del diálogo mantienen fondo blanco para evitar transparencias */
+[data-slot="dialog-header"],
+[data-slot="alert-dialog-header"] {
+  background: #ffffff;
 }
 
 /* Fix for Select components to use our theme variables */

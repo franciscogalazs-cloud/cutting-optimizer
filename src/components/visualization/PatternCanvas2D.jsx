@@ -187,7 +187,7 @@ export default function PatternCanvas2D({
   if (showEdges && p.edges) {
           // Remapeo centralizado 90° horario (CW)
           let e = mapEdgesForRotation(p.edges, p.rotated, 'CW');
-          const t = 2 / (s * dpr); // grosor más delgado en pantalla (2px visual)
+          const t = 3 / (s * dpr); // grosor a 3px visual para más claridad
           const edges = e || {};
           // arriba
 
@@ -199,6 +199,10 @@ export default function PatternCanvas2D({
             ctx.globalAlpha = 0.65;
             const th = Math.min(t, h);
             ctx.fillRect(x, y, w, th);
+            // trazo sutil para contraste
+            ctx.lineWidth = 1 / (s * dpr);
+            ctx.strokeStyle = darkenHex(color, 0.4);
+            ctx.strokeRect(x, y, w, th);
             ctx.globalAlpha = 1;
             edgeZones.push({ x, y, w, h: th, type: edges.arriba?.tipo || 'General', side: 'arriba', len: w, piece: p.label, pieceIndex: i, color });
           }
@@ -210,6 +214,9 @@ export default function PatternCanvas2D({
             const th = Math.min(t, h);
             const yy = y + Math.max(0, h - th);
             ctx.fillRect(x, yy, w, th);
+            ctx.lineWidth = 1 / (s * dpr);
+            ctx.strokeStyle = darkenHex(color, 0.4);
+            ctx.strokeRect(x, yy, w, th);
             ctx.globalAlpha = 1;
             edgeZones.push({ x, y: y + Math.max(0, h - Math.min(t, h)), w, h: Math.min(t, h), type: edges.abajo?.tipo || 'General', side: 'abajo', len: w, piece: p.label, pieceIndex: i, color });
           }
@@ -220,6 +227,9 @@ export default function PatternCanvas2D({
             ctx.globalAlpha = 0.65;
             const tw = Math.min(t, w);
             ctx.fillRect(x, y, tw, h);
+            ctx.lineWidth = 1 / (s * dpr);
+            ctx.strokeStyle = darkenHex(color, 0.4);
+            ctx.strokeRect(x, y, tw, h);
             ctx.globalAlpha = 1;
             edgeZones.push({ x, y, w: Math.min(t, w), h, type: edges.izquierda?.tipo || 'General', side: 'izquierda', len: h, piece: p.label, pieceIndex: i, color });
           }
@@ -231,6 +241,9 @@ export default function PatternCanvas2D({
             const tw = Math.min(t, w);
             const xx = x + Math.max(0, w - tw);
             ctx.fillRect(xx, y, tw, h);
+            ctx.lineWidth = 1 / (s * dpr);
+            ctx.strokeStyle = darkenHex(color, 0.4);
+            ctx.strokeRect(xx, y, tw, h);
             ctx.globalAlpha = 1;
             edgeZones.push({ x: x + Math.max(0, w - Math.min(t, w)), y, w: Math.min(t, w), h, type: edges.derecha?.tipo || 'General', side: 'derecha', len: h, piece: p.label, pieceIndex: i, color });
           }

@@ -351,7 +351,7 @@ function App() {
         isOptimizing={isOptimizing}
         units={config.units}
       />
-  <main className="mx-auto flex max-w-5xl flex-col gap-8 px-3 py-4 sm:px-4 lg:px-6">
+  <main className="mx-auto flex max-w-5xl flex-col gap-8 px-2 py-3 sm:px-4 lg:px-6">
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {kpiItems.map((item) => (
             <KpiCard key={item.label} {...item} />

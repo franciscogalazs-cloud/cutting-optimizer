@@ -160,13 +160,13 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
   };
 
   return (
-    <Card className="rounded-2xl shadow-lg border border-cyan-300/60 dark:border-cyan-700 bg-slate-50 dark:bg-slate-800 overflow-hidden">
-      <CardHeader className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 font-semibold uppercase tracking-wide break-words bg-cyan-100 text-slate-900 dark:bg-cyan-600/30 dark:text-cyan-200">
-        <Plus className="h-4 w-4 text-cyan-700 dark:text-cyan-300" />
+    <Card className="rounded-2xl shadow-lg border border-cyan-300/60 bg-white overflow-hidden">
+      <CardHeader className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 font-semibold uppercase tracking-wide break-words bg-white text-slate-900">
+        <Plus className="h-4 w-4 text-cyan-700" />
         <span>Agregar pieza</span>
       </CardHeader>
-      <CardContent>
-        <div className="p-4 pb-0 text-xs text-slate-500 dark:text-slate-400">Ingresa las dimensiones en {units}. Puedes activar tapacantos para cada lado individualmente.</div>
+      <CardContent className="bg-white">
+        <div className="p-4 pb-0 text-xs text-slate-500">Ingresa las dimensiones en {units}. Puedes activar tapacantos para cada lado individualmente.</div>
         <form onSubmit={handleSubmit} className="card-scroll p-4 space-y-4 max-h-[420px] overflow-auto">
           {/* Etiqueta primero */}
           <div className="space-y-2">
@@ -292,7 +292,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
             </div>
           </div>
 
-          <Button type="submit" className="mt-1 w-full rounded-xl py-2 font-bold bg-slate-900 text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900">
+          <Button type="submit" className="mt-1 w-full rounded-xl py-2 font-bold bg-slate-900 text-white hover:bg-slate-700">
             <Plus className="h-4 w-4" />
             Agregar pieza
           </Button>

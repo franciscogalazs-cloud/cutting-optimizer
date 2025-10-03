@@ -13,7 +13,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
+/* Eliminado: regla no soportada por el procesador CSS en este entorno */
+/* @custom-variant dark (&:is(.dark *)); */
 
 :root {
   --radius: var(--radius);

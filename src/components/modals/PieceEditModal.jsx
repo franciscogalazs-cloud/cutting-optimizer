@@ -143,7 +143,7 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg" aria-describedby="piece-edit-desc">
+      <DialogContent className="max-w-lg bg-white" aria-describedby="piece-edit-desc">
         <DialogHeader>
           <DialogTitle>Editar Pieza</DialogTitle>
         </DialogHeader>

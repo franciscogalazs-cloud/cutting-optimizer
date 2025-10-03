@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calculator, Copy, Plus, Trash2 } from 'lucide-react';
 import { computeEdgeTotals } from '@/features/edgebanding/edgeBanding.js';
-import SummarySheet from '@/components/visualization/SummarySheet';
+import SummarySheet from '@/components/visualization/SummarySheet.jsx';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary.jsx';
 import { useLocalStorage } from '@/hooks/useLocalStorage.js';
 import { formatCLP, rectangleAreaToSquareMeters } from '@/lib/format.js';

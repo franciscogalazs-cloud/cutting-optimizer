@@ -179,7 +179,7 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
           />
         </div>
         
-        <section className="grid grid-rows-[auto,1fr] min-h-[calc(100vh-160px)]">
+  <section className="grid grid-rows-[auto,1fr] min-h-[calc(100vh-160px)]">
           <div>
             <div className="flex justify-center">
               <div className="relative inline-block">
@@ -255,7 +255,7 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
           <div className="mt-3">
             <div
               className="grid gap-3"
-              style={{ gridTemplateColumns: `repeat(${Math.max(1, pieceCount)}, minmax(0, 1fr))` }}
+              style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}
             >
               {currentPattern.pieces.map((piece, index) => {
               const fillColor = piece.color ?? theme.palette[index % theme.palette.length];
@@ -284,24 +284,25 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
                           <span className="text-sm leading-none text-red-500" title="Rotada 90°" aria-label="Rotada">↻</span>
                         )}
                         <span className="text-sm text-[var(--muted)]">
-                          {formatDimension(piece.width)} × {formatDimension(piece.height)} {units}
+                          Dim: {formatDimension(piece.width)} × {formatDimension(piece.height)} {units}
                         </span>
                       </div>
                     {piece.edges && (
                       <ul className="mt-2 space-y-1">
                         {sides
                           .filter(({ key }) => (piece.edges?.[key]?.enabled))
-                          .sort((a, b) => a.label.localeCompare(b.label, 'es'))
+                          .sort((a, b) => a.order - b.order)
                           .map(({ key, label, order }) => {
                             const conf = piece.edges?.[key];
                             // Calcular largo mostrado según el lado ORIGINAL y el estado de rotación
-                            const originalLength = rotated ? Number(piece.height) : Number(piece.width); // Arriba/Abajo
-                            const originalWidth = rotated ? Number(piece.width) : Number(piece.height); // Izquierda/Derecha
-                            const shownLen = (key === 'arriba' || key === 'abajo') ? originalLength : originalWidth;
+                            // Usar el lado COLOCADO para alinear el número con lo dibujado en el canvas
+                            const placedSide = mapSideOriginalToPlaced(key, rotated, 'CW');
+                            const shownLen = (placedSide === 'arriba' || placedSide === 'abajo')
+                              ? Number(piece.width)
+                              : Number(piece.height);
                             const color = pickEdgeColor(conf?.tipo, order, fillColor);
                             const title = `${label} · ${conf?.tipo || 'General'} · ${formatLenUnits(shownLen, units)} ${units}`;
                             // Para resaltar en canvas, mapear lado ORIGINAL -> lado colocado
-                            const placedSide = mapSideOriginalToPlaced(key, rotated, 'CW');
                             return (
                               <li
                                 key={`${key}-${order}`}

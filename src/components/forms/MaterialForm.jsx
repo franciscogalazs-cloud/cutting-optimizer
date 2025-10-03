@@ -159,17 +159,17 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
   };
 
   return (
-    <Card className="rounded-2xl shadow-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 overflow-hidden">
-      <CardHeader className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 font-semibold uppercase tracking-wide break-words bg-emerald-100 text-slate-900 dark:bg-emerald-600/30 dark:text-emerald-200">
-        <Package className="h-4 w-4 text-emerald-700 dark:text-emerald-300" />
+    <Card className="rounded-2xl shadow-lg border border-slate-300 bg-white overflow-hidden">
+      <CardHeader className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 font-semibold uppercase tracking-wide break-words bg-white text-slate-900">
+        <Package className="h-4 w-4 text-emerald-700" />
         <span>Agregar material</span>
       </CardHeader>
-      <CardContent className="card-scroll p-4 space-y-3 max-h-[420px] overflow-auto">
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+      <CardContent className="card-scroll p-4 space-y-3 max-h-[420px] overflow-auto bg-white">
+        <p className="text-xs text-slate-500">
           Completa las dimensiones reales del tablero o usa un preset como base.
         </p>
         <div className="space-y-2">
-          <Label className="text-xs text-slate-500 dark:text-slate-400">Presets comunes</Label>
+          <Label className="text-xs text-slate-500">Presets comunes</Label>
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((preset) => {
               const lengthValue = units === 'mm' ? preset.lengthCm * 10 : preset.lengthCm;
@@ -180,11 +180,11 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900/40 text-xs text-slate-900 dark:text-slate-100 hover:bg-emerald-100/40 dark:hover:bg-emerald-600/10"
+                  className="border-slate-300 bg-white text-xs text-slate-900 hover:bg-emerald-100/40"
                   onClick={() => applyPreset(preset)}
                 >
                   <span className="font-medium">{preset.name}</span>
-                  <span className="block text-slate-500 dark:text-slate-400">
+                  <span className="block text-slate-500">
                     {lengthValue} × {widthValue} {units}
                   </span>
                 </Button>
@@ -267,7 +267,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
             </div>
           </div>
 
-          <Button type="submit" className="mt-4 w-full rounded-xl py-2 font-bold bg-slate-900 text-white hover:bg-slate-700 dark:bg-white dark:text-slate-900">
+          <Button type="submit" className="mt-4 w-full rounded-xl py-2 font-bold bg-slate-900 text-white hover:bg-slate-700">
             <Package className="h-4 w-4" />
             Agregar material
           </Button>
