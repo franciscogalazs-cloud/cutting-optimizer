@@ -1,10 +1,16 @@
 import React from 'react';
-import { formatCLP } from '@/lib/format.js';
+import { formatCLP, formatSquareMeters } from '@/lib/format.js';
 import { Button } from '@/components/ui/button';
 
 function toSubtotal(item) {
-  const metros2 = item.metros2 ?? 1;
-  return (item.subtotal ?? item.unitario * metros2 * item.cantidad) || 0;
+  const subtotal = Number(item?.subtotal);
+  if (Number.isFinite(subtotal)) return subtotal;
+  const unitario = Number(item?.unitario) || 0;
+  const cantidad = Number(item?.cantidad) || 0;
+  const metros2 = Number(item?.metros2);
+  const factorArea = Number.isFinite(metros2) && metros2 > 0 ? metros2 : 1;
+  const value = unitario * factorArea * cantidad;
+  return Number.isFinite(value) ? value : 0;
 }
 
 export default function SummarySheet({ items, totals, percents, className, onPrint }) {
@@ -48,15 +54,93 @@ export default function SummarySheet({ items, totals, percents, className, onPri
     return (Number(count) || 0).toLocaleString('es-CL');
   };
 
+  const exportCSV = () => {
+    try {
+      const headers = ['Cantidad', 'Unidad', 'Detalle', 'm²', 'Unitario', 'Subtotal'];
+      const rows = [];
+      for (const it of aggItems) {
+        const isTapacanto = String(it.detalle || '').toLowerCase().startsWith('tapacanto');
+        const unidad = isTapacanto ? 'ml' : 'u';
+        const cantidad = Number(it.cantidad) || 0;
+        const m2 = Number(it.metros2);
+        const m2Str = Number.isFinite(m2) && m2 > 0 ? String(m2) : '';
+        const unitario = Number(it.unitario) || 0;
+        const subtotal = toSubtotal(it);
+        rows.push([cantidad, unidad, it.detalle || '', m2Str, unitario, subtotal]);
+      }
+      // Resumen
+      const pctIndirectos = Number(percents?.indirectos);
+      const pctMargen = Number(percents?.margen);
+      const pctIva = Number(percents?.iva);
+      const summary = [
+        ['Indirectos', Number.isFinite(pctIndirectos) ? `${pctIndirectos}%` : '', '', '', '', Number(totals?.indirectos) || 0],
+        ['Flete', '', '', '', '', Number(totals?.flete) || 0],
+        ['Costo', '', '', '', '', Number(totals?.subtotalNeto) || 0],
+        ['Margen', Number.isFinite(pctMargen) ? `${pctMargen}%` : '', '', '', '', Number(totals?.margen) || 0],
+        ['Neto', '', '', '', '', Number(totals?.precioVenta) || 0],
+        ['IVA', Number.isFinite(pctIva) ? `${pctIva}%` : '', '', '', '', Number(totals?.iva) || 0],
+        ['Total con IVA', '', '', '', '', Number(totals?.totalConIVA) || 0],
+      ];
+
+      // Construir CSV
+      const escape = (val) => {
+        const s = String(val ?? '');
+        if (/[",\n;]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+        return s;
+      };
+      const lines = [headers.map(escape).join(',')];
+      for (const r of rows) lines.push(r.map(escape).join(','));
+      lines.push('');
+      lines.push(['Resumen'].join(','));
+      for (const sr of summary) lines.push(sr.map(escape).join(','));
+      const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'planilla-costos.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      // Fallback silencioso
+      console.error('CSV export failed', e);
+    }
+  };
+
   return (
     <section className={["w-full", className].filter(Boolean).join(' ')}>
       <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)] max-h-[70vh] overflow-auto overscroll-contain">
         <div className="sticky top-0 z-20 px-4 sm:py-3 py-2 flex items-center justify-between flex-wrap gap-2 bg-[var(--surface)] border-b border-[var(--border)]">
           <h2 className="text-base font-semibold text-[var(--text)]">Planilla de costos</h2>
-          <Button className="px-3" variant="outline" size="sm" onClick={onPrint ?? (() => window.print())} aria-label="Imprimir presupuesto">Imprimir</Button>
+          <div className="flex items-center gap-2">
+            <Button className="px-3" variant="outline" size="sm" onClick={exportCSV} aria-label="Exportar CSV">CSV</Button>
+            <Button className="px-3" variant="outline" size="sm" onClick={onPrint ?? (() => window.print())} aria-label="Imprimir presupuesto">Imprimir</Button>
+          </div>
         </div>
 
         <div className="px-2 sm:px-4 pb-4">
+          {/* KPIs compactos */}
+          {totals && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 mb-3">
+              <div className="rounded-md border border-[var(--border)] bg-[var(--bg)]/20 p-2">
+                <div className="text-[11px] text-[var(--muted)]">Costo</div>
+                <div className="text-[13px] font-semibold tabular-nums">{formatCLP(totals.subtotalNeto)}</div>
+              </div>
+              <div className="rounded-md border border-[var(--border)] bg-[var(--bg)]/20 p-2">
+                <div className="text-[11px] text-[var(--muted)]">Neto</div>
+                <div className="text-[13px] font-semibold tabular-nums">{formatCLP(totals.precioVenta)}</div>
+              </div>
+              <div className="rounded-md border border-[var(--border)] bg-[var(--bg)]/20 p-2">
+                <div className="text-[11px] text-[var(--muted)]">IVA</div>
+                <div className="text-[13px] font-semibold tabular-nums">{formatCLP(totals.iva)}</div>
+              </div>
+              <div className="rounded-md border border-[var(--border)] bg-[var(--bg)]/20 p-2">
+                <div className="text-[11px] text-[var(--muted)]">Total</div>
+                <div className="text-[13px] font-semibold tabular-nums text-[var(--primary)]">{formatCLP(totals.totalConIVA)}</div>
+              </div>
+            </div>
+          )}
           {/* Móvil: tarjetas apiladas sin scroll horizontal */}
           <div className="block sm:hidden">
             <div className="space-y-2">
@@ -69,6 +153,9 @@ export default function SummarySheet({ items, totals, percents, className, onPri
                         <div className="text-[13px] font-medium text-[var(--text)] truncate" title={it.detalle}>{it.detalle}</div>
                         <div className="mt-1 text-[12px] text-[var(--muted)] flex flex-wrap gap-x-3 gap-y-1">
                           <span className="tabular-nums">Cant.: {formatCountForItem(it.detalle, Number(it.cantidad) || 0)}</span>
+                          {Number.isFinite(Number(it.metros2)) && Number(it.metros2) > 0 && (
+                            <span className="tabular-nums">m²: {formatSquareMeters(Number(it.metros2), 2)}</span>
+                          )}
                           <span className="tabular-nums">Unit.: {formatCLP(it.unitario)}</span>
                         </div>
                       </div>
@@ -131,7 +218,14 @@ export default function SummarySheet({ items, totals, percents, className, onPri
                   const sub = (it?.subtotal) ?? toSubtotal(it);
                   return (
                     <tr key={idx} className="odd:bg-[var(--bg)]/30">
-                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 align-top text-left tabular-nums whitespace-nowrap">{formatCountForItem(it.detalle, Number(it.cantidad) || 0)}</td>
+                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 align-top text-left tabular-nums whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <span>{formatCountForItem(it.detalle, Number(it.cantidad) || 0)}</span>
+                          {Number.isFinite(Number(it.metros2)) && Number(it.metros2) > 0 && (
+                            <span className="text-[11px] text-[var(--muted)]">m²: {formatSquareMeters(Number(it.metros2), 2)}</span>
+                          )}
+                        </div>
+                      </td>
                       <th scope="row" className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-left font-normal text-[var(--text)] truncate max-w-[1px]">{it.detalle}</th>
                       <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right tabular-nums whitespace-nowrap">{formatCLP(it.unitario)}</td>
                       <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right tabular-nums whitespace-nowrap">{formatCLP(sub)}</td>
