@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronLeft, ChevronRight, Ruler, Tag, Square } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Ruler, Tag, Square, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import PatternCanvas2D from './PatternCanvas2D.jsx';
 import ThumbnailStrip from './ThumbnailStrip.jsx';
 import { mapSideOriginalToPlaced } from '@/lib/edge-mapping.js';
@@ -78,7 +77,7 @@ const DEFAULT_PREFS = {
 // utilidades no usadas eliminadas para pasar lint
 // pickEdgeColor viene de util centralizado (evita negro y mantiene contraste)
 
-export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm', ai: _ai = null }) => {
+export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm', ai: _ai = null, onExport = null }) => {
   const preferencesFromStorage = useMemo(() => loadPreferences(), []);
   const [prefs, setPrefs] = useState(() => ({ ...DEFAULT_PREFS, ...(preferencesFromStorage ?? {}) }));
   const { showDimensions, showLabels, showEdges } = prefs;
@@ -153,21 +152,24 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
 
   return (
     <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
-      <CardHeader className="flex flex-col gap-3">
-        <CardTitle className="flex items-center justify-between text-[var(--text)]">
-          <div>
-            <span className="block text-sm text-[var(--muted)]">Patrones de corte</span>
-            <span className="text-lg font-semibold">Hoja {currentPatternIndex + 1} de {validPatterns.length}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={prevPattern} disabled={validPatterns.length <= 1} className="border-[var(--border)] text-[var(--text)]">
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="sm" onClick={nextPattern} disabled={validPatterns.length <= 1} className="border-[var(--border)] text-[var(--text)]">
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+      <CardHeader className="relative">
+        <CardTitle className="text-[var(--text)]">
+          <h2 className="text-2xl font-normal leading-tight truncate pr-40 text-[var(--text)]">{materialName || 'Patrones'}</h2>
         </CardTitle>
+        <div className="absolute right-3 top-3 flex items-center gap-2">
+          {onExport ? (
+            <Button variant="outline" size="sm" onClick={onExport} className="border-[var(--border)] text-[var(--text)]">
+              <Download className="h-4 w-4" />
+              Exportar
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={prevPattern} disabled={validPatterns.length <= 1} className="border-[var(--border)] text-[var(--text)]">
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button variant="outline" size="sm" onClick={nextPattern} disabled={validPatterns.length <= 1} className="border-[var(--border)] text-[var(--text)]">
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {/* Tira de miniaturas (navegación entre hojas) */}
@@ -183,55 +185,38 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
           <div>
             <div className="flex justify-center">
               <div className="relative inline-block">
-              <TooltipProvider>
                 <div className="absolute right-2 top-2 z-10 flex flex-col gap-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label="Alternar dimensiones"
-                        onClick={() => setPref('showDimensions', !showDimensions)}
-                        className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${
-                          showDimensions ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'bg-[var(--surface)] text-[var(--muted)] border-[var(--border)]'
-                        }`}
-                      >
-                        <Ruler className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Dimensiones</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label="Alternar etiquetas"
-                        onClick={() => setPref('showLabels', !showLabels)}
-                        className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${
-                          showLabels ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'bg-[var(--surface)] text-[var(--muted)] border-[var(--border)]'
-                        }`}
-                      >
-                        <Tag className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Etiquetas</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button
-                        type="button"
-                        aria-label="Alternar cantos"
-                        onClick={() => setPref('showEdges', !showEdges)}
-                        className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${
-                          showEdges ? 'bg-[var(--primary)] text-white border-[var(--primary)]' : 'bg-[var(--surface)] text-[var(--muted)] border-[var(--border)]'
-                        }`}
-                      >
-                        <Square className="h-4 w-4" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>Cantos</TooltipContent>
-                  </Tooltip>
+                  <button
+                    type="button"
+                    aria-label="Alternar dimensiones"
+                    onClick={() => setPref('showDimensions', !showDimensions)}
+                    className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${
+                      showDimensions ? 'bg-[var(--primary)] text-white border-[var(--primary)] hover:brightness-110' : 'bg-[var(--surface)] text-[var(--muted)] border-[var(--border)] hover:bg-[var(--border)]/40 hover:border-[var(--border)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <Ruler className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Alternar etiquetas"
+                    onClick={() => setPref('showLabels', !showLabels)}
+                    className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${
+                      showLabels ? 'bg-[var(--primary)] text-white border-[var(--primary)] hover:brightness-110' : 'bg-[var(--surface)] text-[var(--muted)] border-[var(--border)] hover:bg-[var(--border)]/40 hover:border-[var(--border)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <Tag className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Alternar cantos"
+                    onClick={() => setPref('showEdges', !showEdges)}
+                    className={`h-8 w-8 rounded-full border transition-colors flex items-center justify-center ${
+                      showEdges ? 'bg-[var(--primary)] text-white border-[var(--primary)] hover:brightness-110' : 'bg-[var(--surface)] text-[var(--muted)] border-[var(--border)] hover:bg-[var(--border)]/40 hover:border-[var(--border)] hover:text-[var(--text)]'
+                    }`}
+                  >
+                    <Square className="h-4 w-4" />
+                  </button>
                 </div>
-              </TooltipProvider>
 
               <PatternCanvas2D
                 pattern={currentPattern}
@@ -239,7 +224,6 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
                 width={820}
                 height={520}
                 paddingPx={24}
-                materialLabel={materialName}
                 showLabels={showLabels}
                 showDimensions={showDimensions}
                 showEdges={showEdges}

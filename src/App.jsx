@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, Grid3X3, Play, Scissors, TrendingUp, Calculator, BarChart3 } from "lucide-react";
+import { Download, Grid3X3, Play, Scissors, Calculator, BarChart3 } from "lucide-react";
 import { toast } from "sonner";
 import { Header } from "./components/layout/Header";
 import { PieceForm } from "./components/forms/PieceForm";
@@ -12,7 +12,6 @@ import { MaterialForm } from "./components/forms/MaterialForm";
 import { PiecesTable } from "./components/tables/PiecesTable";
 import { MaterialsTable } from "./components/tables/MaterialsTable";
 import { AdvancedCuttingPattern } from "./components/visualization/AdvancedCuttingPattern";
-import { StatsPanel } from "./components/visualization/StatsPanel";
 import { KpiCard } from "./components/KpiCard.jsx";
 import { PieceEditModal } from "./components/modals/PieceEditModal";
 import { MaterialEditModal } from "./components/modals/MaterialEditModal";
@@ -40,6 +39,11 @@ const mmToUnits = (valueMm, units) => {
 // Ensure that no large code blocks have been accidentally removed.
 // Review your recent changes for any unintended deletions.
 function App() {
+  const patternsHeaderRef = useRef(null);
+  const edgebandingHeaderRef = useRef(null);
+  const materialsHeaderRef = useRef(null);
+  const budgetHeaderRef = useRef(null);
+  const piecesHeaderRef = useRef(null);
   const [pieces, setPieces] = useLocalStorage("cutting-pieces", []);
   const [materials, setMaterials] = useLocalStorage("cutting-materials", []);
   const [config, setConfig] = useLocalStorage("cutting-config", {
@@ -54,6 +58,90 @@ function App() {
   useEffect(() => {
     setConfig((prev) => (prev.allowRotation ? prev : { ...prev, allowRotation: true }));
   }, [setConfig]);
+
+  // Ajuste fino único para el scroll de anclaje (piezas y patrones)
+  const SCROLL_FINE_TUNE = -36; // px (20px más arriba que antes)
+
+  // Helper reutilizable para desplazar la vista al encabezado de Patrones
+  const scrollToPatterns = useCallback(() => {
+    const target = patternsHeaderRef.current;
+    if (!target) return;
+    const headerEl = document.querySelector('header');
+    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
+  }, [SCROLL_FINE_TUNE]);
+
+  // Helper para desplazar la vista al encabezado de Piezas
+  const scrollToPieces = useCallback(() => {
+    const target = piecesHeaderRef.current;
+    if (!target) return;
+    const headerEl = document.querySelector('header');
+    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
+  }, [SCROLL_FINE_TUNE]);
+
+  // Helper para desplazar la vista al encabezado de Tapacantos
+  const scrollToEdgebanding = useCallback(() => {
+    const target = edgebandingHeaderRef.current;
+    if (!target) return;
+    const headerEl = document.querySelector('header');
+    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
+  }, [SCROLL_FINE_TUNE]);
+
+  // Helper para desplazar la vista al encabezado de Materiales
+  const scrollToMaterials = useCallback(() => {
+    const target = materialsHeaderRef.current;
+    if (!target) return;
+    const headerEl = document.querySelector('header');
+    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
+  }, [SCROLL_FINE_TUNE]);
+
+  // Helper para desplazar la vista al encabezado de Presupuesto
+  const scrollToBudget = useCallback(() => {
+    const target = budgetHeaderRef.current;
+    if (!target) return;
+    const headerEl = document.querySelector('header');
+    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
+  }, [SCROLL_FINE_TUNE]);
+
+  // Al activar la pestaña de patrones, desplazamos suavemente hasta el encabezado "Patrones de corte"
+  useEffect(() => {
+    if (activeTab !== "patterns") return;
+    // Usar doble RAF para asegurar que Radix Tabs montó el contenido visible
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollToPatterns()));
+  }, [activeTab, scrollToPatterns]);
+
+  // Al activar la pestaña de piezas, desplazamos al encabezado "Piezas a cortar"
+  useEffect(() => {
+    if (activeTab !== "pieces") return;
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollToPieces()));
+  }, [activeTab, scrollToPieces]);
+
+  // Al activar la pestaña de tapacantos, desplazamos al encabezado "Tapacantos"
+  useEffect(() => {
+    if (activeTab !== "edgebanding") return;
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollToEdgebanding()));
+  }, [activeTab, scrollToEdgebanding]);
+
+  // Al activar la pestaña de materiales, desplazamos al encabezado "Materiales disponibles"
+  useEffect(() => {
+    if (activeTab !== "materials") return;
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollToMaterials()));
+  }, [activeTab, scrollToMaterials]);
+
+  // Al activar la pestaña de presupuesto, desplazamos al encabezado "Presupuesto"
+  useEffect(() => {
+    if (activeTab !== "budget") return;
+    requestAnimationFrame(() => requestAnimationFrame(() => scrollToBudget()));
+  }, [activeTab, scrollToBudget]);
 
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -245,6 +333,8 @@ function App() {
     try {
   await optimize(pieces, materials, { ...config, algorithm: 'guillotine' });
       setActiveTab("patterns");
+      // Desplazar tras activar 'patterns' (esperar al render con un frame)
+      requestAnimationFrame(() => scrollToPatterns());
       toast.success("Optimizacion completada exitosamente");
     } catch (err) {
       toast.error(`Error durante la optimizacion: ${err.message}`);
@@ -280,9 +370,6 @@ function App() {
         margin: Number((prev.margin * factor).toFixed(3)),
       };
     });
-  };
-  const handleExportPattern = (pattern, index) => {
-    console.log("Exportando patron:", pattern, index);
   };
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
   const avgUsedM2 = (() => {
@@ -345,73 +432,105 @@ function App() {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors">
-      <Header
-        onShowInfo={() => setShowInfoModal(true)}
-        onToggleUnits={toggleUnits}
-        onOptimize={handleOptimize}
-        canOptimize={pieces.length > 0 && materials.length > 0}
-        isOptimizing={isOptimizing}
-        units={config.units}
-      />
-  <main className="mx-auto flex max-w-5xl flex-col gap-8 px-2 py-3 sm:px-4 lg:px-6">
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {kpiItems.map((item) => (
-            <KpiCard key={item.label} {...item} />
-          ))}
-        </section>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Header
+          onShowInfo={() => setShowInfoModal(true)}
+          onToggleUnits={toggleUnits}
+          onOptimize={handleOptimize}
+          canOptimize={pieces.length > 0 && materials.length > 0}
+          isOptimizing={isOptimizing}
+          units={config.units}
+          tabsBar={
+            <>
+              <TabsList className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
+                <TabsTrigger
+                  value="pieces"
+                  onClick={() => {
+                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToPieces()));
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+                >
+                  <span>Piezas</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="materials"
+                  onClick={() => {
+                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToMaterials()));
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+                >
+                  <span>Materiales</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="patterns"
+                  onClick={() => {
+                    // Forzar desplazamiento tras el cambio de pestaña (doble RAF)
+                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToPatterns()));
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                  <span>Patrones</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="edgebanding"
+                  onClick={() => {
+                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToEdgebanding()));
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+                >
+                  <Scissors className="h-4 w-4" />
+                  <span>Tapacantos</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="budget"
+                  onClick={() => {
+                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToBudget()));
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+                >
+                  <Calculator className="h-4 w-4" />
+                  <span>Presupuesto</span>
+                </TabsTrigger>
+                <TabsTrigger value="ai" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"><BarChart3 className="h-4 w-4" /><span>IA</span></TabsTrigger>
+              </TabsList>
+              {/* sin botón extra aquí: exportar volverá al contenido de Patrones */}
+            </>
+          }
+        />
+        <main className="mx-auto flex max-w-5xl flex-col gap-8 px-2 py-3 sm:px-4 lg:px-6">
+          <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {kpiItems.map((item) => (
+              <KpiCard key={item.label} {...item} />
+            ))}
+          </section>
 
-        {/* Tarjetas de entrada principales: Agregar material (arriba) y Agregar pieza (abajo) */}
-        <section className="grid gap-4">
-          <MaterialForm
-            onAddMaterial={handleAddMaterial}
-            units={config.units}
-            kerfWidth={config.kerfWidth}
-            margin={config.margin}
-            onConfigChange={(newConfig) => setConfig((prev) => ({ ...prev, ...newConfig }))}
-          />
-          <PieceForm
-            onAddPiece={handleAddPiece}
-            units={config.units}
-            materials={materials}
-            allowRotation={config.allowRotation}
-            onToggleRotation={(value) => {
-              setConfig((prev) => ({ ...prev, allowRotation: value }));
-              setPieces((current) => current.map((p) => ({ ...p, canRotate: value })));
-            }}
-          />
-        </section>
+          {/* Tarjetas de entrada principales: Agregar material (arriba) y Agregar pieza (abajo) */}
+          <section className="grid gap-4">
+            <MaterialForm
+              onAddMaterial={handleAddMaterial}
+              units={config.units}
+              kerfWidth={config.kerfWidth}
+              margin={config.margin}
+              onConfigChange={(newConfig) => setConfig((prev) => ({ ...prev, ...newConfig }))}
+            />
+            <PieceForm
+              onAddPiece={handleAddPiece}
+              units={config.units}
+              materials={materials}
+              allowRotation={config.allowRotation}
+              onToggleRotation={(value) => {
+                setConfig((prev) => ({ ...prev, allowRotation: value }));
+                // Ya no pisamos canRotate por pieza para respetar la elección local en el formulario/modal.
+              }}
+            />
+          </section>
 
-        {/* Sección principal: Pestañas ocupan el mismo ancho que el formulario (sin aside) */}
-        <section className="space-y-6 w-full">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
-              <TabsTrigger value="pieces" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                <span>Piezas</span>
-              </TabsTrigger>
-              <TabsTrigger value="materials" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                <span>Materiales</span>
-              </TabsTrigger>
-              <TabsTrigger value="patterns" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                <Grid3X3 className="h-4 w-4" />
-                <span>Patrones</span>
-              </TabsTrigger>
-              <TabsTrigger value="edgebanding" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                <Scissors className="h-4 w-4" />
-                <span>Tapacantos</span>
-              </TabsTrigger>
-              <TabsTrigger value="budget" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                <Calculator className="h-4 w-4" />
-                <span>Presupuesto</span>
-              </TabsTrigger>
-              <TabsTrigger value="ai" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white">
-                <BarChart3 className="h-4 w-4" />
-                <span>IA</span>
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="pieces" className="space-y-4">
+          {/* Sección principal: contenidos de cada pestaña */}
+          <section className="space-y-6 w-full">
+            <TabsContent value="pieces" className="space-y-4" id="pieces">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-lg font-semibold text-[var(--text)]">Piezas a cortar</h2>
+                <h2 ref={piecesHeaderRef} className="text-lg font-semibold text-[var(--text)]">Piezas a cortar</h2>
               </div>
               <PiecesTable
                 pieces={pieces}
@@ -424,9 +543,9 @@ function App() {
               />
             </TabsContent>
 
-            <TabsContent value="materials" className="space-y-4">
+            <TabsContent value="materials" className="space-y-4" id="materials">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-lg font-semibold text-[var(--text)]">Materiales disponibles</h2>
+                <h2 ref={materialsHeaderRef} className="text-lg font-semibold text-[var(--text)]">Materiales disponibles</h2>
               </div>
               <MaterialsTable
                 materials={materials}
@@ -438,24 +557,17 @@ function App() {
               />
             </TabsContent>
 
-            <TabsContent value="patterns" className="space-y-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-lg font-semibold text-[var(--text)]">Patrones de corte</h2>
-                {result && (
-                  <Button variant="outline" size="sm" onClick={() => setShowExportModal(true)} className="border-[var(--border)] text-[var(--text)]">
-                    <Download className="h-4 w-4" />
-                    Exportar
-                  </Button>
-                )}
-              </div>
-              {result?.patterns ? (
+            <TabsContent value="patterns" className="space-y-4 scroll-mt-24" id="patterns">
+              <div ref={patternsHeaderRef} className="h-0 scroll-mt-24" />
+              {result && Array.isArray(result.patterns) && result.patterns.length > 0 && (
                 <AdvancedCuttingPattern
                   patterns={result.patterns}
                   materials={materials}
                   units={config.units}
-                  onExportPattern={handleExportPattern}
+                  onExport={() => setShowExportModal(true)}
                 />
-              ) : (
+              )}
+              {(!result || (Array.isArray(result.patterns) && result.patterns.length === 0)) && (
                 <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
                   <CardContent className="space-y-3 py-12">
                     <Grid3X3 className="mx-auto h-12 w-12 text-[var(--muted)]" />
@@ -463,7 +575,7 @@ function App() {
                     <p className="text-sm text-[var(--muted)]">
                       Carga piezas y materiales, luego ejecuta la optimizacion para visualizar patrones.
                     </p>
-                    <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
+                    <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0} className="rounded-full">
                       <Play className="h-4 w-4" />
                       Optimizar cortes
                     </Button>
@@ -472,39 +584,19 @@ function App() {
               )}
             </TabsContent>
 
-            <TabsContent value="edgebanding">
+            <TabsContent value="edgebanding" className="space-y-4" id="edgebanding">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 ref={edgebandingHeaderRef} className="text-lg font-semibold text-[var(--text)]">Tapacantos</h2>
+              </div>
               <EdgeBandingPanel pieces={pieces} units={config.units} onEditPiece={setEditingPiece} />
             </TabsContent>
 
-            <TabsContent value="stats" className="space-y-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 className="text-lg font-semibold text-[var(--text)]">Estadisticas de optimizacion</h2>
-                {result && (
-                  <Badge variant="outline" className="border-[var(--border)] text-[var(--muted)]">
-                    {result.algorithm}
-                  </Badge>
-                )}
-              </div>
-              {result ? (
-                <StatsPanel result={result} pieces={pieces} materials={materials} config={config} />
-              ) : (
-                <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
-                  <CardContent className="space-y-3 py-12">
-                    <TrendingUp className="mx-auto h-12 w-12 text-[var(--muted)]" />
-                    <h3 className="text-lg font-medium text-[var(--text)]">Sin estadisticas todavia</h3>
-                    <p className="text-sm text-[var(--muted)]">
-                      Ejecuta la optimizacion para analizar el uso de materiales y el desperdicio.
-                    </p>
-                    <Button onClick={handleOptimize} disabled={pieces.length === 0 || materials.length === 0}>
-                      <Calculator className="h-4 w-4" />
-                      Generar estadisticas
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
+            {/* Pestaña de estadísticas retirada a solicitud */}
 
-            <TabsContent value="budget" className="space-y-4">
+            <TabsContent value="budget" className="space-y-4" id="budget">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h2 ref={budgetHeaderRef} className="text-lg font-semibold text-[var(--text)]">Presupuesto</h2>
+              </div>
               {result ? (
                 <BudgetPanel result={result} pieces={pieces} materials={materials} units={config.units} />
               ) : (
@@ -527,17 +619,17 @@ function App() {
             <TabsContent value="ai" className="space-y-4">
               <AIDemo pieces={pieces} materials={materials} config={config} />
             </TabsContent>
-          </Tabs>
-        </section>
+          </section>
 
-        {error && (
+          {error && (
           <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
             <CardContent className="text-sm text-[var(--danger)]">
               <strong className="font-semibold">Error:</strong> {error}
             </CardContent>
           </Card>
-        )}
-      </main>
+          )}
+        </main>
+      </Tabs>
 
       {/* Modales */}
       <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />

@@ -3,7 +3,7 @@ import { Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { createMaterial } from '../../types/index.js';
 
 const PRESETS = [
@@ -13,13 +13,14 @@ const PRESETS = [
   { name: 'Terciado', lengthCm: 240, widthCm: 120 },
 ];
 
-export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margin = 5, pieces = [], onConfigChange }) => {
+export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfigChange }) => {
+  const formRef = useRef(null);
   const [formData, setFormData] = useState({
     length: '',
     width: '',
     material: 'Melamina',
-    kerf: String(kerfWidth),
-    margin: String(margin),
+    kerf: '0',
+    margin: '0',
   });
 
   const [errors, setErrors] = useState({});
@@ -136,8 +137,8 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
       width: '',
       material: 'Melamina',
   // precio eliminado
-      kerf: String(kerfWidth),
-      margin: String(margin),
+      kerf: '0',
+      margin: '0',
     });
     setErrors({});
   };
@@ -159,56 +160,56 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
   };
 
   return (
-    <Card className="rounded-2xl shadow-lg border border-slate-300 bg-white overflow-hidden">
-      <CardHeader className="sticky top-0 z-10 flex items-center gap-2 px-4 py-2 font-semibold uppercase tracking-wide break-words bg-white text-slate-900">
-        <Package className="h-4 w-4 text-emerald-700" />
-        <span>Agregar material</span>
-      </CardHeader>
-      <CardContent className="card-scroll p-4 space-y-3 max-h-[420px] overflow-auto bg-white">
-        <p className="text-xs text-slate-500">
-          Completa las dimensiones reales del tablero o usa un preset como base.
-        </p>
-        <div className="space-y-2">
-          <Label className="text-xs text-slate-500">Presets comunes</Label>
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map((preset) => {
-              const lengthValue = units === 'mm' ? preset.lengthCm * 10 : preset.lengthCm;
-              const widthValue = units === 'mm' ? preset.widthCm * 10 : preset.widthCm;
-              return (
-                <Button
-                  key={preset.name}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="border-slate-300 bg-white text-xs text-slate-900 hover:bg-emerald-100/40"
-                  onClick={() => applyPreset(preset)}
-                >
-                  <span className="font-medium">{preset.name}</span>
-                  <span className="block text-slate-500">
-                    {lengthValue} × {widthValue} {units}
-                  </span>
-                </Button>
-              );
-            })}
+  <Card className="rounded-2xl shadow-lg border border-[var(--border)] bg-white overflow-hidden">
+      <CardHeader className="sticky top-0 z-10 px-4 py-1 pb-0 bg-white text-slate-900">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 font-semibold uppercase tracking-wide">
+            <Package className="h-4 w-4 text-emerald-700" />
+            <span>Agregar material</span>
           </div>
+          <Button type="button" onClick={() => formRef.current?.requestSubmit()} className="rounded-full py-2 px-4">
+            <Package className="h-4 w-4" />
+            Agregar material
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="card-scroll p-4 pt-0 space-y-3 max-h-[420px] overflow-auto bg-white">
+        <div className="flex flex-wrap items-center gap-2 mt-0">
+          <Label className="text-xs text-slate-500 shrink-0">Presets comunes</Label>
+          {PRESETS.map((preset) => {
+            const lengthValue = units === 'mm' ? preset.lengthCm * 10 : preset.lengthCm;
+            const widthValue = units === 'mm' ? preset.widthCm * 10 : preset.widthCm;
+            return (
+              <Button
+                key={preset.name}
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-8 rounded-full border-[var(--border)] bg-white px-3 py-1 text-xs text-slate-800 hover:bg-slate-100 whitespace-nowrap"
+                onClick={() => applyPreset(preset)}
+              >
+                <span className="font-medium">{preset.name} — {lengthValue} × {widthValue} {units}</span>
+              </Button>
+            );
+          })}
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {/* Nombre del material primero */}
-          <div className="space-y-2">
-            <Label htmlFor="mat-material">Nombre del material</Label>
-            <Input
-              id="mat-material"
-              type="text"
-              value={formData.material}
-              onChange={(event) => handleChange('material', event.target.value)}
-              placeholder="Melamina"
-              className="w-full"
-            />
-          </div>
+  <form ref={formRef} onSubmit={handleSubmit} className="space-y-0">
+          <div className="grid items-end gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
+            {/* Nombre del material en la misma fila */}
+            <div className="space-y-2">
+              <Label htmlFor="mat-material">Nombre del material</Label>
+              <Input
+                id="mat-material"
+                type="text"
+                value={formData.material}
+                onChange={(event) => handleChange('material', event.target.value)}
+                placeholder="Melamina"
+                className="w-full"
+              />
+            </div>
 
-          {/* En la misma línea: Largo, Ancho, Grosor y Margen */}
-          <div className="grid gap-3 md:grid-cols-4 sm:grid-cols-2">
+            {/* Fila con Largo, Ancho, Grosor, Margen */}
             <div className="space-y-2 min-w-0">
               <Label htmlFor="mat-length">Largo ({units})</Label>
               <Input
@@ -267,11 +268,11 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', kerfWidth = 3, margi
             </div>
           </div>
 
-          <Button type="submit" className="mt-4 w-full rounded-xl py-2 font-bold bg-slate-900 text-white hover:bg-slate-700">
-            <Package className="h-4 w-4" />
-            Agregar material
-          </Button>
+          {/* botón de acción movido al header */}
         </form>
+        <p className="mt-2 text-xs text-slate-500">
+          Completa las dimensiones reales del tablero o usa un preset como base.
+        </p>
       </CardContent>
     </Card>
   );

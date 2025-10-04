@@ -1,7 +1,7 @@
-import { areaToSquareMeters, formatSquareMeters } from './format';
-import { absoluteUrl } from './paths';
+import { areaToSquareMeters, formatSquareMeters } from '@/lib/format';
+import { absoluteUrl } from '@/lib/paths';
 
-// Genera el HTML completo del reporte (para modal, nueva pestaña o descarga)
+// Generador del HTML del reporte
 export function generateReportHTML(result, pieces, materials, config) {
   const fmt = (n) => Number(n).toLocaleString(undefined, { maximumFractionDigits: 2 });
   const wasteForPattern = (p) => {
@@ -27,7 +27,6 @@ export function generateReportHTML(result, pieces, materials, config) {
   const totalUsedUnits2 = patterns.reduce((acc, p) => acc + usedForPattern(p), 0);
   const totalWasteM2 = formatSquareMeters(areaToSquareMeters(totalWasteUnits2, config.units));
   const totalUsedM2 = formatSquareMeters(areaToSquareMeters(totalUsedUnits2, config.units));
-
   const styles = `
     <style>
       @page { size: A4 portrait; margin: 12mm; }
@@ -143,17 +142,15 @@ export function generateReportHTML(result, pieces, materials, config) {
       </table>
 
       <h2>Patrones de Corte</h2>
-      ${hasPatterns ? result.patterns.map((pattern, index) => {
-        const waste = 'waste' in pattern ? Number(pattern.waste) || 0 : wasteForPattern(pattern);
-        const used = usedForPattern(pattern);
-        return `
+      ${hasPatterns ? result.patterns.map((pattern, index) => `
         <div class="pattern">
           <div class="pattern-header">
             <strong>Hoja ${index + 1}</strong> - 
+            Material: ${(Array.isArray(materials) ? (materials.find(m => m.id === pattern.materialId)?.material || 'N/A') : 'N/A')} - 
             ${fmt(pattern.materialLength)} × ${fmt(pattern.materialWidth)} ${config.units} - 
-            Usado: ${formatSquareMeters(areaToSquareMeters(used, config.units))} m² - 
+            Usado: ${formatSquareMeters(areaToSquareMeters(usedForPattern(pattern), config.units))} m² - 
             ${(pattern.pieces||[]).length} piezas - 
-            Desperdicio: ${formatSquareMeters(areaToSquareMeters(waste, config.units))} m²
+            Desperdicio: ${formatSquareMeters(areaToSquareMeters(('waste' in pattern ? Number(pattern.waste)||0 : wasteForPattern(pattern)), config.units))} m²
           </div>
           <div class="pattern-figure">
             <svg viewBox="0 0 ${pattern.materialLength} ${pattern.materialWidth}">
@@ -184,8 +181,28 @@ export function generateReportHTML(result, pieces, materials, config) {
               }).join('')}
             </svg>
           </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Pieza</th>
+                <th>Ancho (${config.units})</th>
+                <th>Alto (${config.units})</th>
+                <th>Rotado</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(pattern.pieces||[]).map(piece => `
+                <tr>
+                  <td>${piece.label ?? ''}</td>
+                  <td>${fmt(piece.width)}</td>
+                  <td>${fmt(piece.height)}</td>
+                  <td>${piece.rotated ? 'Sí' : 'No'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
         </div>
-      `}).join('') : '<p style="color:#6b7280">No hay patrones generados.</p>'}
+      `).join('') : '<p style="color:#6b7280">No hay patrones generados.</p>'}
 
       <div style="margin-top: 20px; text-align: center; color: #6b7280; font-size: 12px;">
         <p>Generado por Optimizador de Cortes de Melamina v1.0</p>
@@ -194,5 +211,3 @@ export function generateReportHTML(result, pieces, materials, config) {
   `;
   return `${styles}${content}`;
 }
-
-export default generateReportHTML;

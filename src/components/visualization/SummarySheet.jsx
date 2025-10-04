@@ -88,7 +88,7 @@ export default function SummarySheet({ items, totals, percents, className, onPri
                 const pctIva = Number(percents?.iva);
                 const rows = [
                   { label: 'Indirectos', value: totals.indirectos, strong: false, primary: false, count: Number.isFinite(pctIndirectos) ? `${pctIndirectos}%` : '' },
-                  { label: 'Flete', value: totals.flete, strong: false, primary: false, count: 1 },
+                  { label: 'Flete', value: totals.flete, strong: false, primary: false, count: '' },
                   { label: 'Costo', value: totals.subtotalNeto, strong: true, primary: false },
                   { label: 'Margen', value: totals.margen, strong: false, primary: false, count: Number.isFinite(pctMargen) ? `${pctMargen}%` : '' },
                   { label: 'Neto', value: totals.precioVenta, strong: false, primary: false },
@@ -147,7 +147,7 @@ export default function SummarySheet({ items, totals, percents, className, onPri
                   const pctIva = Number(percents?.iva);
                   const rows = [
                     { label: 'Indirectos', value: totals.indirectos, strong: false, primary: false, count: Number.isFinite(pctIndirectos) ? `${pctIndirectos}%` : '' },
-                    { label: 'Flete', value: totals.flete, strong: false, primary: false, count: 1 },
+                    { label: 'Flete', value: totals.flete, strong: false, primary: false, count: '' },
                     { label: 'Costo', value: totals.subtotalNeto, strong: true, primary: false },
                     { label: 'Margen', value: totals.margen, strong: false, primary: false, count: Number.isFinite(pctMargen) ? `${pctMargen}%` : '' },
                     { label: 'Neto', value: totals.precioVenta, strong: false, primary: false },
@@ -158,7 +158,7 @@ export default function SummarySheet({ items, totals, percents, className, onPri
                     <tr key={`summary-${i}`} className="odd:bg-[var(--bg)]/30">
                       <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-left tabular-nums whitespace-nowrap">{formatCountForSummary(row.label, row.count)}</td>
                       <th scope="row" className={[ 'border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-left', row.strong ? 'font-semibold' : 'font-normal' ].join(' ')}>{row.label}</th>
-                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right tabular-nums whitespace-nowrap">{formatCLP(row.value)}</td>
+                      <td className="border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right tabular-nums whitespace-nowrap"></td>
                       <td className={[ 'border-t border-[var(--border)] px-2 sm:px-3 py-2 sm:py-2.5 text-right tabular-nums whitespace-nowrap', row.strong ? 'font-semibold' : 'font-normal', row.primary ? 'text-[var(--primary)]' : '' ].join(' ')}>{formatCLP(row.value)}</td>
                     </tr>
                   ));

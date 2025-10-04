@@ -6,10 +6,12 @@
   --fg: #0f172a;
   --text: #0f172a;
   --muted: #64748b;
-  --border: #e5e7eb;
-  --stroke: #e5e7eb;
-  --primary: #16a34a;
-  --accent: #22c55e;
+  /* Borde cian suave como en la imagen */
+  --border: #bfefff; /* fallback para utilidades y acentos */
+  --stroke: #bfefff; /* bordes de headers y líneas */
+  /* Verdes: primary (ring/acciones) y accent (relleno por defecto de botones) */
+  --primary: #22c55e; /* verde medio */
+  --accent: #86efac; /* verde más claro para botones */
   --accent-2: #0ea5e9;
   --success: #16a34a;
   --warning: #f59e0b;

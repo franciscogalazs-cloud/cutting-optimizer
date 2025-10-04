@@ -31,8 +31,8 @@ export const ThumbnailStrip = memo(function ThumbnailStrip({ patterns, activeInd
         <button
           key={p.id ?? i}
           onClick={() => onSelect(i)}
-          className={`relative w-24 h-16 shrink-0 rounded-lg bg-white shadow-sm hover:shadow focus:outline-none border ${
-            i === activeIndex ? 'ring-2 ring-emerald-500 border-emerald-500' : 'border-slate-200'
+          className={`relative w-24 h-16 shrink-0 rounded-lg bg-[var(--surface)] shadow-sm hover:shadow focus:outline-none overflow-hidden p-1 border ${
+            i === activeIndex ? 'border-2 border-[var(--primary)]' : 'border-[var(--border)]'
           }`}
           title={`Hoja ${i + 1} de ${patterns.length}`}
         >

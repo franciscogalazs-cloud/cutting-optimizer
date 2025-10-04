@@ -225,6 +225,8 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
             <Label htmlFor="canRotate_edit">Permitir rotación</Label>
           </div>
 
+          {/* Campo de orientación fija (veta) eliminado por solicitud */}
+
           <div className="rounded-lg border border-gray-200 p-4">
             <div className="mb-3 flex items-center justify-between">
               <span className="text-sm font-medium text-gray-700">Tapacantos</span>

@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplicate, units = 'mm', materials = [] }) => {
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
@@ -88,41 +89,74 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
                 </div>
                 <div className="shrink-0">
                   <div className="inline-flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-2 text-[var(--text)]"
-                      title="Rotar largo/ancho"
-                      onClick={() => onEdit && onEdit(piece.id, { length: piece.width, width: piece.length })}
-                    >
-                      <RotateCcw className="mr-1 h-3 w-3" />
-                      Rotar
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onDuplicate?.(piece)}
-                      className="h-8 w-8 p-0 text-[var(--text)]"
-                      title="Duplicar pieza"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onEditRequest?.(piece)}
-                      className="h-8 w-8 p-0 text-[var(--text)]"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => onDelete?.(piece.id)}
-                      className="h-8 w-8 p-0 text-[var(--danger)] hover:text-[var(--danger)]"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-[var(--text)]"
+                            title="Rotar"
+                            aria-label="Rotar"
+                            onClick={() => onEdit && onEdit(piece.id, { length: piece.width, width: piece.length })}
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Rotar</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onDuplicate?.(piece)}
+                            className="h-8 w-8 p-0 text-[var(--text)]"
+                            title="Duplicar"
+                            aria-label="Duplicar"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Duplicar</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onEditRequest?.(piece)}
+                            className="h-8 w-8 p-0 text-[var(--text)]"
+                            title="Editar"
+                            aria-label="Editar"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Editar</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => onDelete?.(piece.id)}
+                            className="h-8 w-8 p-0 text-[var(--danger)] hover:text-[var(--danger)]"
+                            title="Eliminar"
+                            aria-label="Eliminar"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Eliminar</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </div>
               </div>
@@ -195,41 +229,74 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
                   <TableCell className="text-center">{((piece.length * piece.width * piece.quantity) / 10000).toLocaleString()}</TableCell>
                   <TableCell className="text-right sticky right-0 bg-[var(--surface)]">
                     <div className="inline-flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-8 px-2 text-[var(--text)]"
-                        title="Rotar largo/ancho"
-                        onClick={() => onEdit && onEdit(piece.id, { length: piece.width, width: piece.length })}
-                      >
-                        <RotateCcw className="mr-1 h-3 w-3" />
-                        Rotar
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onDuplicate?.(piece)}
-                        className="h-8 w-8 p-0 text-[var(--text)]"
-                        title="Duplicar pieza"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onEditRequest?.(piece)}
-                        className="h-8 w-8 p-0 text-[var(--text)]"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onDelete?.(piece.id)}
-                        className="h-8 w-8 p-0 text-[var(--danger)] hover:text-[var(--danger)]"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="h-8 w-8 p-0 text-[var(--text)] hover:bg-[var(--border)]/40 hover:border-[var(--border)] hover:text-[var(--text)]"
+                              title="Rotar"
+                              aria-label="Rotar"
+                              onClick={() => onEdit && onEdit(piece.id, { length: piece.width, width: piece.length })}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Rotar</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onDuplicate?.(piece)}
+                              className="h-8 w-8 p-0 text-[var(--text)] hover:bg-[var(--border)]/40 hover:border-[var(--border)] hover:text-[var(--text)]"
+                              title="Duplicar"
+                              aria-label="Duplicar"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Duplicar</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onEditRequest?.(piece)}
+                              className="h-8 w-8 p-0 text-[var(--text)] hover:bg-[var(--border)]/40 hover:border-[var(--border)] hover:text-[var(--text)]"
+                              title="Editar"
+                              aria-label="Editar"
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Editar</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => onDelete?.(piece.id)}
+                              className="h-8 w-8 p-0 text-[var(--danger)] hover:text-[var(--danger)] hover:bg-[var(--border)]/40 hover:border-[var(--border)]"
+                              title="Eliminar"
+                              aria-label="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Eliminar</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     </div>
                   </TableCell>
                 </TableRow>

@@ -146,19 +146,7 @@ export default function PatternCanvas2D({
 
       // Etiqueta del material (superior izquierda, fuera del tablero)
       if (materialLabel) {
-        const dpr = window.devicePixelRatio || 1;
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        // Alinear al borde izquierdo del tablero, por encima del borde superior
-        const xPx = Math.max(2, tx) * dpr;
-        const yPx = Math.max(4, ty - 20) * dpr; // 20px por encima
-        const fontPx = 14 * dpr; // un poco más grande
-        ctx.font = `bold ${fontPx}px sans-serif`;
-        ctx.fillStyle = '#111827'; // casi negro
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
-        ctx.fillText(String(materialLabel), xPx, yPx);
-        ctx.restore();
+      // etiqueta de material deshabilitada según requerimiento
       }
 
       // Piezas
@@ -548,7 +536,7 @@ export default function PatternCanvas2D({
       cv.removeEventListener('mousemove', onMove);
       cv.removeEventListener('mouseleave', onLeave);
     };
-  }, [pattern, theme, width, height, paddingPx, showLabels, showDimensions, units, showEdges, highlightPieceIndex, highlightEdge, tooltip]);
+  }, [pattern, theme, width, height, paddingPx, materialLabel, showLabels, showDimensions, units, showEdges, highlightPieceIndex, highlightEdge, tooltip]);
 
   return (
     <div

@@ -54,6 +54,20 @@ Notas de lint configuradas:
 - `eslint.config.js`: añadidas rutas a ignorar y tolerancia de argumentos con prefijo `_`.
 - Pequeñas limpiezas de variables no usadas en `src/App.jsx`, `src/components/visualization/AdvancedCuttingPattern.jsx` y `src/components/common/ExportModal.jsx` para que el lint quede limpio.
 
+## Mantenimiento y limpieza reciente
+- Eliminados componentes obsoletos/no referenciados:
+  - `src/components/visualization/CuttingPattern.jsx`
+  - `src/components/visualization/StatsPanel.jsx`
+  - `src/components/LogoPlate.tsx`
+  - Stub descontinuado: `src/components/visualization/SummarySheet.tsx`
+- Eliminados artefactos temporales en la raíz del proyecto:
+  - `app.patch`, `app_clean.patch`, `codex-checkpoint.patch`, `codex-checkpoint-utf8.patch`, `tmp_App_from_git.txt`
+- Se verificó con `lint` y `build` que no existan referencias rotas tras la limpieza.
+
+### Poda de dependencias (2025-10-03)
+- Removidas por no uso: `react-router-dom`, `react-resizable-panels`, `framer-motion`, `recharts`, `embla-carousel-react`, `date-fns`, `react-day-picker`, `next-themes`, `vaul`.
+- Mantengo `sonner` para toasts y Radix UI como base de componentes.
+
 ## Estructura breve
 - `src/algorithms/` – Algoritmos de optimización (Best Fit Decreasing).
 - `src/components/` – UI (formularios, tablas, visualización de patrones).

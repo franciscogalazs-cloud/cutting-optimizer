@@ -25,7 +25,7 @@ function PatternThumbBase({ p }) {
   };
 
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="absolute inset-1">
+    <svg viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="xMidYMid meet" className="absolute inset-0 m-1">
       {/* Tablero */}
       <rect
         x={0}
