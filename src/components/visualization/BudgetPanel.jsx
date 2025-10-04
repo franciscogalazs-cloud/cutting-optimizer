@@ -327,10 +327,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     <>
       <style>{printStyles}</style>
       <div ref={printAreaRef} id="budget-print-root" className="">
-        {/* Encabezado en pantalla */}
-        <div className="no-print mb-1 flex items-center justify-between">
-          <h1 className="font-semibold uppercase tracking-wide text-[var(--text)] text-3xl sm:text-4xl">PRESUPUESTO</h1>
-        </div>
         {/* Editor visible solo en pantalla (no-print) para agregar/editar valores */}
         <ScrollArea className="no-print max-h-[80vh] pr-2">
           <div className="space-y-2 pb-1">
@@ -834,14 +830,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                     <Copy className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
-              {/* Mini logo debajo del total de presupuesto (no se imprime) */}
-              <div className="no-print pt-3 flex items-center justify-center">
-                <img
-                  src={absoluteUrl('brand/industrial-plate/stencil_main.svg')}
-                  alt="Logo"
-                  style={{ opacity: 0.15, height: 32 }}
-                />
               </div>
             </div>
 

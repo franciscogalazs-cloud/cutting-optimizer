@@ -97,3 +97,9 @@ article select:focus-visible {
 .card-scroll::-webkit-scrollbar { width: 8px; height: 8px; }
 .card-scroll::-webkit-scrollbar-thumb { background-color: rgba(100,116,139,0.5); border-radius: 9999px; }
 .card-scroll { scrollbar-color: rgba(100,116,139,0.5) transparent; scrollbar-width: thin; }
+
+/* Utilidades para header responsive compacto */
+@layer utilities {
+  [data-compact="true"] .btn-text { display: none; }        /* Ayuda/Limpiar pasan a icono */
+  [data-compact="true"] .units-label { display: none; }     /* "Unidades:" -> solo valor */
+}

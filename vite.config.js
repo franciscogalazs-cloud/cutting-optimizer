@@ -19,8 +19,8 @@ export default defineConfig(({ command }) => ({
   plugins: [react(), tailwindcss()],
   server: {
     host: '127.0.0.1',
-    port: 5173,
-    strictPort: false,
+    port: Number(process.env.VITE_PORT || 5176),
+    strictPort: true, // si está ocupado, falla: así evitamos confusiones de puertos
   },
   resolve: {
     alias: {

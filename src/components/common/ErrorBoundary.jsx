@@ -66,9 +66,23 @@ export function DefaultErrorFallback({ error, info, onReset }) {
           <pre className="whitespace-pre-wrap">{info.componentStack}</pre>
         </details>
       )}
-      <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex gap-2 flex-wrap">
         <button className="px-3 py-1 border rounded" onClick={onReset}>Cerrar</button>
         <button className="px-3 py-1 border rounded" onClick={() => window.location.reload()}>Recargar</button>
+        <button
+          className="px-3 py-1 border rounded"
+          onClick={() => {
+            try {
+              localStorage.clear();
+            } catch (err) {
+              // Ignorar errores de acceso a localStorage (p. ej., modo privado o permisos)
+              console.warn('localStorage.clear failed', err);
+            }
+            window.location.reload();
+          }}
+        >
+          Limpiar datos y recargar
+        </button>
       </div>
     </div>
   )

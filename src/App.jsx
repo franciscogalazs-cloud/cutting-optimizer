@@ -1,13 +1,12 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { absoluteUrl } from "@/lib/paths";
+import { absoluteUrl, brandUrl, rootUrl } from "@/lib/paths";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, Grid3X3, Play, Scissors, Calculator, BarChart3 } from "lucide-react";
+import { Download, Grid3X3, Play, Scissors, Calculator, Home } from "lucide-react";
 import { toast } from "sonner";
-import { Header } from "./components/layout/Header";
 import { PieceForm } from "./components/forms/PieceForm";
 import { MaterialForm } from "./components/forms/MaterialForm";
 import { PiecesTable } from "./components/tables/PiecesTable";
@@ -20,10 +19,11 @@ import { InfoModal } from "./components/common/InfoModal";
 import { ExportModal } from "./components/common/ExportModal";
 import { EdgeBandingPanel } from "./features/edgebanding/EdgeBandingPanel.jsx";
 import { BudgetPanel } from "./components/visualization/BudgetPanel.jsx";
-import { AIDemo } from "./components/ai/AIDemo.jsx";
+// Pestaña IA retirada; reemplazada por Inicio
 import { normalizePiece, toMillimeters, cloneEdges, defaultEdges } from "./types/pieces.js";
 import { areaToSquareMeters, formatSquareMeters } from "./lib/format.js";
 import { useOptimization } from "./hooks/useOptimization";
+// Historial opcional removido de la UI por ahora
 import { useLocalStorage } from "./hooks/useLocalStorage";
 const mmToUnits = (valueMm, units) => {
   const numeric = Number(valueMm);
@@ -40,6 +40,7 @@ const mmToUnits = (valueMm, units) => {
 // Ensure that no large code blocks have been accidentally removed.
 // Review your recent changes for any unintended deletions.
 function App() {
+  const tabsBarRef = useRef(null);
   const patternsHeaderRef = useRef(null);
   const edgebandingHeaderRef = useRef(null);
   const materialsHeaderRef = useRef(null);
@@ -55,6 +56,7 @@ function App() {
     separation: 0,
     rotationPenalty: 0,
   });
+  // Historial deshabilitado: UI y atajos removidos
   const [activeTab, setActiveTab] = useState("pieces");
   useEffect(() => {
     setConfig((prev) => (prev.allowRotation ? prev : { ...prev, allowRotation: true }));
@@ -67,9 +69,9 @@ function App() {
   const scrollToPatterns = useCallback(() => {
     const target = patternsHeaderRef.current;
     if (!target) return;
-    const headerEl = document.querySelector('header');
-    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    const barEl = tabsBarRef.current;
+    const barH = barEl ? barEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - barH + SCROLL_FINE_TUNE;
     (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
   }, [SCROLL_FINE_TUNE]);
 
@@ -77,9 +79,9 @@ function App() {
   const scrollToPieces = useCallback(() => {
     const target = piecesHeaderRef.current;
     if (!target) return;
-    const headerEl = document.querySelector('header');
-    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    const barEl = tabsBarRef.current;
+    const barH = barEl ? barEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - barH + SCROLL_FINE_TUNE;
     (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
   }, [SCROLL_FINE_TUNE]);
 
@@ -87,9 +89,9 @@ function App() {
   const scrollToEdgebanding = useCallback(() => {
     const target = edgebandingHeaderRef.current;
     if (!target) return;
-    const headerEl = document.querySelector('header');
-    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    const barEl = tabsBarRef.current;
+    const barH = barEl ? barEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - barH + SCROLL_FINE_TUNE;
     (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
   }, [SCROLL_FINE_TUNE]);
 
@@ -97,9 +99,9 @@ function App() {
   const scrollToMaterials = useCallback(() => {
     const target = materialsHeaderRef.current;
     if (!target) return;
-    const headerEl = document.querySelector('header');
-    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    const barEl = tabsBarRef.current;
+    const barH = barEl ? barEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - barH + SCROLL_FINE_TUNE;
     (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
   }, [SCROLL_FINE_TUNE]);
 
@@ -107,11 +109,17 @@ function App() {
   const scrollToBudget = useCallback(() => {
     const target = budgetHeaderRef.current;
     if (!target) return;
-    const headerEl = document.querySelector('header');
-    const headerH = headerEl ? headerEl.getBoundingClientRect().height : 0;
-    const top = target.getBoundingClientRect().top + window.scrollY - headerH + SCROLL_FINE_TUNE;
+    const barEl = tabsBarRef.current;
+    const barH = barEl ? barEl.getBoundingClientRect().height : 0;
+    const top = target.getBoundingClientRect().top + window.scrollY - barH + SCROLL_FINE_TUNE;
     (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
   }, [SCROLL_FINE_TUNE]);
+
+  // Al activar la pestaña de inicio, desplazamos al tope de la página
+  useEffect(() => {
+    if (activeTab !== "home") return;
+    requestAnimationFrame(() => (document.scrollingElement || window).scrollTo({ top: 0, behavior: 'smooth' }));
+  }, [activeTab]);
 
   // Al activar la pestaña de patrones, desplazamos suavemente hasta el encabezado "Patrones de corte"
   useEffect(() => {
@@ -232,7 +240,7 @@ function App() {
       length: mmToUnits(normalized.largoMm, config.units),
       width: mmToUnits(normalized.anchoMm, config.units),
     };
-    setPieces((prev) => [...prev, newPiece]);
+  setPieces((prev) => [...prev, newPiece]);
   };
   const handleAddMaterial = (material) => {
     // Remover flags temporales y cualquier id previo en duplicados
@@ -241,13 +249,13 @@ function App() {
       ...clean,
       id: Date.now() + Math.random(),
     };
-    setMaterials((prev) => [...prev, newMaterial]);
+  setMaterials((prev) => [...prev, newMaterial]);
   };
   const handleDeletePiece = (id) => {
-    setPieces((prev) => prev.filter((p) => p.id !== id));
+  setPieces((prev) => prev.filter((p) => p.id !== id));
   };
   const handleDeleteMaterial = (id) => {
-    setMaterials((prev) => prev.filter((m) => m.id !== id));
+  setMaterials((prev) => prev.filter((m) => m.id !== id));
   };
   const handleDuplicateMaterial = (material) => {
     // Crear borrador de duplicado sin agregar aún; se agregará solo al guardar
@@ -319,7 +327,7 @@ function App() {
     setActiveTab("pieces");
   };
   const handleEditMaterial = (id, updatedMaterial) => {
-    setMaterials((prev) => prev.map((material) => (material.id === id ? { ...material, ...updatedMaterial } : material)));
+  setMaterials((prev) => prev.map((material) => (material.id === id ? { ...material, ...updatedMaterial } : material)));
   };
   const handleOptimize = async () => {
     if (pieces.length === 0) {
@@ -371,6 +379,7 @@ function App() {
         margin: Number((prev.margin * factor).toFixed(3)),
       };
     });
+  // historial deshabilitado
   };
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
   const avgUsedM2 = (() => {
@@ -432,73 +441,162 @@ function App() {
   // Nota: getTabBadgeVariant no se usa actualmente; removido para evitar warning de lint
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors flex flex-col">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <Header
-          onShowInfo={() => setShowInfoModal(true)}
-          onToggleUnits={toggleUnits}
-          onOptimize={handleOptimize}
-          canOptimize={pieces.length > 0 && materials.length > 0}
-          isOptimizing={isOptimizing}
-          units={config.units}
-          tabsBar={
-            <>
-              <TabsList className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
-                <TabsTrigger
-                  value="pieces"
-                  onClick={() => {
-                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToPieces()));
-                  }}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
-                >
-                  <span>Piezas</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="materials"
-                  onClick={() => {
-                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToMaterials()));
-                  }}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
-                >
-                  <span>Materiales</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="patterns"
-                  onClick={() => {
-                    // Forzar desplazamiento tras el cambio de pestaña (doble RAF)
-                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToPatterns()));
-                  }}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
-                >
+        {/* Header eliminado: renderizamos TabsList directamente para borrar logo y botones del header */}
+  <div ref={tabsBarRef} className="sticky top-0 z-40 bg-[var(--bg)]/95 backdrop-blur border-b border-white">
+          <div className="mx-auto w-full max-w-5xl px-2 pt-2 sm:px-4 lg:px-6">
+            {/* Logo encima de la barra de tabs */}
+            <div className="flex items-center py-2">
+              <img
+                src={brandUrl("brand/industrial-plate/stencil_main.svg")}
+                onError={(e) => {
+                  if (import.meta.env.DEV) {
+                    const t = e.currentTarget;
+                    if (!t.dataset.fallback) {
+                      t.dataset.fallback = "1";
+                      t.src = rootUrl("brand/industrial-plate/stencil_main.svg");
+                    }
+                  }
+                }}
+                alt="Logo"
+                className="h-20 sm:h-24 w-auto select-none"
+                draggable={false}
+              />
+            </div>
+          {/* Barra de historial/guardar removida a solicitud */}
+          <TabsList className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
+            <TabsTrigger
+              value="home"
+              onClick={() => {
+                requestAnimationFrame(() => (document.scrollingElement || window).scrollTo({ top: 0, behavior: 'smooth' }));
+              }}
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+            >
+              <Home className="h-4 w-4" />
+              <span>Inicio</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="pieces"
+              onClick={() => {
+                requestAnimationFrame(() => requestAnimationFrame(() => scrollToPieces()));
+              }}
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+            >
+              <span>Piezas</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="materials"
+              onClick={() => {
+                requestAnimationFrame(() => requestAnimationFrame(() => scrollToMaterials()));
+              }}
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+            >
+              <span>Materiales</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="patterns"
+              onClick={(e) => {
+                // Evitar cambiar de pestaña automáticamente; controlamos flujo
+                e.preventDefault();
+                if (!isOptimizing) {
+                  // En reposo: lanzar optimización; handleOptimize se encargará de ir a 'patterns' y hacer scroll
+                  handleOptimize();
+                } else {
+                  // Si ya está optimizando, ir/centrar en la sección de patrones
+                  setActiveTab("patterns");
+                  requestAnimationFrame(() => requestAnimationFrame(() => scrollToPatterns()));
+                }
+              }}
+              aria-label={isOptimizing ? "Patrones" : (optimizedBoards > 0 ? "Optimizar (hover: Patrones)" : "Optimizar")}
+              className="group flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+            >
+              {isOptimizing || activeTab === "patterns" ? (
+                <>
                   <Grid3X3 className="h-4 w-4" />
                   <span>Patrones</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="edgebanding"
-                  onClick={() => {
-                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToEdgebanding()));
-                  }}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
-                >
-                  <Scissors className="h-4 w-4" />
-                  <span>Tapacantos</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="budget"
-                  onClick={() => {
-                    requestAnimationFrame(() => requestAnimationFrame(() => scrollToBudget()));
-                  }}
-                  className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
-                >
-                  <Calculator className="h-4 w-4" />
-                  <span>Presupuesto</span>
-                </TabsTrigger>
-                <TabsTrigger value="ai" className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"><BarChart3 className="h-4 w-4" /><span>IA</span></TabsTrigger>
-              </TabsList>
-              {/* sin botón extra aquí: exportar volverá al contenido de Patrones */}
-            </>
-          }
-        />
+                </>
+              ) : optimizedBoards > 0 ? (
+                // Hay patrones: en reposo mostrar "Optimizar" y en hover cambiar a "Patrones" con transición suave
+                <>
+                  <span className="relative grid place-items-center">
+                    <Play className="h-4 w-4 transition-opacity duration-200 opacity-100 group-hover:opacity-0" />
+                    <Grid3X3 className="h-4 w-4 absolute transition-opacity duration-200 opacity-0 group-hover:opacity-100" />
+                  </span>
+                  <span className="relative grid place-items-center">
+                    <span className="transition-opacity duration-200 opacity-100 group-hover:opacity-0">Optimizar</span>
+                    <span className="absolute transition-opacity duration-200 opacity-0 group-hover:opacity-100">Patrones</span>
+                  </span>
+                </>
+              ) : (
+                // No hay patrones aún: mostrar "Optimizar"
+                <>
+                  <Play className="h-4 w-4" />
+                  <span>Optimizar</span>
+                </>
+              )}
+            </TabsTrigger>
+            <TabsTrigger
+              value="edgebanding"
+              onClick={() => {
+                requestAnimationFrame(() => requestAnimationFrame(() => scrollToEdgebanding()));
+              }}
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+            >
+              <Scissors className="h-4 w-4" />
+              <span>Tapacantos</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="budget"
+              onClick={() => {
+                requestAnimationFrame(() => requestAnimationFrame(() => scrollToBudget()));
+              }}
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+            >
+              <Calculator className="h-4 w-4" />
+              <span>Presupuesto</span>
+            </TabsTrigger>
+            {/* Acciones: Ayuda y Limpiar, ubicadas al costado derecho del botón Presupuesto */}
+            <div className="flex items-center gap-2 pl-2">
+              <button
+                onClick={() => setShowInfoModal(true)}
+                aria-label="Ayuda"
+                title="Ayuda"
+                className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-[var(--text)]
+                           h-[28px] w-[32px] sm:h-[32px] sm:w-[36px] hover:bg-[var(--surface-2)] transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                  <line x1="12" y1="17" x2="12" y2="17"></line>
+                </svg>
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm('¿Estás seguro de que quieres limpiar todos los datos?')) {
+                    try { localStorage.clear(); } catch (err) { console.warn('localStorage.clear failed', err); }
+                    window.location.reload();
+                  }
+                }}
+                aria-label="Limpiar"
+                title="Limpiar"
+                className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-rose-500
+                           h-[28px] w-[32px] sm:h-[32px] sm:w-[36px] hover:bg-rose-50 transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                  <path d="M3 6h18"></path>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                  <line x1="10" y1="11" x2="10" y2="17"></line>
+                  <line x1="14" y1="11" x2="14" y2="17"></line>
+                </svg>
+              </button>
+            </div>
+            {/* Pestaña IA eliminada */}
+          </TabsList>
+          </div>
+        </div>
+        {/* Modal de historial removido de la interfaz actual */}
         <main className="mx-auto flex max-w-5xl flex-col gap-8 px-2 py-3 sm:px-4 lg:px-6">
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {kpiItems.map((item) => (
@@ -529,6 +627,17 @@ function App() {
 
           {/* Sección principal: contenidos de cada pestaña */}
           <section className="space-y-6 w-full">
+            <TabsContent value="home" className="space-y-4">
+              <Card className="border-[var(--border)] bg-[var(--surface)] text-center shadow-[var(--shadow)]">
+                <CardContent className="space-y-3 py-12">
+                  <Home className="mx-auto h-12 w-12 text-[var(--muted)]" />
+                  <h3 className="text-lg font-medium text-[var(--text)]">Bienvenido</h3>
+                  <p className="text-sm text-[var(--muted)]">
+                    Usa las pestañas para cargar piezas y materiales, optimizar, y preparar el presupuesto.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
             <TabsContent value="pieces" className="space-y-4" id="pieces">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h2 ref={piecesHeaderRef} className="text-lg font-semibold text-[var(--text)]">Piezas a cortar</h2>
@@ -616,9 +725,7 @@ function App() {
               )}
             </TabsContent>
 
-            <TabsContent value="ai" className="space-y-4">
-              <AIDemo pieces={pieces} materials={materials} config={config} />
-            </TabsContent>
+            {/* Contenido de IA removido */}
           </section>
 
           {error && (
@@ -632,11 +739,11 @@ function App() {
       </Tabs>
 
       {/* Footer global visible en todas las pestañas (no se imprime) */}
-      <div className="no-print mt-16 pb-10 flex items-center justify-center">
+      <div className="no-print pb-6 flex items-center justify-center" style={{ marginTop: '20cm' }}>
         <img
           src={absoluteUrl('brand/industrial-plate/stencil_main.svg')}
           alt="Logo"
-          style={{ opacity: 0.15, height: 192 }}
+          style={{ opacity: 0.15, height: 96 }}
         />
       </div>
 
