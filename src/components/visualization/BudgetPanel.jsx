@@ -835,6 +835,14 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                   </Button>
                 </div>
               </div>
+              {/* Mini logo debajo del total de presupuesto (no se imprime) */}
+              <div className="no-print pt-3 flex items-center justify-center">
+                <img
+                  src={absoluteUrl('brand/industrial-plate/stencil_main.svg')}
+                  alt="Logo"
+                  style={{ opacity: 0.15, height: 32 }}
+                />
+              </div>
             </div>
 
           </div>
