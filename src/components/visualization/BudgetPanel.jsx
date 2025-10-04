@@ -284,6 +284,8 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       #budget-print-root .grid-gap { gap: 8px; }
       #budget-print-root .row-gap { row-gap: 6px; }
       #budget-print-root section, #budget-print-root .card-like { break-inside: avoid; }
+      #budget-print-root .print-footer { text-align: center; margin-top: 10mm; }
+      #budget-print-root .print-footer img { opacity: 0.15; height: 48px; }
     `;
     // Pequeño delay para permitir que Radix desmonte portales sin conflicto
     setTimeout(() => {
@@ -1021,6 +1023,11 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               <div />
             </div>
           </section>
+
+          {/* Footer con logo transparente centrado */}
+          <footer className="print-footer">
+            <img src={absoluteUrl('brand/industrial-plate/stencil_main.svg')} alt="Logo" />
+          </footer>
         </div>
       </div>
     </>
