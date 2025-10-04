@@ -20,8 +20,8 @@ export const Header = ({
   };
 
   return (
-  <header className="sticky top-0 z-40 border-b border-white bg-[var(--bg)]/95 backdrop-blur">
-  <div className="mx-auto flex max-w-5xl items-center gap-2 px-2 py-2 sm:gap-4 sm:px-4 lg:px-6">
+  <header className="sticky top-0 z-40 border-b border-white bg-[var(--bg)]/95 backdrop-blur overflow-visible">
+  <div className="mx-auto flex max-w-5xl items-center gap-2 px-2 pt-4 pb-7 sm:gap-4 sm:px-4 lg:px-6">
     <div className="flex items-center shrink-0">
       <img
         src={brandUrl("brand/industrial-plate/stencil_main.svg")}
@@ -57,13 +57,13 @@ export const Header = ({
 
     {/* Buscador eliminado para simplificar el header */}
 
-  <div className="ml-2 mt-[2%] flex flex-nowrap items-center gap-1.5 text-[var(--muted)] overflow-x-auto no-scrollbar whitespace-nowrap">
+  <div className="ml-2 mt-0 mb-1 flex flex-nowrap items-center gap-1.5 text-[var(--muted)] overflow-x-auto overflow-y-visible no-scrollbar whitespace-nowrap">
           {/* Etiqueta de versión eliminada */}
           <Button
             size="lg"
             onClick={onOptimize}
             disabled={!canOptimize || isOptimizing}
-            className="rounded-full min-w-[148px]"
+            className="rounded-full min-w-[148px] !hover:translate-y-[2px] !active:translate-y-[2px] !active:scale-100"
           >
             {isOptimizing ? (
               <>
@@ -78,7 +78,7 @@ export const Header = ({
             )}
           </Button>
 
-          <Button variant="outline" size="lg" onClick={onShowInfo} className="border-[var(--stroke)] text-[var(--fg)] rounded-full min-w-[148px]">
+          <Button variant="outline" size="lg" onClick={onShowInfo} className="border-[var(--stroke)] text-[var(--fg)] rounded-full min-w-[148px] !hover:translate-y-[2px] !active:translate-y-[2px] !active:scale-100">
             <Info className="h-4 w-4" />
             <span>Ayuda</span>
           </Button>
@@ -87,13 +87,13 @@ export const Header = ({
             variant="outline"
             size="lg"
             onClick={handleClear}
-            className="border-[var(--stroke)] text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-full min-w-[148px]"
+            className="border-[var(--stroke)] text-[var(--danger)] hover:bg-[var(--danger)]/10 rounded-full min-w-[148px] !hover:translate-y-[2px] !active:translate-y-[2px] !active:scale-100"
           >
             <Trash2 className="h-4 w-4" />
             <span>Limpiar</span>
           </Button>
 
-          <Button variant="outline" size="lg" onClick={onToggleUnits} className="border-[var(--stroke)] text-[var(--fg)] rounded-full min-w-[148px]">
+          <Button variant="outline" size="lg" onClick={onToggleUnits} className="border-[var(--stroke)] text-[var(--fg)] rounded-full min-w-[148px] !hover:translate-y-[2px] !active:translate-y-[2px] !active:scale-100">
             Unidades: {units}
           </Button>
 
