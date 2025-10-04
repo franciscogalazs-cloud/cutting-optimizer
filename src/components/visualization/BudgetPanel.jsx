@@ -837,15 +837,6 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </div>
             </div>
 
-            {/* Footer de pantalla con logo transparente centrado (no se imprime) */}
-            <div className="no-print py-4 flex items-center justify-center">
-              <img
-                src={absoluteUrl('brand/industrial-plate/stencil_main.svg')}
-                alt="Logo"
-                style={{ opacity: 0.15, height: 64 }}
-              />
-            </div>
-
           </div>
         </ScrollArea>
   {/* Hoja de impresión: replica el layout de pantalla como en la imagen */}

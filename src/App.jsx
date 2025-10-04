@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { absoluteUrl } from "@/lib/paths";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
@@ -630,6 +631,15 @@ function App() {
         </main>
       </Tabs>
 
+      {/* Footer global visible en todas las pestañas (no se imprime) */}
+      <div className="no-print mt-16 pb-10 flex items-center justify-center">
+        <img
+          src={absoluteUrl('brand/industrial-plate/stencil_main.svg')}
+          alt="Logo"
+          style={{ opacity: 0.15, height: 192 }}
+        />
+      </div>
+
       {/* Modales */}
       <InfoModal isOpen={showInfoModal} onClose={() => setShowInfoModal(false)} />
       <ExportModal
@@ -671,7 +681,7 @@ function App() {
           }
         }}
       />
-    </div>
+  </div>
   );
 }
 
