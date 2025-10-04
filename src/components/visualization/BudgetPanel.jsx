@@ -7,17 +7,40 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calculator, Copy, Plus, Trash2 } from 'lucide-react';
+import { Calculator, Copy, Plus, Trash2, Printer } from 'lucide-react';
 import { computeEdgeTotals } from '@/features/edgebanding/edgeBanding.js';
-import SummarySheet from '@/components/visualization/SummarySheet.jsx';
+// SummarySheet removido según requerimiento de diseño
 import { ErrorBoundary } from '@/components/common/ErrorBoundary.jsx';
 import { useLocalStorage } from '@/hooks/useLocalStorage.js';
 import { formatCLP, rectangleAreaToSquareMeters } from '@/lib/format.js';
 
 const createId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 const toNumber = (value) => {
-  const numeric = Number(value);
-  return Number.isFinite(numeric) ? numeric : 0;
+  // Normaliza números escritos con separadores locales (p. ej. "1.234,56" o "1,234.56")
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  let v = String(value ?? '').trim();
+  if (!v) return 0;
+  // Eliminar caracteres no numéricos relevantes (mantener dígitos, punto, coma y signo menos)
+  v = v.replace(/[^0-9,.-]/g, '');
+  // Si hay ambos separadores, decide el decimal por el último que aparezca
+  const lastComma = v.lastIndexOf(',');
+  const lastDot = v.lastIndexOf('.');
+  if (lastComma !== -1 && lastDot !== -1) {
+    if (lastComma > lastDot) {
+      // coma como decimal: remover puntos (miles) y cambiar coma a punto
+      v = v.replace(/\./g, '').replace(',', '.');
+    } else {
+      // punto como decimal: remover comas (miles)
+      v = v.replace(/,/g, '');
+    }
+  } else if (lastComma !== -1) {
+    // Solo coma: tratarla como decimal
+    v = v.replace(',', '.');
+  } else {
+    // Solo punto o sólo dígitos: ya válido
+  }
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 };
 
 const unitOptions = [
@@ -45,6 +68,13 @@ const createEdgeRow = ({ name = '', price = 0, quantity = 0 } = {}) => ({
 });
 
 const createHardwareRow = ({ name = '', price = 0, quantity = 0 } = {}) => ({
+  id: createId(),
+  name,
+  price,
+  quantity,
+});
+
+const createOtherRow = ({ name = '', price = 0, quantity = 0 } = {}) => ({
   id: createId(),
   name,
   price,
@@ -79,6 +109,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const [baseMaterials, setBaseMaterials] = useLocalStorage('budget-base-materials', [createMaterialRow()]);
   const [edgeItems, setEdgeItems] = useLocalStorage('budget-edge-items', [createEdgeRow()]);
   const [hardwareItems, setHardwareItems] = useLocalStorage('budget-hardware-items', [createHardwareRow()]);
+  const [otherItems, setOtherItems] = useLocalStorage('budget-other-items', [createOtherRow()]);
   const [indirectPercent, setIndirectPercent] = useLocalStorage('budget-indirect-percent', 0);
   const [marginPercent, setMarginPercent] = useLocalStorage('budget-margin-percent', 0);
   const [taxPercent, setTaxPercent] = useLocalStorage('budget-tax-percent', 19);
@@ -169,6 +200,10 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     setHardwareItems((prev) => prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)));
   };
 
+  const handleOtherChange = (id, key, value) => {
+    setOtherItems((prev) => prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)));
+  };
+
   const duplicateRow = (setter, id, factory) => {
     setter((prev) => {
       const current = prev.find((row) => row.id === id);
@@ -193,7 +228,8 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   };
   const edgesTotal = edgeItems.reduce((sum, item) => sum + computeEdgeRowTotal(item), 0);
   const hardwareTotal = hardwareItems.reduce((sum, item) => sum + toNumber(item.price) * toNumber(item.quantity), 0);
-  const directTotal = materialsTotal + edgesTotal + hardwareTotal;
+  const othersTotal = otherItems.reduce((sum, item) => sum + toNumber(item.price) * toNumber(item.quantity), 0);
+  const directTotal = materialsTotal + edgesTotal + hardwareTotal + othersTotal;
   const indirects = directTotal * (toNumber(indirectPercent) / 100);
   const freightValue = toNumber(freight);
   const subtotalNet = directTotal + indirects + freightValue;
@@ -201,48 +237,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const subtotalWithMargin = subtotalNet + marginValue;
   const taxValue = subtotalWithMargin * (toNumber(taxPercent) / 100);
   const totalWithTax = subtotalWithMargin + taxValue;
-  // Datos para la planilla de visualización (solo pantalla)
-  const sheetItems = useMemo(() => {
-    const materials = (baseMaterials || []).map((m) => ({
-      detalle: m.details ? `${m.name || 'Material'} — ${m.details}` : (m.name || 'Material'),
-      cantidad: toNumber(m.quantity) || 0,
-      unitario: toNumber(m.price) || 0,
-      metros2: Number.isFinite(Number(m.areaM2)) ? Number(m.areaM2) : undefined,
-      subtotal: toNumber(m.price) * toNumber(m.quantity),
-    }));
-    const edges = (edgeItems || []).map((e) => ({
-      detalle: `Tapacanto ${String(e.name || '').trim()}`.trim(),
-      cantidad: toNumber(e.quantity) || 0,
-      unitario: toNumber(e.price) || 0,
-      subtotal: (toNumber(e.price) * toNumber(e.quantity)) || 0,
-    }));
-    const hardware = (hardwareItems || []).map((h) => ({
-      detalle: `Herraje ${String(h.name || '').trim()}`.trim(),
-      cantidad: toNumber(h.quantity) || 0,
-      unitario: toNumber(h.price) || 0,
-      subtotal: toNumber(h.price) * toNumber(h.quantity),
-    }));
-    return [...materials, ...edges, ...hardware];
-  }, [baseMaterials, edgeItems, hardwareItems]);
-
-  const sheetTotals = useMemo(() => ({
-    materialesBase: materialsTotal,
-    tapacantos: edgesTotal,
-    herrajes: hardwareTotal,
-    indirectos: indirects,
-    flete: freightValue,
-    subtotalNeto: subtotalNet,
-    margen: marginValue,
-    precioVenta: subtotalWithMargin,
-    iva: taxValue,
-    totalConIVA: totalWithTax,
-  }), [materialsTotal, edgesTotal, hardwareTotal, indirects, freightValue, subtotalNet, marginValue, subtotalWithMargin, taxValue, totalWithTax]);
-  const printGeneratedAt = useMemo(() => new Date().toLocaleString('es-CL'), []);
-  const printFolio = useMemo(() => {
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    return `P-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
-  }, []);
+  // (planillas intermedias removidas; se usa solo resumen de costos en impresión)
 
   // Exportación CSV removida por solicitud
 
@@ -261,70 +256,34 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     const node = printAreaRef.current;
     if (!node) return window.print();
   const extraCss = `
-      /* Preferir menos hojas */
-      @page { size: A4; margin: 6mm; }
-
-  /* Mostrar solo la versión de impresión */
+      /* Página y visibilidad */
+      @page { size: A4; margin: 12mm; }
       .no-print { display: none !important; }
       .print-only { display: block !important; }
-  /* Forzar ocultar posibles contenedores de parámetros en impresión */
-  #budget-print-root [data-print-hide] { display: none !important; }
-  /* Ocultar bloques marcados como redundantes en modo compacto */
-  #budget-print-root [data-print-compact-hide] { display: none !important; }
+      #budget-print-root [data-print-hide] { display: none !important; }
       .hide-on-print { display: none !important; }
-    /* Expandir contenedores con scroll para que entre todo */
-  .max-h-[80vh] { max-height: none !important; }
-  .max-h-[70vh] { max-height: none !important; }
+
+      /* Comportamiento de contenedores */
+      .max-h-[80vh], .max-h-[70vh] { max-height: none !important; }
       .overflow-auto, .overflow-y-auto, .overflow-x-auto { overflow: visible !important; }
-      /* Evitar posicionamiento sticky que puede romper el layout en papel */
       .sticky { position: static !important; left: auto !important; right: auto !important; top: auto !important; }
-      /* Ocultar botones en impresión (dejar visibles sólo triggers de Select/Radix) */
       button:not([role="combobox"]) { display: none !important; }
       [role="button"]:not([role="combobox"]) { display: none !important; }
-      /* Neutralizar sombras/bordes si quieres más limpio (opcional) */
-  /* .shadow-[var(--shadow)], .shadow, .ring, .border { box-shadow: none !important; } */
 
-  /* ===== Compactación del contenido del presupuesto ===== */
-  #budget-print-root { font-size: 9px; line-height: 1.2; }
-    #budget-print-root h1 { font-size: 14px; margin: 0 0 4px 0; }
-    #budget-print-root h2 { font-size: 12px; margin: 4px 0; }
-    #budget-print-root h3, #budget-print-root h4 { font-size: 11px; margin: 3px 0; }
-  #budget-print-root svg { display: none !important; }
-  #budget-print-root img.print-logo { display: inline-block !important; max-height: 56px; }
-      #budget-print-root .shadow, #budget-print-root [class*="shadow-"] { box-shadow: none !important; }
-      #budget-print-root .rounded, #budget-print-root [class*="rounded-"] { border-radius: 4px !important; }
-      #budget-print-root .border, #budget-print-root [class*="border-"] { border-color: #e5e7eb !important; }
-
-      /* Reducir paddings y gaps frecuentes */
-  #budget-print-root .p-4 { padding: 5px !important; }
-  #budget-print-root .p-3 { padding: 4px !important; }
-  #budget-print-root .p-2 { padding: 2px !important; }
-    #budget-print-root .px-4 { padding-left: 6px !important; padding-right: 6px !important; }
-  #budget-print-root .px-3 { padding-left: 4px !important; padding-right: 4px !important; }
-  #budget-print-root .py-4 { padding-top: 5px !important; padding-bottom: 5px !important; }
-  #budget-print-root .py-3 { padding-top: 4px !important; padding-bottom: 4px !important; }
-  #budget-print-root .py-2 { padding-top: 2px !important; padding-bottom: 2px !important; }
-  #budget-print-root .gap-6 { gap: 5px !important; }
-  #budget-print-root .gap-4 { gap: 4px !important; }
-  #budget-print-root .gap-3 { gap: 2px !important; }
-  #budget-print-root .space-y-6 > * + * { margin-top: 5px !important; }
-  #budget-print-root .space-y-4 > * + * { margin-top: 4px !important; }
-  #budget-print-root .space-y-3 > * + * { margin-top: 2px !important; }
-
-      /* Inputs/selects como texto simple para ahorrar espacio */
-      #budget-print-root input, #budget-print-root select, #budget-print-root textarea {
-        border: 0 !important; background: transparent !important; box-shadow: none !important;
-        padding: 0 !important; height: auto !important; outline: 0 !important; appearance: none !important;
-      }
-      #budget-print-root [role="combobox"] { border: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
-      #budget-print-root .badge, #budget-print-root [class*="badge"] { padding: 0 4px !important; font-size: 10px !important; }
-
-      /* Tablas compactas */
-      #budget-print-root table { border-collapse: collapse !important; width: 100% !important; }
-      #budget-print-root th, #budget-print-root td { padding: 2px 4px !important; }
-      #budget-print-root th { background: #f8fafc !important; }
-      #budget-print-root tr { break-inside: avoid; }
-      #budget-print-root section, #budget-print-root .card, #budget-print-root .Card, #budget-print-root .border { break-inside: avoid; }
+      /* Estética similar a pantalla */
+      #budget-print-root { font-size: 12px; line-height: 1.35; color: #111827; }
+      #budget-print-root h1 { font-size: 22px; font-weight: 700; letter-spacing: .02em; }
+      #budget-print-root .card-like { background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; }
+      #budget-print-root .field { border: 1px solid #e5e7eb; border-radius: 8px; padding: 6px 10px; background: #ffffff; }
+      #budget-print-root .label { color: #6b7280; font-size: 11px; text-transform: uppercase; }
+      #budget-print-root .value { color: #111827; font-size: 12px; }
+      #budget-print-root .section-title { text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: #111827; }
+      #budget-print-root .muted { color: #6b7280; }
+      #budget-print-root .total-label { text-transform: uppercase; color: #6b7280; font-size: 11px; }
+      #budget-print-root .total-value { color: #111827; font-weight: 600; }
+      #budget-print-root .grid-gap { gap: 8px; }
+      #budget-print-root .row-gap { row-gap: 6px; }
+      #budget-print-root section, #budget-print-root .card-like { break-inside: avoid; }
     `;
     // Pequeño delay para permitir que Radix desmonte portales sin conflicto
     setTimeout(() => {
@@ -332,14 +291,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     }, 30);
   };
 
-  const scrollToId = (id) => {
-    try {
-      const el = document.getElementById(id);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    } catch {
-      /* ignore: scroll inalcanzable */
-    }
-  };
+  // scroll helper removido en impresión compacta
 
   if (!result) {
     return (
@@ -373,34 +325,47 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     <>
       <style>{printStyles}</style>
       <div ref={printAreaRef} id="budget-print-root" className="">
+        {/* Encabezado en pantalla */}
+        <div className="no-print mb-1 flex items-center justify-between">
+          <h1 className="font-semibold uppercase tracking-wide text-[var(--text)] text-3xl sm:text-4xl">PRESUPUESTO</h1>
+        </div>
         {/* Editor visible solo en pantalla (no-print) para agregar/editar valores */}
         <ScrollArea className="no-print max-h-[80vh] pr-2">
-          <div className="space-y-6 pb-4">
+          <div className="space-y-2 pb-1">
             <Card id="budget-editor-cliente" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
-              <CardHeader>
-                <CardTitle>Datos del cliente</CardTitle>
+              <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="uppercase tracking-wide">Datos del cliente</CardTitle>
+                <div className="no-print">
+                  <Button size="sm" onClick={printBudget} className="rounded-full bg-green-500 text-white hover:bg-green-600">
+                    <Printer className="h-4 w-4" />
+                    <span className="hidden sm:inline">Imprimir</span>
+                  </Button>
+                </div>
               </CardHeader>
-              <CardContent className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="budget-client-name">Nombre</Label>
+              <CardContent className="grid gap-2 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label htmlFor="budget-client-name" className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
                   <Input
+                    className="h-8 px-2 py-1 text-sm"
                     id="budget-client-name"
                     value={client.name}
                     onChange={(event) => setClient((prev) => ({ ...prev, name: event.target.value }))}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="budget-client-email">Email</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="budget-client-email" className="uppercase text-[12px] text-[var(--muted)]">Email</Label>
                   <Input
+                    className="h-8 px-2 py-1 text-sm"
                     id="budget-client-email"
                     type="email"
                     value={client.email}
                     onChange={(event) => setClient((prev) => ({ ...prev, email: event.target.value }))}
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="budget-client-phone">Telefono</Label>
+                <div className="space-y-1">
+                  <Label htmlFor="budget-client-phone" className="uppercase text-[12px] text-[var(--muted)]">Telefono</Label>
                   <Input
+                    className="h-8 px-2 py-1 text-sm"
                     id="budget-client-phone"
                     value={client.phone}
                     onChange={(event) => setClient((prev) => ({ ...prev, phone: event.target.value }))}
@@ -410,36 +375,37 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             </Card>
 
             <Card id="budget-editor-materiales" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
-              <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="flex items-center gap-2">
-                  <span>Materiales base</span>
+                  <span className="uppercase tracking-wide">Materiales base</span>
                 </CardTitle>
-                <div className="flex gap-2">
+                <div className="flex gap-1">
                   <Button variant="outline" size="sm" onClick={() => setBaseMaterials((prev) => [...prev, createMaterialRow()])}>
                     <Plus className="h-4 w-4" />
                     Agregar material
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-2">
                 {baseMaterials.map((material) => (
                   <div
                     key={material.id}
-                    className="grid items-end gap-3 rounded-[var(--radius)] border border-[var(--border)] p-4"
+                    className="grid items-end gap-1 rounded-[var(--radius)] border border-[var(--border)] p-2"
                     style={{ gridTemplateColumns: 'minmax(160px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto' }}
                   >
-                    <div className="space-y-2 min-w-0">
-                      <Label>Tipo</Label>
+                    <div className="space-y-1 min-w-0">
+                      <Label className="uppercase text-[12px] text-[var(--muted)]">Tipo</Label>
                       <Input
+                        className="h-8 px-2 py-1 text-sm"
                         value={material.name}
                         onChange={(event) => handleMaterialChange(material.id, 'name', event.target.value)}
                         placeholder="Ej: Melamina 18mm"
                       />
                     </div>
-                    <div className="space-y-2 min-w-0">
-                      <Label>Unidad</Label>
+                    <div className="space-y-1 min-w-0">
+                      <Label className="uppercase text-[12px] text-[var(--muted)]">Unidad</Label>
                       <Select value={material.unit} onValueChange={(value) => handleMaterialChange(material.id, 'unit', value)}>
-                        <SelectTrigger className="w-full border-[var(--border)] bg-[var(--surface)] text-left">
+                        <SelectTrigger size="sm" className="w-full border-[var(--border)] bg-[var(--surface)] text-left">
                           <SelectValue placeholder="plancha" />
                         </SelectTrigger>
                         <SelectContent>
@@ -451,35 +417,40 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2 min-w-0">
-                      <Label>Precio (CLP)</Label>
+                    <div className="space-y-1 min-w-0">
+                      <Label className="uppercase text-[12px] text-[var(--muted)]">Precio (CLP)</Label>
                       <Input
+                        className="h-8 px-2 py-1 text-sm"
                         type="number"
+                        step="any"
                         min="0"
                         value={material.price}
                         onChange={(event) => handleMaterialChange(material.id, 'price', event.target.value)}
                       />
                     </div>
-                    <div className="space-y-2 min-w-0">
-                      <Label>Cantidad</Label>
+                    <div className="space-y-1 min-w-0">
+                      <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad</Label>
                       <Input
+                        className="h-8 px-2 py-1 text-sm"
                         type="number"
+                        step="any"
                         min="0"
                         value={material.quantity}
                         onChange={(event) => handleMaterialChange(material.id, 'quantity', event.target.value)}
                       />
                     </div>
-                    <div className="space-y-2 min-w-0">
-                      <Label>Total</Label>
-                      <Input value={formatCLP(toNumber(material.price) * toNumber(material.quantity))} readOnly />
+                    <div className="space-y-1 min-w-0">
+                      <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
+                      <Input className="h-8 px-2 py-1 text-sm" value={formatCLP(toNumber(material.price) * toNumber(material.quantity))} readOnly />
                     </div>
-                    <div className="flex justify-end gap-2 justify-self-end">
+                    <div className="flex justify-end gap-1 justify-self-end">
                       <Button
                         variant="outline"
                         size="icon"
                         title="Duplicar"
                         aria-label="Duplicar"
                         onClick={() => duplicateRow(setBaseMaterials, material.id, createMaterialRow)}
+                        className="size-8"
                       >
                         <Copy className="h-4 w-4" />
                       </Button>
@@ -489,7 +460,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                         title="Eliminar"
                         aria-label="Eliminar"
                         onClick={() => removeRow(setBaseMaterials, material.id, createMaterialRow)}
-                        className="text-[var(--danger)]"
+                        className="text-[var(--danger)] size-8"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -497,70 +468,76 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                     {/* Ocultamos detalles (dimensiones) en pantalla; se muestran solo en la hoja de impresión */}
                   </div>
                 ))}
-                <div className="text-right text-sm text-[var(--text)] font-semibold">
-                  Total materiales base: {formatCLP(materialsTotal)}
+                <div className="text-right text-sm">
+                  <span className="uppercase text-[12px] text-[var(--muted)]">Total materiales base:</span>{' '}
+                  <span className="font-semibold text-[var(--text)]">{formatCLP(materialsTotal)}</span>
                 </div>
               </CardContent>
             </Card>
 
             <div className="grid gap-4">
               <Card id="budget-editor-tapacantos" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
-                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    <span>Tapacantos</span>
+                    <span className="uppercase tracking-wide">Tapacantos</span>
                   </CardTitle>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <Button variant="outline" size="sm" onClick={() => setEdgeItems((prev) => [...prev, createEdgeRow()])}>
                       <Plus className="h-4 w-4" />
                       Agregar tapacanto
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-2">
                   {edgeItems.map((edge) => (
                     <div
                       key={edge.id}
-                      className="grid items-end gap-3 rounded-[var(--radius)] border border-[var(--border)] p-4"
+                      className="grid items-end gap-1 rounded-[var(--radius)] border border-[var(--border)] p-2"
                       style={{ gridTemplateColumns: 'minmax(160px, 2fr) minmax(120px, 1fr) minmax(140px, 1fr) minmax(120px, 1fr) auto' }}
                     >
-                      <div className="space-y-2 min-w-0">
-                        <Label>Nombre</Label>
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
                         <Input
+                          className="h-8 px-2 py-1 text-sm"
                           value={edge.name}
                           onChange={(event) => handleEdgeChange(edge.id, 'name', event.target.value)}
                           placeholder="Ej: Canto ABS"
                         />
                       </div>
-                      <div className="space-y-2 min-w-0">
-                        <Label>$ / ml</Label>
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">$ / ml</Label>
                         <Input
+                          className="h-8 px-2 py-1 text-sm"
                           type="number"
+                          step="any"
                           min="0"
                           value={edge.price}
                           onChange={(event) => handleEdgeChange(edge.id, 'price', event.target.value)}
                         />
                       </div>
-                      <div className="space-y-2 min-w-0">
-                        <Label>Cantidad (ml)</Label>
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad (ml)</Label>
                         <Input
+                          className="h-8 px-2 py-1 text-sm"
                           type="number"
+                          step="any"
                           min="0"
-                          step="0.01"
                           value={edge.quantity}
                           onChange={(event) => handleEdgeChange(edge.id, 'quantity', event.target.value)}
                         />
                       </div>
-                      <div className="space-y-2 min-w-0">
-                        <Label>Total</Label>
-                        <Input value={formatCLP(computeEdgeRowTotal(edge))} readOnly />
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" value={formatCLP(computeEdgeRowTotal(edge))} readOnly />
                       </div>
-                      <div className="flex justify-end gap-2 justify-self-end">
+                      <div className="flex justify-end gap-1 justify-self-end">
                         <Button
                           variant="outline"
                           size="icon"
                           title="Duplicar"
                           aria-label="Duplicar"
                           onClick={() => duplicateRow(setEdgeItems, edge.id, createEdgeRow)}
+                          className="size-8"
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -570,73 +547,80 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                           title="Eliminar"
                           aria-label="Eliminar"
                           onClick={() => removeRow(setEdgeItems, edge.id, createEdgeRow)}
-                          className="text-[var(--danger)]"
+                          className="text-[var(--danger)] size-8"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   ))}
-                  <div className="text-right text-sm text-[var(--text)] font-semibold">
-                    Total tapacantos: {formatCLP(edgesTotal)}
+                  <div className="text-right text-sm">
+                    <span className="uppercase text-[12px] text-[var(--muted)]">Total tapacantos:</span>{' '}
+                    <span className="font-semibold text-[var(--text)]">{formatCLP(edgesTotal)}</span>
                   </div>
                 </CardContent>
               </Card>
 
               <Card id="budget-editor-herrajes" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
-                <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                   <CardTitle className="flex items-center gap-2">
-                    <span>Herrajes</span>
+                    <span className="uppercase tracking-wide">Herrajes</span>
                   </CardTitle>
                   <Button variant="outline" size="sm" onClick={() => setHardwareItems((prev) => [...prev, createHardwareRow()])}>
                     <Plus className="h-4 w-4" />
                     Agregar nuevo herraje
                   </Button>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-2">
                   {hardwareItems.map((item) => (
                     <div
                       key={item.id}
-                      className="grid items-end gap-3 rounded-[var(--radius)] border border-[var(--border)] p-4"
+                      className="grid items-end gap-1 rounded-[var(--radius)] border border-[var(--border)] p-2"
                       style={{ gridTemplateColumns: 'minmax(160px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto' }}
                     >
-                      <div className="space-y-2 min-w-0">
-                        <Label>Nombre</Label>
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
                         <Input
+                          className="h-8 px-2 py-1 text-sm"
                           value={item.name}
                           onChange={(event) => handleHardwareChange(item.id, 'name', event.target.value)}
                           placeholder="Ej: Bisagra 35mm"
                         />
                       </div>
-                      <div className="space-y-2 min-w-0">
-                        <Label>$ c/u</Label>
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">$ c/u</Label>
                         <Input
+                          className="h-8 px-2 py-1 text-sm"
                           type="number"
+                          step="any"
                           min="0"
                           value={item.price}
                           onChange={(event) => handleHardwareChange(item.id, 'price', event.target.value)}
                         />
                       </div>
-                      <div className="space-y-2 min-w-0">
-                        <Label>Cantidad</Label>
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad</Label>
                         <Input
+                          className="h-8 px-2 py-1 text-sm"
                           type="number"
+                          step="any"
                           min="0"
                           value={item.quantity}
                           onChange={(event) => handleHardwareChange(item.id, 'quantity', event.target.value)}
                         />
                       </div>
-                      <div className="space-y-2 min-w-0">
-                        <Label>Total</Label>
-                        <Input value={formatCLP(toNumber(item.price) * toNumber(item.quantity))} readOnly />
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" value={formatCLP(toNumber(item.price) * toNumber(item.quantity))} readOnly />
                       </div>
-                      <div className="flex justify-end gap-2 justify-self-end">
+                      <div className="flex justify-end gap-1 justify-self-end">
                         <Button
                           variant="outline"
                           size="icon"
                           title="Duplicar"
                           aria-label="Duplicar"
                           onClick={() => duplicateRow(setHardwareItems, item.id, createHardwareRow)}
+                          className="size-8"
                         >
                           <Copy className="h-4 w-4" />
                         </Button>
@@ -646,69 +630,162 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                           title="Eliminar"
                           aria-label="Eliminar"
                           onClick={() => removeRow(setHardwareItems, item.id, createHardwareRow)}
-                          className="text-[var(--danger)]"
+                          className="text-[var(--danger)] size-8"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   ))}
-                  <div className="text-right text-sm text-[var(--text)] font-semibold">
-                    Total herrajes: {formatCLP(hardwareTotal)}
+                  <div className="text-right text-sm">
+                    <span className="uppercase text-[12px] text-[var(--muted)]">Total herrajes:</span>{' '}
+                    <span className="font-semibold text-[var(--text)]">{formatCLP(hardwareTotal)}</span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Otros */}
+              <Card id="budget-editor-otros" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+                <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                  <CardTitle className="flex items-center gap-2">
+                    <span className="uppercase tracking-wide">Otros</span>
+                  </CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => setOtherItems((prev) => [...prev, createOtherRow()])}>
+                    <Plus className="h-4 w-4" />
+                    Agregar nuevo
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {otherItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="grid items-end gap-1 rounded-[var(--radius)] border border-[var(--border)] p-2"
+                      style={{ gridTemplateColumns: 'minmax(160px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) auto' }}
+                    >
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
+                        <Input
+                          className="h-8 px-2 py-1 text-sm"
+                          value={item.name}
+                          onChange={(event) => handleOtherChange(item.id, 'name', event.target.value)}
+                          placeholder="Ej: Servicio extra"
+                        />
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">$ c/u</Label>
+                        <Input
+                          className="h-8 px-2 py-1 text-sm"
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={item.price}
+                          onChange={(event) => handleOtherChange(item.id, 'price', event.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad</Label>
+                        <Input
+                          className="h-8 px-2 py-1 text-sm"
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={item.quantity}
+                          onChange={(event) => handleOtherChange(item.id, 'quantity', event.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1 min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" value={formatCLP(toNumber(item.price) * toNumber(item.quantity))} readOnly />
+                      </div>
+                      <div className="flex justify-end gap-1 justify-self-end">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Duplicar"
+                          aria-label="Duplicar"
+                          onClick={() => duplicateRow(setOtherItems, item.id, createOtherRow)}
+                          className="size-8"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Eliminar"
+                          aria-label="Eliminar"
+                          onClick={() => removeRow(setOtherItems, item.id, createOtherRow)}
+                          className="text-[var(--danger)] size-8"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="text-right text-sm">
+                    <span className="uppercase text-[12px] text-[var(--muted)]">Total otros:</span>{' '}
+                    <span className="font-semibold text-[var(--text)]">{formatCLP(othersTotal)}</span>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Fila compacta de parámetros y total (según imagen), ubicada justo debajo de Herrajes */}
-            <div className="no-print rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-4">
+            <div className="no-print rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2">
               <div
-                className="grid items-end gap-3"
+                className="grid items-end gap-1"
                 style={{ gridTemplateColumns: 'repeat(2, minmax(140px,1fr)) minmax(140px,1fr) minmax(160px,1fr) auto' }}
               >
                 <div className="space-y-1 min-w-0">
-                  <Label className="text-sm">% Indirectos</Label>
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">% Indirectos</Label>
                   <Input
+                    className="h-8 px-2 py-1 text-sm"
                     type="number"
+                    step="any"
                     min="0"
                     value={indirectPercent}
                     onChange={(e) => setIndirectPercent(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1 min-w-0">
-                  <Label className="text-sm">% Margen</Label>
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">% Margen</Label>
                   <Input
+                    className="h-8 px-2 py-1 text-sm"
                     type="number"
+                    step="any"
                     min="0"
                     value={marginPercent}
                     onChange={(e) => setMarginPercent(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1 min-w-0">
-                  <Label className="text-sm">IVA %</Label>
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">IVA %</Label>
                   <Input
+                    className="h-8 px-2 py-1 text-sm"
                     type="number"
+                    step="any"
                     min="0"
                     value={taxPercent}
                     onChange={(e) => setTaxPercent(e.target.value)}
                   />
                 </div>
                 <div className="space-y-1 min-w-0">
-                  <Label className="text-sm">Flete (CLP)</Label>
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">Flete (CLP)</Label>
                   <Input
+                    className="h-8 px-2 py-1 text-sm"
                     type="number"
+                    step="any"
                     min="0"
                     value={freight}
                     onChange={(e) => setFreight(e.target.value)}
                   />
                 </div>
-                <div className="flex justify-end gap-2 justify-self-end">
+                <div className="flex justify-end gap-1 justify-self-end">
                   <Button
                     variant="outline"
                     size="icon"
                     title="Limpiar parámetros"
                     aria-label="Limpiar parámetros"
-                    className="text-[var(--danger)]"
+                    className="text-[var(--danger)] size-8"
                     onClick={() => {
                       setIndirectPercent(0);
                       setMarginPercent(0);
@@ -724,194 +801,226 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
 
             {/* Reemplazado por la planilla de visualización SummarySheet (solo pantalla) */}
 
-            {/* Visualización tipo planilla (solo pantalla) */}
-            <div className="no-print">
-              <ErrorBoundary>
-                <SummarySheet
-                  items={sheetItems}
-                  totals={sheetTotals}
-                  percents={{
-                    indirectos: toNumber(indirectPercent),
-                    margen: toNumber(marginPercent),
-                    iva: toNumber(taxPercent),
-                  }}
-                  onPrint={printBudget}
-                />
-              </ErrorBoundary>
+            {/* Visualización tipo planilla removida: se ajustará a diseño de imagen */}
+
+            {/* Bloque de totales finales según la imagen */}
+            <div className="no-print rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2">
+              <div className="grid items-end gap-1" style={{ gridTemplateColumns: 'repeat(4, minmax(160px,1fr)) auto' }}>
+                <div className="space-y-1 min-w-0">
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">Costo directo</Label>
+                  <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(directTotal)} />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">Neto</Label>
+                  <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(subtotalWithMargin)} />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">IVA</Label>
+                  <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(taxValue)} />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
+                  <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(totalWithTax)} />
+                </div>
+                <div className="flex justify-end gap-2 justify-self-end">
+                  <Button variant="outline" size="icon" className="size-8" title="Copiar totales" aria-label="Copiar totales"
+                    onClick={() => {
+                      const txt = `Costo directo: ${formatCLP(directTotal)}\nNeto: ${formatCLP(subtotalWithMargin)}\nIVA: ${formatCLP(taxValue)}\nTotal: ${formatCLP(totalWithTax)}`;
+                      navigator.clipboard?.writeText?.(txt).catch(() => {});
+                    }}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             </div>
 
           </div>
         </ScrollArea>
-  {/* Resumen consolidado: solo para impresión */}
-  <div className="print-only space-y-6 p-6">
-          <header className="flex items-center justify-between border-b border-[var(--border)] pb-3">
-            <div className="flex items-center gap-3">
-              <img src={absoluteUrl('brand/industrial-plate/stencil_main.svg')} alt="Logo" className="print-logo" style={{ height: 64 }} />
-              <div>
-                <h1 className="text-xl font-semibold text-[var(--text)]">PRESUPUESTO</h1>
-                <p className="text-xs text-[var(--muted)]">Generado: {printGeneratedAt} · Folio: {printFolio}</p>
-              </div>
+  {/* Hoja de impresión: replica el layout de pantalla como en la imagen */}
+  <div className="print-only p-6 space-y-4">
+          {/* Encabezado: logo izquierda + título centrado */}
+          <header className="flex items-center justify-between">
+            <div className="flex-1 flex items-center">
+              <img src={absoluteUrl('brand/industrial-plate/stencil_main.svg')} alt="Logo" style={{ height: 96 }} />
             </div>
-            {(client?.name || client?.email || client?.phone) ? (
-              <div className="text-right text-xs text-[var(--muted)]">
-                <div className="font-semibold text-[var(--text)]">Cliente</div>
-                {client.name ? <div>{client.name}</div> : null}
-                {client.email ? <div>{client.email}</div> : null}
-                {client.phone ? <div>{client.phone}</div> : null}
-              </div>
-            ) : null}
+            <div className="flex-1 text-center">
+              <h1 className="uppercase">PRESUPUESTO</h1>
+            </div>
+            <div className="flex-1" />
           </header>
-          {/* Planilla de costos primero en impresión */}
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Planilla de costos</h2>
-            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-white">
-              <SummarySheet
-                items={sheetItems}
-                totals={sheetTotals}
-                percents={{
-                  indirectos: toNumber(indirectPercent),
-                  margen: toNumber(marginPercent),
-                  iva: toNumber(taxPercent),
-                }}
-              />
-            </div>
-          </section>
-          
-          {/* Datos del cliente (redundante en compacto) */}
-          <section className="space-y-2" data-print-compact-hide>
-            <div className="text-sm text-[var(--muted)]">Datos del cliente</div>
-            <div className="rounded-[var(--radius)] border border-[var(--border)] bg-white p-4">
-              <div className="grid grid-cols-3 gap-4 text-sm">
-                <div>
-                  <div className="text-[var(--muted)]">Nombre</div>
-                  <div className="text-[var(--text)]">{client.name || '—'}</div>
-                </div>
-                <div>
-                  <div className="text-[var(--muted)]">Email</div>
-                  <div className="text-[var(--text)]">{client.email || '—'}</div>
-                </div>
-                <div>
-                  <div className="text-[var(--muted)]">Telefono</div>
-                  <div className="text-[var(--text)]">{client.phone || '—'}</div>
-                </div>
+
+          {/* Datos del cliente */}
+          <section className="card-like p-3 space-y-2">
+            <div className="section-title">Datos del cliente</div>
+            <div className="grid grid-cols-3 grid-gap">
+              <div className="space-y-1">
+                <div className="label">Nombre</div>
+                <div className="field value">{client.name || ' '}</div>
               </div>
-            </div>
-            <div className="no-print">
-              <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-cliente')}>Agregar / Editar</Button>
-            </div>
-          </section>
-          {/* Materiales base (redundante en compacto) */}
-          <section className="space-y-2" data-print-compact-hide>
-            <h2 className="text-lg font-semibold text-[var(--text)]">Materiales base</h2>
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-[var(--surface)]">
-                  <th className="border border-[var(--border)] px-3 py-2 text-left">Tipo</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-left">Unidad</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">Precio</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">Cantidad</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {baseMaterials.map((m) => (
-                  <tr key={m.id}>
-                    <td className="border border-[var(--border)] px-3 py-2">{m.name || '—'}{m.details ? <div className="text-[10px] text-[var(--muted)]">{m.details}</div> : null}</td>
-                    <td className="border border-[var(--border)] px-3 py-2">{m.unit}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(m.price))}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{toNumber(m.quantity)}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(m.price) * toNumber(m.quantity))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="no-print">
-              <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-materiales')}>Agregar material</Button>
-            </div>
-          </section>
-          {/* Tapacantos (redundante en compacto) */}
-          <section className="space-y-2" data-print-compact-hide>
-            <h2 className="text-lg font-semibold text-[var(--text)]">Tapacantos</h2>
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-[var(--surface)]">
-                  <th className="border border-[var(--border)] px-3 py-2 text-left">Nombre</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">$/ml</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">Cantidad (ml)</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {edgeItems.map((e) => (
-                  <tr key={e.id}>
-                    <td className="border border-[var(--border)] px-3 py-2">{e.name || '—'}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(e.price))}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{toNumber(e.quantity)}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(e.price) * toNumber(e.quantity))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="no-print">
-              <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-tapacantos')}>Agregar tapacanto</Button>
-            </div>
-          </section>
-          {/* Herrajes (redundante en compacto) */}
-          <section className="space-y-2" data-print-compact-hide>
-            <h2 className="text-lg font-semibold text-[var(--text)]">Herrajes</h2>
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-[var(--surface)]">
-                  <th className="border border-[var(--border)] px-3 py-2 text-left">Nombre</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">$ c/u</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">Cantidad</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {hardwareItems.map((h) => (
-                  <tr key={h.id}>
-                    <td className="border border-[var(--border)] px-3 py-2">{h.name || '—'}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(h.price))}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{toNumber(h.quantity)}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{formatCLP(toNumber(h.price) * toNumber(h.quantity))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <div className="no-print">
-              <Button size="sm" variant="outline" onClick={() => scrollToId('budget-editor-herrajes')}>Agregar herraje</Button>
+              <div className="space-y-1">
+                <div className="label">Email</div>
+                <div className="field value">{client.email || ' '}</div>
+              </div>
+              <div className="space-y-1">
+                <div className="label">Telefono</div>
+                <div className="field value">{client.phone || ' '}</div>
+              </div>
             </div>
           </section>
 
-          {/* (Planilla ya está mostrada al inicio) */}
-          <section className="space-y-2">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Patrones optimizados</h2>
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-[var(--surface)]">
-                  <th className="border border-[var(--border)] px-3 py-2 text-left">Hoja</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-left">Material</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-left">Dimensiones</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">Utilización</th>
-                  <th className="border border-[var(--border)] px-3 py-2 text-right">Piezas</th>
-                </tr>
-              </thead>
-              <tbody>
-                {result.patterns.map((pattern, index) => (
-                  <tr key={pattern.id ?? index}>
-                    <td className="border border-[var(--border)] px-3 py-2">Hoja {index + 1}</td>
-                    <td className="border border-[var(--border)] px-3 py-2">{pattern.materialName || 'N/A'}</td>
-                    <td className="border border-[var(--border)] px-3 py-2">{pattern.materialLength} × {pattern.materialWidth} {units}</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{Number(pattern.utilization ?? 0).toFixed(1)}%</td>
-                    <td className="border border-[var(--border)] px-3 py-2 text-right">{(pattern.pieces || []).length}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          {/* Materiales base */}
+          <section className="card-like p-3 space-y-2">
+            <div className="section-title">Materiales base</div>
+            {baseMaterials.map((m) => (
+              <div key={m.id} className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Tipo</div>
+                  <div className="field value">{m.name || ' '}</div>
+                </div>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Unidad</div>
+                  <div className="field value">{m.unit || ' '}</div>
+                </div>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Precio (CLP)</div>
+                  <div className="field value">{formatCLP(toNumber(m.price))}</div>
+                </div>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Cantidad</div>
+                  <div className="field value">{toNumber(m.quantity)}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="label">Total</div>
+                  <div className="field value">{formatCLP(toNumber(m.price) * toNumber(m.quantity))}</div>
+                </div>
+              </div>
+            ))}
+            <div className="text-right"><span className="total-label">Total materiales base: </span><span className="total-value">{formatCLP(materialsTotal)}</span></div>
           </section>
-          {/* Bloque de parámetros debajo de patrones removido (usamos sólo la fila compacta bajo Herrajes) */}
-          {/* Se elimina el bloque "Totales" en impresión para evitar duplicados (queda la Planilla de costos) */}
+
+          {/* Tapacantos */}
+          <section className="card-like p-3 space-y-2">
+            <div className="section-title">Tapacantos</div>
+            {edgeItems.map((e) => (
+              <div key={e.id} className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Nombre</div>
+                  <div className="field value">{e.name || ' '}</div>
+                </div>
+                <div className="space-y-1 pr-2">
+                  <div className="label">$ / ml</div>
+                  <div className="field value">{formatCLP(toNumber(e.price))}</div>
+                </div>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Cantidad (ml)</div>
+                  <div className="field value">{toNumber(e.quantity)}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="label">Total</div>
+                  <div className="field value">{formatCLP(toNumber(e.price) * toNumber(e.quantity))}</div>
+                </div>
+              </div>
+            ))}
+            <div className="text-right"><span className="total-label">Total tapacantos: </span><span className="total-value">{formatCLP(edgesTotal)}</span></div>
+          </section>
+
+          {/* Herrajes */}
+          <section className="card-like p-3 space-y-2">
+            <div className="section-title">Herrajes</div>
+            {hardwareItems.map((h) => (
+              <div key={h.id} className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Nombre</div>
+                  <div className="field value">{h.name || ' '}</div>
+                </div>
+                <div className="space-y-1 pr-2">
+                  <div className="label">$ c/u</div>
+                  <div className="field value">{formatCLP(toNumber(h.price))}</div>
+                </div>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Cantidad</div>
+                  <div className="field value">{toNumber(h.quantity)}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="label">Total</div>
+                  <div className="field value">{formatCLP(toNumber(h.price) * toNumber(h.quantity))}</div>
+                </div>
+              </div>
+            ))}
+            <div className="text-right"><span className="total-label">Total herrajes: </span><span className="total-value">{formatCLP(hardwareTotal)}</span></div>
+          </section>
+
+          {/* Otros */}
+          <section className="card-like p-3 space-y-2">
+            <div className="section-title">Otros</div>
+            {otherItems.map((o) => (
+              <div key={o.id} className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Nombre</div>
+                  <div className="field value">{o.name || ' '}</div>
+                </div>
+                <div className="space-y-1 pr-2">
+                  <div className="label">$ c/u</div>
+                  <div className="field value">{formatCLP(toNumber(o.price))}</div>
+                </div>
+                <div className="space-y-1 pr-2">
+                  <div className="label">Cantidad</div>
+                  <div className="field value">{toNumber(o.quantity)}</div>
+                </div>
+                <div className="space-y-1">
+                  <div className="label">Total</div>
+                  <div className="field value">{formatCLP(toNumber(o.price) * toNumber(o.quantity))}</div>
+                </div>
+              </div>
+            ))}
+            <div className="text-right"><span className="total-label">Total otros: </span><span className="total-value">{formatCLP(othersTotal)}</span></div>
+          </section>
+
+          {/* Parámetros e Índices */}
+          <section className="card-like p-3">
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
+              <div className="space-y-1 pr-2">
+                <div className="label">% Indirectos</div>
+                <div className="field value">{toNumber(indirectPercent)}</div>
+              </div>
+              <div className="space-y-1 pr-2">
+                <div className="label">% Margen</div>
+                <div className="field value">{toNumber(marginPercent)}</div>
+              </div>
+              <div className="space-y-1 pr-2">
+                <div className="label">IVA %</div>
+                <div className="field value">{toNumber(taxPercent)}</div>
+              </div>
+              <div className="space-y-1">
+                <div className="label">Flete (CLP)</div>
+                <div className="field value">{formatCLP(freightValue)}</div>
+              </div>
+            </div>
+          </section>
+
+          {/* Totales finales */}
+          <section className="card-like p-3">
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr) auto' }}>
+              <div className="space-y-1 pr-2">
+                <div className="label">Costo directo</div>
+                <div className="field value">{formatCLP(directTotal)}</div>
+              </div>
+              <div className="space-y-1 pr-2">
+                <div className="label">Neto</div>
+                <div className="field value">{formatCLP(subtotalWithMargin)}</div>
+              </div>
+              <div className="space-y-1 pr-2">
+                <div className="label">IVA</div>
+                <div className="field value">{formatCLP(taxValue)}</div>
+              </div>
+              <div className="space-y-1">
+                <div className="label">Total</div>
+                <div className="field value">{formatCLP(totalWithTax)}</div>
+              </div>
+              <div />
+            </div>
+          </section>
         </div>
       </div>
     </>

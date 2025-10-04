@@ -594,9 +594,8 @@ function App() {
             {/* Pestaña de estadísticas retirada a solicitud */}
 
             <TabsContent value="budget" className="space-y-4" id="budget">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h2 ref={budgetHeaderRef} className="text-lg font-semibold text-[var(--text)]">Presupuesto</h2>
-              </div>
+              {/* Ancla invisible para scroll al encabezado de Presupuesto (el título visible vive dentro de BudgetPanel) */}
+              <div ref={budgetHeaderRef} className="h-0 scroll-mt-24" />
               {result ? (
                 <BudgetPanel result={result} pieces={pieces} materials={materials} units={config.units} />
               ) : (
