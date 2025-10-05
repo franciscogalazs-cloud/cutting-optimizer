@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, Grid3X3, Play, Scissors, Calculator, Home } from "lucide-react";
+import { Download, Grid3X3, Play, Scissors, Calculator, Home, Square, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { PieceForm } from "./components/forms/PieceForm";
 import { MaterialForm } from "./components/forms/MaterialForm";
@@ -41,6 +41,8 @@ const mmToUnits = (valueMm, units) => {
 // Ensure that no large code blocks have been accidentally removed.
 // Review your recent changes for any unintended deletions.
 function App() {
+  // Contenedor compartido para alinear sticky bar y contenido (mismo ancho y padding lateral)
+  const BASE_CONTAINER = "mx-auto w-full max-w-5xl px-2 sm:px-4 lg:px-6";
   // Fondo global mediante overlay fijo detrás de la UI
   const tabsBarRef = useRef(null);
   const patternsHeaderRef = useRef(null);
@@ -472,7 +474,7 @@ function App() {
               backgroundRepeat: 'no-repeat',
             }}
           />
-          <div className="mx-auto w-full max-w-5xl px-2 pt-2 sm:px-4 lg:px-6">
+          <div className={`${BASE_CONTAINER} pt-2`}>
             {/* Logo encima de la barra de tabs */}
             <div className="flex items-center py-2">
               <span
@@ -513,7 +515,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => (document.scrollingElement || window).scrollTo({ top: 0, behavior: 'smooth' }));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
             >
               <Home className="h-4 w-4" />
               <span>Inicio</span>
@@ -523,8 +525,9 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToPieces()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
             >
+              <Square className="h-4 w-4" />
               <span>Piezas</span>
             </TabsTrigger>
             <TabsTrigger
@@ -532,8 +535,9 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToMaterials()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
             >
+              <Layers className="h-4 w-4" />
               <span>Materiales</span>
             </TabsTrigger>
             <TabsTrigger
@@ -551,7 +555,7 @@ function App() {
                 }
               }}
               aria-label={isOptimizing ? "Patrones" : (optimizedBoards > 0 ? "Optimizar (hover: Patrones)" : "Optimizar")}
-              className="group flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
+              className="group flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
             >
               {isOptimizing || activeTab === "patterns" ? (
                 <>
@@ -583,7 +587,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToEdgebanding()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
             >
               <Scissors className="h-4 w-4" />
               <span>Tapacantos</span>
@@ -593,7 +597,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToBudget()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
             >
               <Calculator className="h-4 w-4" />
               <span>Presupuesto</span>
@@ -634,7 +638,7 @@ function App() {
           </div>
         </div>
         {/* Modal de historial removido de la interfaz actual */}
-        <main className="mx-auto flex max-w-5xl flex-col gap-8 px-2 py-3 sm:px-4 lg:px-6">
+  <main className={`${BASE_CONTAINER} flex flex-col gap-8 py-3`}>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {kpiItems.map((item) => (
               <KpiCard key={item.label} {...item} />
@@ -649,12 +653,14 @@ function App() {
                 units={config.units}
                 kerfWidth={config.kerfWidth}
                 margin={config.margin}
+                materials={materials}
                 onConfigChange={(newConfig) => setConfig((prev) => ({ ...prev, ...newConfig }))}
               />
               <PieceForm
                 onAddPiece={handleAddPiece}
                 units={config.units}
                 materials={materials}
+                pieces={pieces}
                 allowRotation={config.allowRotation}
                 onToggleRotation={(value) => {
                   setConfig((prev) => ({ ...prev, allowRotation: value }));

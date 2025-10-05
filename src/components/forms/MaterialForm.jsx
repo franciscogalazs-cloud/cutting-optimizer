@@ -13,7 +13,7 @@ const PRESETS = [
   { name: 'Terciado', lengthCm: 240, widthCm: 120 },
 ];
 
-export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfigChange }) => {
+export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfigChange, materials = [] }) => {
   const formRef = useRef(null);
   const [formData, setFormData] = useState({
     length: '',
@@ -196,7 +196,7 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfi
 
   <form ref={formRef} onSubmit={handleSubmit} className="space-y-0">
           <div className="grid items-end gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-            {/* Nombre del material en la misma fila */}
+            {/* Nombre del material */}
             <div className="space-y-2">
               <Label htmlFor="mat-material">Nombre del material</Label>
               <Input
@@ -267,6 +267,24 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfi
               {errors.margin && <p className="text-xs text-[var(--danger)]">{errors.margin}</p>}
             </div>
           </div>
+
+          {/* Lista compacta de materiales agregados (debajo de la fila) */}
+          {Array.isArray(materials) && materials.length > 0 && (
+            <div className="mt-2">
+              <p className="text-[11px] text-slate-500 mb-1">Materiales agregados</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from(new Set(materials.map(m => String(m?.material ?? '').trim()).filter(Boolean))).map((name) => (
+                  <span
+                    key={name}
+                    className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text)]"
+                    title={name}
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* botón de acción movido al header */}
         </form>

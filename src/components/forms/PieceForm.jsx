@@ -17,7 +17,7 @@ const EDGE_LABELS = {
   derecha: 'Derecha',
 };
 
-export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotation = true, onToggleRotation }) => {
+export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotation = true, onToggleRotation, pieces = [] }) => {
   const formRef = useRef(null);
   const materialNames = useMemo(
     () => Array.from(new Set(materials.map((material) => material.material))).filter(Boolean),
@@ -259,11 +259,31 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
                 </SelectContent>
               </Select>
               {errors.material && <p className="text-xs text-[var(--danger)]">{errors.material}</p>}
-              {materialOptions.length === 0 && (
-                <p className="text-xs text-[var(--muted)]">Agrega materiales para habilitar esta lista.</p>
-              )}
             </div>
           </div>
+
+          {/* Ayuda general para Material (fuera de la grilla, para no romper alineación) */}
+          {materialOptions.length === 0 && (
+            <p className="text-xs text-[var(--muted)] mt-1">Agrega materiales para habilitar esta lista.</p>
+          )}
+
+          {/* Lista compacta de piezas agregadas (debajo de la fila) */}
+          {Array.isArray(pieces) && pieces.length > 0 && (
+            <div className="mt-2">
+              <p className="text-[11px] text-slate-500 mb-1">Piezas agregadas</p>
+              <div className="flex flex-wrap gap-1.5">
+                {Array.from(new Set(pieces.map(p => String(p?.label ?? '').trim()).filter(Boolean))).map((name, idx) => (
+                  <span
+                    key={`${name}-${idx}`}
+                    className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text)]"
+                    title={name}
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="mt-1 flex items-center gap-4 whitespace-nowrap">
             <span className="text-sm font-medium text-slate-800 shrink-0">Tapacantos</span>
