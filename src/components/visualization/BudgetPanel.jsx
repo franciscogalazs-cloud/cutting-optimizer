@@ -127,45 +127,60 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const [marginPercent, setMarginPercent] = useLocalStorage('budget-margin-percent', 0);
   const [taxPercent, setTaxPercent] = useLocalStorage('budget-tax-percent', 19);
   const [freight, setFreight] = useLocalStorage('budget-freight', 0);
+  // Leer el desperdicio configurado en la pestaña de Tapacantos para reflejarlo en las cantidades del presupuesto
+  const [edgeWastePercent] = useLocalStorage('edgebanding-waste-percent', 0);
   // Desperdicio de tapacantos se calcula fuera; no se edita aquí.
 
   // (ancho eliminado)
 
   // Precios de materiales no se heredan; se definen en Presupuesto.
   const defaultBaseRows = useMemo(() => {
+    const map = new Map();
+    // 1) Usadas por patrones (post-optimización) — fuente de verdad para cantidad de planchas usadas
     if (result?.patterns?.length) {
-      const map = new Map();
       for (const pattern of result.patterns) {
         const name = String(pattern.materialName || 'Material').trim();
-        const key = `${name}|${pattern.materialLength}x${pattern.materialWidth}`;
-        const areaM2 = rectangleAreaToSquareMeters(Number(pattern.materialLength) || 0, Number(pattern.materialWidth) || 0, 1, units);
+        const len = Number(pattern.materialLength) || 0;
+        const wid = Number(pattern.materialWidth) || 0;
+        const key = `${name}|${len}x${wid}`;
+        const areaM2 = rectangleAreaToSquareMeters(len, wid, 1, units);
         const current = map.get(key) ?? {
           name,
           unit: 'plancha',
           quantity: 0,
           price: 0,
-          details: `${pattern.materialLength} x ${pattern.materialWidth} ${units}`,
+          details: `${len} x ${wid} ${units}`,
           areaM2,
         };
         current.quantity += 1;
         map.set(key, current);
       }
+    }
+
+    // 2) Si no hubo patrones para un material+medida, caer a cantidad estimada en Materiales
+    if (materials.length) {
+      for (const material of materials) {
+        const name = String(material.material || 'Material').trim();
+        const len = Number(material.length) || 0;
+        const wid = Number(material.width) || 0;
+        const key = `${name}|${len}x${wid}`;
+        if (map.has(key)) continue; // ya hay cantidad exacta desde patrones
+        const areaM2 = rectangleAreaToSquareMeters(len, wid, 1, units);
+        const estimatedQty = Math.max(0, toNumber(material.quantity));
+        map.set(key, {
+          name,
+          unit: 'plancha',
+          quantity: estimatedQty,
+          price: 0,
+          details: `${len} x ${wid} ${units}`,
+          areaM2,
+        });
+      }
+    }
+
+    if (map.size > 0) {
       return Array.from(map.values()).map((item) => createMaterialRow(item));
     }
-
-    if (materials.length) {
-      return materials.map((material) =>
-        createMaterialRow({
-          name: material.material,
-          unit: 'plancha',
-          price: 0,
-          quantity: toNumber(material.quantity),
-          details: `${material.length} x ${material.width} ${units}`,
-          areaM2: rectangleAreaToSquareMeters(Number(material.length) || 0, Number(material.width) || 0, 1, units),
-        }),
-      );
-    }
-
     return [createMaterialRow()];
   }, [result, materials, units]);
 
@@ -175,14 +190,16 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     if (entries.length === 0) {
       return [createEdgeRow({ name: 'General' })];
     }
+    const wasteFactor = 1 + (toNumber(edgeWastePercent) / 100);
     return entries.map(([type, lengthMm]) =>
       createEdgeRow({
         name: type,
         price: 0,
-        quantity: toNumber((lengthMm ?? 0) / 1000),
+        // Metros lineales incluyendo desperdicio configurado en Tapacantos
+        quantity: toNumber(((lengthMm ?? 0) / 1000) * wasteFactor),
       }),
     );
-  }, [pieces]);
+  }, [pieces, edgeWastePercent]);
 
   useEffect(() => {
     // Si no hay datos previos guardados, inicializamos desde resultado/materiales
@@ -200,6 +217,60 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultBaseRows, defaultEdgeRows]);
+
+  // Sincronización determinista con el resultado: aplica SIEMPRE las cantidades calculadas
+  // y elimina filas antiguas "pegadas". Conserva precio e id si la fila coincide por clave.
+  const keyOf = (row) => `${String(row?.name ?? '').trim().toLowerCase()}|${String(row?.details ?? '').trim().toLowerCase()}`;
+  useEffect(() => {
+    if (!Array.isArray(defaultBaseRows) || defaultBaseRows.length === 0) return;
+    setBaseMaterials((prev) => {
+      const prevArr = Array.isArray(prev) ? prev : [];
+      const prevMap = new Map(prevArr.map((row) => [keyOf(row), row]));
+      const next = defaultBaseRows.map((r) => {
+        const k = keyOf(r);
+        const existing = prevMap.get(k);
+        return {
+          ...(existing || {}),
+          // Si existe, respetamos id y price. Si no, creamos un id nuevo y precio 0.
+          id: existing?.id || createId(),
+          name: r.name,
+          unit: r.unit,
+          price: existing?.price ?? 0,
+          quantity: r.quantity,
+          details: r.details,
+          areaM2: r.areaM2,
+        };
+      });
+      // Evitar re-renders si no cambió sustancialmente
+      const sameLength = next.length === prevArr.length;
+      const sameKeys = sameLength && next.every((row, i) => keyOf(row) === keyOf(prevArr[i]) && toNumber(row.quantity) === toNumber(prevArr[i].quantity) && toNumber(row.price) === toNumber(prevArr[i].price));
+      return sameKeys ? prevArr : next;
+    });
+  }, [defaultBaseRows, setBaseMaterials]);
+
+  // Sincronización determinista de Tapacantos: generar desde piezas cada vez y preservar precio/id por nombre de tipo
+  const keyOfEdge = (row) => String(row?.name ?? '').trim().toLowerCase();
+  useEffect(() => {
+    if (!Array.isArray(defaultEdgeRows) || defaultEdgeRows.length === 0) return;
+    setEdgeItems((prev) => {
+      const prevArr = Array.isArray(prev) ? prev : [];
+      const prevMap = new Map(prevArr.map((row) => [keyOfEdge(row), row]));
+      const next = defaultEdgeRows.map((r) => {
+        const k = keyOfEdge(r);
+        const existing = prevMap.get(k);
+        return {
+          ...(existing || {}),
+          id: existing?.id || createId(),
+          name: r.name,
+          price: existing?.price ?? 0,
+          quantity: r.quantity,
+        };
+      });
+      const sameLength = next.length === prevArr.length;
+      const sameKeys = sameLength && next.every((row, i) => keyOfEdge(row) === keyOfEdge(prevArr[i]) && toNumber(row.quantity) === toNumber(prevArr[i].quantity) && toNumber(row.price) === toNumber(prevArr[i].price));
+      return sameKeys ? prevArr : next;
+    });
+  }, [defaultEdgeRows, setEdgeItems]);
 
   const handleMaterialChange = (id, key, value) => {
     setBaseMaterials((prev) => prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)));

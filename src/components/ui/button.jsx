@@ -5,21 +5,21 @@ import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer select-none disabled:cursor-default transition-all motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out hover:translate-y-[2px] active:translate-y-[2px] active:scale-100 hover:shadow-sm disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-[3px] focus-visible:ring-[color:color-mix(in_srgb,var(--primary)_30%,transparent)] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium cursor-pointer select-none disabled:cursor-default transition-all motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out hover:translate-y-[2px] active:translate-y-[2px] active:scale-100 hover:shadow-sm disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-[3px] focus-visible:ring-[color:color-mix(in_srgb,var(--stroke)_40%,transparent)] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
         default:
-          "bg-[var(--primary)] text-white shadow-xs hover:bg-[color:color-mix(in_srgb,var(--primary)_90%,black_10%)]",
+          "bg-[rgba(255,255,255,0.9)] text-[var(--text)] border border-[var(--border)] shadow-xs hover:bg-[rgba(255,255,255,0.85)] hover:text-[var(--stroke)] hover:border-[var(--stroke)] hover:shadow-sm",
         destructive:
           "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:
-          "border border-[var(--border)] bg-background shadow-xs hover:border-[var(--primary)] hover:bg-[color:color-mix(in_srgb,var(--primary)_20%,transparent)] hover:text-[var(--primary)] dark:bg-input/30 dark:border-input",
+          "border border-[var(--border)] bg-[rgba(255,255,255,0.9)] shadow-xs hover:border-[var(--stroke)] hover:bg-[color:color-mix(in_srgb,var(--stroke)_15%,rgba(255,255,255,0.85))] hover:text-[var(--stroke)] dark:bg-input/30 dark:border-input",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80 hover:shadow-md",
+          "bg-[rgba(255,255,255,0.9)] text-[var(--text)] shadow-xs hover:bg-[rgba(255,255,255,0.85)] hover:text-[var(--stroke)] hover:border-[var(--stroke)] hover:shadow-md border border-[var(--border)]",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 hover:shadow-sm",
-        link: "text-primary underline-offset-4 hover:underline",
+          "hover:bg-[rgba(255,255,255,0.7)] hover:text-[var(--stroke)] dark:hover:bg-[color:color-mix(in_srgb,var(--stroke)_20%,transparent)] hover:shadow-sm",
+  link: "text-[var(--stroke)] underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-4 py-2 has-[>svg]:px-3",

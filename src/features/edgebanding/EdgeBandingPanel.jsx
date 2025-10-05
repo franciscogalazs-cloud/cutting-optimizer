@@ -56,7 +56,7 @@ export const EdgeBandingPanel = ({ pieces = [], units = 'cm', onEditPiece }) => 
   };
 
   return (
-    <Card>
+    <Card className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
       <CardHeader>
         <CardTitle>Tapacantos - Totales por tipo</CardTitle>
       </CardHeader>

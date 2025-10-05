@@ -190,13 +190,11 @@ export class MaxRectsOptimizer {
     let bestMaterialIndex = -1;
     for (let i = 0; i < availableMaterials.length; i++) {
       const material = availableMaterials[i];
-      if (material.quantity > 0) {
-        if (piece.material && material.material && piece.material !== material.material) continue;
-        const canFit = this.canPieceFitInMaterial(piece, material);
-        if (canFit && (!bestMaterial || this.getMaterialArea(material) < this.getMaterialArea(bestMaterial))) {
-          bestMaterial = material;
-          bestMaterialIndex = i;
-        }
+      if (piece.material && material.material && piece.material !== material.material) continue;
+      const canFit = this.canPieceFitInMaterial(piece, material);
+      if (canFit && (!bestMaterial || this.getMaterialArea(material) < this.getMaterialArea(bestMaterial))) {
+        bestMaterial = material;
+        bestMaterialIndex = i;
       }
     }
     if (!bestMaterial) {
@@ -213,7 +211,9 @@ export class MaxRectsOptimizer {
       pieces: [],
     });
     patterns.push(pattern);
-    availableMaterials[bestMaterialIndex].quantity--;
+    if (availableMaterials[bestMaterialIndex].quantity > 0) {
+      availableMaterials[bestMaterialIndex].quantity--;
+    }
     // Inicializar freeRects
     pattern.freeRects = [
       {

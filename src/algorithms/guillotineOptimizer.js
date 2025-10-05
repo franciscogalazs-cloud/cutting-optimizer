@@ -68,10 +68,12 @@ export class GuillotineOptimizer {
 
     for (let mi = 0; mi < mats.length && leftovers.length > 0; mi++) {
       const material = mats[mi];
-      let qty = Number(material.quantity) || 0;
-      if (qty <= 0) continue;
+  let qty = Number(material.quantity) || 0;
 
-      while (qty-- > 0 && leftovers.length > 0) {
+      // Generar tantas planchas como sean necesarias para este material.
+      // El quantity se usa como inventario inicial, pero si faltan piezas se siguen creando planchas virtuales.
+      // Solo descontamos quantity cuando efectivamente se usó una plancha.
+      while (leftovers.some(p => this.pieceMatchesMaterial(p, material))) {
         const basePattern = createCuttingPattern({
           materialId: material.id,
           materialName: material.material,
@@ -97,6 +99,10 @@ export class GuillotineOptimizer {
         if (chosen.pieces.length > 0) {
           patterns.push(chosen);
           leftovers = chooseCols ? poolCols : poolRows; // adoptar el pool correspondiente
+          if (qty > 0) qty--; // consumimos inventario si existe
+        } else {
+          // No se pudo colocar ninguna pieza en esta plancha: salir del bucle para este material
+          break;
         }
       }
     }

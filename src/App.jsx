@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import fondoMetalica from "../fondos/metalica.jpg";
 import { absoluteUrl, brandUrl, rootUrl } from "@/lib/paths";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ const mmToUnits = (valueMm, units) => {
 // Ensure that no large code blocks have been accidentally removed.
 // Review your recent changes for any unintended deletions.
 function App() {
+  // Fondo global mediante overlay fijo detrás de la UI
   const tabsBarRef = useRef(null);
   const patternsHeaderRef = useRef(null);
   const edgebandingHeaderRef = useRef(null);
@@ -121,12 +123,27 @@ function App() {
     requestAnimationFrame(() => (document.scrollingElement || window).scrollTo({ top: 0, behavior: 'smooth' }));
   }, [activeTab]);
 
-  // Al activar la pestaña de patrones, desplazamos suavemente hasta el encabezado "Patrones de corte"
+  // Al activar la pestaña de patrones ya no hacemos auto-scroll, así las tarjetas KPI quedan a la vista
+  // useEffect(() => {
+  //   if (activeTab !== "patterns") return;
+  //   requestAnimationFrame(() => requestAnimationFrame(() => scrollToPatterns()));
+  // }, [activeTab, scrollToPatterns]);
+
+  // Al entrar a Patrones, forzar que las etiquetas estén activadas (preferencia persistida)
   useEffect(() => {
-    if (activeTab !== "patterns") return;
-    // Usar doble RAF para asegurar que Radix Tabs montó el contenido visible
-    requestAnimationFrame(() => requestAnimationFrame(() => scrollToPatterns()));
-  }, [activeTab, scrollToPatterns]);
+    if (activeTab !== 'patterns') return;
+    try {
+      const KEY = 'pattern-view-preferences';
+      const raw = window.localStorage.getItem(KEY);
+      const current = raw ? JSON.parse(raw) : {};
+      if (current?.showLabels !== true) {
+        const next = { ...current, showLabels: true };
+        window.localStorage.setItem(KEY, JSON.stringify(next));
+      }
+    } catch {
+      // si localStorage falla, la UI usa el default (true)
+    }
+  }, [activeTab]);
 
   // Al activar la pestaña de piezas, desplazamos al encabezado "Piezas a cortar"
   useEffect(() => {
@@ -153,7 +170,6 @@ function App() {
   }, [activeTab, scrollToBudget]);
 
   const [showInfoModal, setShowInfoModal] = useState(false);
-  // Nota: referencia antigua a toggleUnits ya no se usa.
   const [showExportModal, setShowExportModal] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [editingPiece, setEditingPiece] = useState(null);
@@ -166,8 +182,8 @@ function App() {
     if (confirm('¿Estás seguro de que quieres limpiar todos los datos?')) {
       try {
         localStorage.clear();
-      } catch (err) {
-        console.warn('localStorage.clear failed', err);
+      } catch {
+        console.warn('localStorage.clear failed');
       } finally {
         window.location.reload();
       }
@@ -343,6 +359,7 @@ function App() {
   const handleEditMaterial = (id, updatedMaterial) => {
   setMaterials((prev) => prev.map((material) => (material.id === id ? { ...material, ...updatedMaterial } : material)));
   };
+  // Ejecuta la optimización con el algoritmo seleccionado (por ahora, guillotina)
   const handleOptimize = async () => {
     if (pieces.length === 0) {
       toast.error("Agrega al menos una pieza para optimizar");
@@ -356,13 +373,12 @@ function App() {
     try {
   await optimize(pieces, materials, { ...config, algorithm: 'guillotine' });
       setActiveTab("patterns");
-      // Desplazar tras activar 'patterns' (esperar al render con un frame)
-      requestAnimationFrame(() => scrollToPatterns());
+    // Sin auto-scroll: dejamos KPI visibles al cargar patrones
       toast.success("Optimizacion completada exitosamente");
-    } catch (err) {
+    } catch {
       // Registrar error en consola para diagnóstico además del toast
-      console.warn('optimize failed', err);
-      toast.error(`Error durante la optimizacion: ${err.message}`);
+      console.warn('optimize failed');
+      toast.error('Error durante la optimizacion');
     } finally {
       setIsOptimizing(false);
     }
@@ -427,13 +443,52 @@ function App() {
   // Nota: getTabBadgeVariant no se usa actualmente; removido para evitar warning de lint
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] transition-colors flex flex-col">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        {/* Header eliminado: renderizamos TabsList directamente para borrar logo y botones del header */}
-  <div ref={tabsBarRef} className="sticky top-0 z-40 bg-[var(--bg)]/95 backdrop-blur border-b border-white">
+    <div className="min-h-screen bg-transparent text-[var(--text)] transition-colors flex flex-col relative">
+      {/* Overlay de fondo fijo (solo pantalla) */}
+      <div
+        aria-hidden
+        className="bg-overlay fixed inset-0 -z-10"
+        style={{
+          backgroundImage: `url(${fondoMetalica})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center center",
+          backgroundAttachment: "fixed",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
+      {/* Oscurecedor removido a solicitud: la imagen de fondo se muestra sin sombreado */}
+  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    {/* Header eliminado: renderizamos TabsList directamente para borrar logo y botones del header */}
+  <div ref={tabsBarRef} className="sticky top-0 z-50 bg-transparent relative isolate shadow-md">
+          {/* Underlay fijo: replica el fondo bajo el header para que no se vea contenido detrás al hacer scroll */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 -z-10"
+            style={{
+              backgroundImage: `url(${fondoMetalica})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center center',
+              backgroundAttachment: 'fixed',
+              backgroundRepeat: 'no-repeat',
+            }}
+          />
           <div className="mx-auto w-full max-w-5xl px-2 pt-2 sm:px-4 lg:px-6">
             {/* Logo encima de la barra de tabs */}
             <div className="flex items-center py-2">
+              <span
+                className="group inline-flex items-center rounded-sm shadow-lg hover:shadow-xl transition-shadow duration-200 px-[1px] py-0 leading-none shrink-0 cursor-pointer"
+                role="button"
+                aria-label="Recargar"
+                title="Recargar"
+                tabIndex={0}
+                onClick={() => window.location.reload()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    window.location.reload();
+                  }
+                }}
+              >
               <img
                 src={brandUrl("brand/industrial-plate/stencil_main.svg")}
                 onError={(e) => {
@@ -446,18 +501,19 @@ function App() {
                   }
                 }}
                 alt="Logo"
-                className="h-20 sm:h-24 w-auto select-none"
+                className="block h-20 sm:h-24 w-auto select-none transition-transform duration-200 ease-out will-change-transform group-hover:scale-105 group-hover:drop-shadow-lg"
                 draggable={false}
               />
+              </span>
             </div>
           {/* Barra de historial/guardar removida a solicitud */}
-          <TabsList className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
+          <TabsList className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-transparent p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
             <TabsTrigger
               value="home"
               onClick={() => {
                 requestAnimationFrame(() => (document.scrollingElement || window).scrollTo({ top: 0, behavior: 'smooth' }));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
             >
               <Home className="h-4 w-4" />
               <span>Inicio</span>
@@ -467,7 +523,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToPieces()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
             >
               <span>Piezas</span>
             </TabsTrigger>
@@ -476,7 +532,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToMaterials()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
             >
               <span>Materiales</span>
             </TabsTrigger>
@@ -495,7 +551,7 @@ function App() {
                 }
               }}
               aria-label={isOptimizing ? "Patrones" : (optimizedBoards > 0 ? "Optimizar (hover: Patrones)" : "Optimizar")}
-              className="group flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+              className="group flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
             >
               {isOptimizing || activeTab === "patterns" ? (
                 <>
@@ -527,7 +583,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToEdgebanding()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
             >
               <Scissors className="h-4 w-4" />
               <span>Tapacantos</span>
@@ -537,7 +593,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToBudget()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition data-[state=active]:bg-[var(--primary)] data-[state=active]:text-white"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition bg-white text-[var(--text)] shadow-md hover:shadow-lg"
             >
               <Calculator className="h-4 w-4" />
               <span>Presupuesto</span>
@@ -548,8 +604,8 @@ function App() {
                 onClick={() => setShowInfoModal(true)}
                 aria-label="Ayuda"
                 title="Ayuda"
-                className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-[var(--text)]
-                           h-[28px] w-[32px] sm:h-[32px] sm:w-[36px] hover:bg-[var(--surface-2)] transition-colors"
+                className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-[var(--text)] bg-white shadow-md hover:shadow-lg
+                           h-[28px] w-[32px] sm:h-[32px] sm:w-[36px] hover:bg-white/90 transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                   <circle cx="12" cy="12" r="10"></circle>
@@ -561,8 +617,8 @@ function App() {
                 onClick={handleClearAll}
                 aria-label="Limpiar"
                 title="Limpiar"
-                className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-rose-500
-                           h-[28px] w-[32px] sm:h-[32px] sm:w-[36px] hover:bg-rose-50 transition-colors"
+                className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-[var(--text)] bg-white shadow-md hover:shadow-lg
+                           h-[28px] w-[32px] sm:h-[32px] sm:w-[36px] hover:bg-white/90 transition-colors"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                   <path d="M3 6h18"></path>
@@ -585,26 +641,28 @@ function App() {
             ))}
           </section>
 
-          {/* Tarjetas de entrada principales: Agregar material (arriba) y Agregar pieza (abajo) */}
-          <section className="grid gap-4">
-            <MaterialForm
-              onAddMaterial={handleAddMaterial}
-              units={config.units}
-              kerfWidth={config.kerfWidth}
-              margin={config.margin}
-              onConfigChange={(newConfig) => setConfig((prev) => ({ ...prev, ...newConfig }))}
-            />
-            <PieceForm
-              onAddPiece={handleAddPiece}
-              units={config.units}
-              materials={materials}
-              allowRotation={config.allowRotation}
-              onToggleRotation={(value) => {
-                setConfig((prev) => ({ ...prev, allowRotation: value }));
-                // Ya no pisamos canRotate por pieza para respetar la elección local en el formulario/modal.
-              }}
-            />
-          </section>
+          {/* Tarjetas de entrada principales: ocultar en Patrones o mientras se optimiza */}
+          {activeTab !== 'patterns' && activeTab !== 'budget' && activeTab !== 'edgebanding' && !isOptimizing && (
+            <section className="grid gap-4">
+              <MaterialForm
+                onAddMaterial={handleAddMaterial}
+                units={config.units}
+                kerfWidth={config.kerfWidth}
+                margin={config.margin}
+                onConfigChange={(newConfig) => setConfig((prev) => ({ ...prev, ...newConfig }))}
+              />
+              <PieceForm
+                onAddPiece={handleAddPiece}
+                units={config.units}
+                materials={materials}
+                allowRotation={config.allowRotation}
+                onToggleRotation={(value) => {
+                  setConfig((prev) => ({ ...prev, allowRotation: value }));
+                  // Ya no pisamos canRotate por pieza para respetar la elección local en el formulario/modal.
+                }}
+              />
+            </section>
+          )}
 
           {/* Sección principal: contenidos de cada pestaña */}
           <section className="space-y-6 w-full">

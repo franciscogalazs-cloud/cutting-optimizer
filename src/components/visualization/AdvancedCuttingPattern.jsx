@@ -185,7 +185,7 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
           <div>
             <div className="flex justify-center">
               <div className="relative inline-block">
-                <div className="absolute right-2 top-2 z-10 flex flex-col gap-2">
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-2">
                   <button
                     type="button"
                     aria-label="Alternar dimensiones"
@@ -228,6 +228,7 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
                 showDimensions={showDimensions}
                 showEdges={showEdges}
                 units={units}
+                responsive={true}
                 highlightPieceIndex={hoveredPiece}
                 highlightEdge={hoveredEdge}
               />

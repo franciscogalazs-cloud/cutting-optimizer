@@ -265,13 +265,12 @@ export class BestFitDecreasing {
 
     while (remainingPieces.length > 0) {
       // Encontrar el mejor material para la siguiente pieza
-      let bestMaterial = null;
-      let bestMaterialIndex = -1;
+  let bestMaterial = null;
+  let bestMaterialIndex = -1;
       let bestMaterialWaste = Infinity;
 
       for (let i = 0; i < availableMaterials.length; i++) {
         const material = availableMaterials[i];
-        if (material.quantity <= 0) continue;
 
         // Calcular cuánto desperdicio tendría usar este material
         let materialWaste = Infinity;
@@ -309,6 +308,31 @@ export class BestFitDecreasing {
         }
       }
 
+      // Si no hay stock, permitir materiales como "virtuales" si al menos una pieza puede caber
+      if (!bestMaterial) {
+        for (let i = 0; i < availableMaterials.length; i++) {
+          const material = availableMaterials[i];
+          let canFitAny = false;
+          for (const p of remainingPieces) {
+            if (this.pieceMatchesMaterial(p, material)) {
+              // chequeo rápido de cabida con margen
+              const margin = material.margin ?? this.config.margin;
+              const usableL = material.length - margin * 2;
+              const usableW = material.width - margin * 2;
+              if ((p.length <= usableL && p.width <= usableW) || ((this.config.allowRotation && (p.canRotate ?? true)) && (p.width <= usableL && p.length <= usableW))) {
+                canFitAny = true;
+                break;
+              }
+            }
+          }
+          if (canFitAny) {
+            bestMaterial = material;
+            bestMaterialIndex = i;
+            break;
+          }
+        }
+      }
+
       if (!bestMaterial) break;
 
       const pattern = createCuttingPattern({
@@ -321,7 +345,9 @@ export class BestFitDecreasing {
         pieces: [],
       });
       patterns.push(pattern);
-      availableMaterials[bestMaterialIndex].quantity--;
+      if (availableMaterials[bestMaterialIndex].quantity > 0) {
+        availableMaterials[bestMaterialIndex].quantity--;
+      }
 
       // Intentar llenar el patrón con la mayor cantidad de piezas posible
       const margin = this.getMargin(pattern);

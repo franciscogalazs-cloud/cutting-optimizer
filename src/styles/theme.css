@@ -1,8 +1,9 @@
 :root {
   /* Fondo más claro (blanco) para eliminar apariencia oscura */
   --bg: #ffffff;
-  --surface: #ffffff;
-  --card: #ffffff;
+  /* Ligeramente translúcidos para dejar ver el fondo en pantalla */
+  --surface: rgba(255, 255, 255, 0.9);
+  --card: rgba(255, 255, 255, 0.9);
   --fg: #0f172a;
   --text: #0f172a;
   --muted: #64748b;
@@ -84,6 +85,20 @@ textarea {
 [data-slot="select-item"][data-highlighted] {
   background: var(--accent) !important;
   color: var(--surface) !important;
+}
+
+/* Pantalla: hacer que cualquier bg-white sea levemente translúcido */
+@media screen {
+  .bg-white { background-color: rgba(255, 255, 255, 0.9) !important; }
+}
+
+/* Impresión: fondos blancos opacos para legibilidad */
+@media print {
+  :root {
+    --surface: #ffffff;
+    --card: #ffffff;
+  }
+  .bg-white { background-color: #ffffff !important; }
 }
 
 /* UI tarjetas industriales: foco y scrollbars sutiles */

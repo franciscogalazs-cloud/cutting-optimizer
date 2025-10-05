@@ -2,6 +2,12 @@
 @media print {
   thead { display: table-header-group; }
   tfoot { display: table-footer-group; }
+  /* Fondo solo en pantalla: limpia cualquier imagen/color de fondo al imprimir */
+  body {
+    background: #ffffff !important;
+    background-image: none !important;
+  }
+  .bg-overlay, .bg-dim-overlay, .bg-top-mask { display: none !important; }
 }
 
 /* Zebra más marcada en móvil para mejorar lectura */
@@ -85,6 +91,9 @@ textarea:focus-visible {
     color: var(--text);
   }
 }
+
+/* Fondo responsive: ancho por defecto, alto completo en portrait */
+/* El overlay ahora usa cover por defecto (control inline), no forzamos desde aquí */
 
 /* Feedback hover/active para botones nativos no-shadcn */
 button:not([data-slot="button"]) {

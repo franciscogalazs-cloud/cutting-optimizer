@@ -17,18 +17,54 @@ export default function PatternCanvas2D({
   showDimensions = true,
   units = 'mm',
   showEdges = true,
+  responsive = false,
   // Permite resaltar una pieza desde el padre (por índice en pattern.pieces)
   highlightPieceIndex = null,
   // Permite resaltar un canto específico desde el padre { pieceIndex, side }
   highlightEdge = null,
 }) {
   const canvasRef = useRef(null);
+  const containerRef = useRef(null);
   const edgesRef = useRef([]); // lista de zonas de cantos para hit-test
   const piecesRef = useRef([]); // lista de zonas de piezas para hit-test
   const transformRef = useRef({ s: 1, tx: 0, ty: 0 });
   const [tooltip, setTooltip] = useState(null);
   const hoveredRef = useRef(null);
   const hoveredPieceRef = useRef(null);
+  const [frame, setFrame] = useState({ vw: width, vh: height });
+
+  // Observa el ancho del contenedor para ajustar el canvas cuando responsive=true
+  useEffect(() => {
+    if (!responsive) {
+      setFrame({ vw: width, vh: height });
+      return;
+    }
+    const el = containerRef.current;
+    if (!el) return;
+    const compute = () => {
+      const cw = el.clientWidth || width;
+      const sheetW = Number(pattern?.materialLength) || 0;
+      const sheetH = Number(pattern?.materialWidth) || 0;
+      const ratio = sheetW > 0 && sheetH > 0 ? sheetH / sheetW : (height && width ? height / width : 0.625);
+      const vw = Math.max(320, cw);
+      const vh = Math.max(240, Math.round(vw * ratio));
+      setFrame({ vw, vh });
+    };
+    compute();
+    let cleanup = () => {};
+    if (typeof ResizeObserver !== 'undefined') {
+      const ro = new ResizeObserver(() => compute());
+      ro.observe(el);
+      cleanup = () => {
+        ro.disconnect();
+      };
+    } else {
+      // Fallback si no hay ResizeObserver
+      window.addEventListener('resize', compute);
+      cleanup = () => window.removeEventListener('resize', compute);
+    }
+    return cleanup;
+  }, [responsive, width, height, pattern?.materialLength, pattern?.materialWidth]);
 
   // Utilidades de color para tooltip
   const hexToRgb = (hex) => {
@@ -113,8 +149,8 @@ export default function PatternCanvas2D({
     };
 
     const render = () => {
-      const vw = width;
-      const vh = height;
+      const vw = responsive ? frame.vw : width;
+      const vh = responsive ? frame.vh : height;
       const dpr = window.devicePixelRatio || 1;
       cv.width = vw * dpr;
       cv.height = vh * dpr;
@@ -536,12 +572,13 @@ export default function PatternCanvas2D({
       cv.removeEventListener('mousemove', onMove);
       cv.removeEventListener('mouseleave', onLeave);
     };
-  }, [pattern, theme, width, height, paddingPx, materialLabel, showLabels, showDimensions, units, showEdges, highlightPieceIndex, highlightEdge, tooltip]);
+  }, [pattern, theme, width, height, paddingPx, materialLabel, showLabels, showDimensions, units, showEdges, highlightPieceIndex, highlightEdge, tooltip, responsive, frame.vw, frame.vh]);
 
   return (
     <div
       className="relative rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] overflow-hidden"
-      style={{ width, height }}
+      ref={containerRef}
+      style={{ width: '100%', height: responsive ? `${frame.vh}px` : height }}
     >
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
       {tooltip && (
