@@ -153,12 +153,26 @@ function App() {
   }, [activeTab, scrollToBudget]);
 
   const [showInfoModal, setShowInfoModal] = useState(false);
+  // Nota: referencia antigua a toggleUnits ya no se usa.
   const [showExportModal, setShowExportModal] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [editingPiece, setEditingPiece] = useState(null);
   const [editingMaterial, setEditingMaterial] = useState(null);
   const { result, optimize, error } = useOptimization();
   const efficiencyFactor = 0.9;
+
+  // Handler centralizado para limpiar datos y recargar
+  const handleClearAll = useCallback(() => {
+    if (confirm('¿Estás seguro de que quieres limpiar todos los datos?')) {
+      try {
+        localStorage.clear();
+      } catch (err) {
+        console.warn('localStorage.clear failed', err);
+      } finally {
+        window.location.reload();
+      }
+    }
+  }, []);
   useEffect(() => {
     setPieces((current) => {
       if (!Array.isArray(current) || current.length === 0) return current;
@@ -346,40 +360,12 @@ function App() {
       requestAnimationFrame(() => scrollToPatterns());
       toast.success("Optimizacion completada exitosamente");
     } catch (err) {
+      // Registrar error en consola para diagnóstico además del toast
+      console.warn('optimize failed', err);
       toast.error(`Error durante la optimizacion: ${err.message}`);
     } finally {
       setIsOptimizing(false);
     }
-  };
-  const toggleUnits = () => {
-    setConfig((prev) => {
-      const from = prev.units;
-      const to = from === "mm" ? "cm" : "mm";
-      const factor = from === "mm" && to === "cm" ? 0.1 : 10;
-      setPieces((current) =>
-        current.map((piece) => ({
-          ...piece,
-          length: Number((piece.length * factor).toFixed(3)),
-          width: Number((piece.width * factor).toFixed(3)),
-        })),
-      );
-      setMaterials((current) =>
-        current.map((material) => ({
-          ...material,
-          length: Number((material.length * factor).toFixed(3)),
-          width: Number((material.width * factor).toFixed(3)),
-          kerf: Number((material.kerf * factor).toFixed(3)),
-          margin: Number((material.margin * factor).toFixed(3)),
-        })),
-      );
-      return {
-        ...prev,
-        units: to,
-        kerfWidth: Number((prev.kerfWidth * factor).toFixed(3)),
-        margin: Number((prev.margin * factor).toFixed(3)),
-      };
-    });
-  // historial deshabilitado
   };
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
   const avgUsedM2 = (() => {
@@ -572,12 +558,7 @@ function App() {
                 </svg>
               </button>
               <button
-                onClick={() => {
-                  if (confirm('¿Estás seguro de que quieres limpiar todos los datos?')) {
-                    try { localStorage.clear(); } catch (err) { console.warn('localStorage.clear failed', err); }
-                    window.location.reload();
-                  }
-                }}
+                onClick={handleClearAll}
                 aria-label="Limpiar"
                 title="Limpiar"
                 className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-rose-500

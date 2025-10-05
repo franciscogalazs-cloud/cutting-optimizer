@@ -6,7 +6,7 @@
     "scripts": {
           "dev": "vite",
           "build": "node tools/brand-build.mjs && vite build",
-        "lint": "eslint .",
+    "lint": "eslint . --no-cache",
           "preview": "vite preview",
         "start": "vite preview --host localhost --port 3000",
                 "dev:freeports": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"foreach ($p in 5173,5174,5175) { $conns = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue; if ($conns) { $procIds = $conns | Select-Object -ExpandProperty OwningProcess | Sort-Object -Unique; foreach ($proc in $procIds) { try { if ($proc -ne $PID) { Stop-Process -Id $proc -Force -ErrorAction SilentlyContinue } } catch {} } } }\"",

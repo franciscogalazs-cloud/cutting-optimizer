@@ -4,6 +4,7 @@ import { printElement } from '@/lib/print.js';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -42,6 +43,16 @@ const toNumber = (value) => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 };
+
+// Helpers de validación para formularios
+const validateEmail = (email) => {
+  const v = String(email ?? '').trim();
+  if (!v) return true; // vacío permitido
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+};
+// Sin validación ni formateo obligatorio para RUT: permitir letras y símbolos habituales.
+// Se mantiene en mayúsculas por consistencia visual.
+const cleanRut = (rut) => String(rut ?? '').toUpperCase();
 
 const unitOptions = [
   { label: 'plancha', value: 'plancha' },
@@ -82,6 +93,7 @@ const createOtherRow = ({ name = '', price = 0, quantity = 0 } = {}) => ({
 });
 
 const emptyClient = { name: '', email: '', phone: '' };
+const emptyCompany = { name: '', email: '', phone: '', rut: '', address: '', notes: '' };
 
 const printStyles = `
   @media print {
@@ -106,6 +118,7 @@ const printStyles = `
 export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' }) => {
   const printAreaRef = useRef(null); // contendrá toda la pestaña presupuesto visible
   const [client, setClient] = useLocalStorage('budget-client', emptyClient);
+  const [company, setCompany] = useLocalStorage('budget-company', emptyCompany);
   const [baseMaterials, setBaseMaterials] = useLocalStorage('budget-base-materials', [createMaterialRow()]);
   const [edgeItems, setEdgeItems] = useLocalStorage('budget-edge-items', [createEdgeRow()]);
   const [hardwareItems, setHardwareItems] = useLocalStorage('budget-hardware-items', [createHardwareRow()]);
@@ -174,7 +187,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   useEffect(() => {
     // Si no hay datos previos guardados, inicializamos desde resultado/materiales
     if (!client || (client && !client.__init)) {
-      setClient({ ...emptyClient, __init: true });
+      setClient((prev) => ({ ...emptyClient, ...(prev || {}), __init: true }));
     }
     if (Array.isArray(baseMaterials) && baseMaterials.length <= 1 && !baseMaterials[0]?.name && defaultBaseRows.length) {
       setBaseMaterials(defaultBaseRows);
@@ -330,6 +343,65 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
         {/* Editor visible solo en pantalla (no-print) para agregar/editar valores */}
         <ScrollArea className="no-print max-h-[80vh] pr-2">
           <div className="space-y-2 pb-1">
+            <Card id="budget-editor-empresa" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
+              <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle className="uppercase tracking-wide">Datos de la empresa</CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-2 sm:grid-cols-3">
+                <div className="space-y-1">
+                  <Label htmlFor="budget-company-name" className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
+                  <Input
+                    className="h-8 px-2 py-1 text-sm"
+                    id="budget-company-name"
+                    value={company.name}
+                    onChange={(event) => setCompany((prev) => ({ ...prev, name: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="budget-company-email" className="uppercase text-[12px] text-[var(--muted)]">Email</Label>
+                  <Input
+                    className={"h-8 px-2 py-1 text-sm " + (!validateEmail(company.email) ? 'border-red-500 focus-visible:ring-red-200' : '')}
+                    id="budget-company-email"
+                    type="email"
+                    aria-invalid={!validateEmail(company.email)}
+                    value={company.email}
+                    onChange={(event) => setCompany((prev) => ({ ...prev, email: event.target.value }))}
+                  />
+                  {!validateEmail(company.email) && (
+                    <div className="text-xs text-[var(--danger)]">Email inválido</div>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="budget-company-phone" className="uppercase text-[12px] text-[var(--muted)]">Telefono</Label>
+                  <Input
+                    className="h-8 px-2 py-1 text-sm"
+                    id="budget-company-phone"
+                    value={company.phone}
+                    onChange={(event) => setCompany((prev) => ({ ...prev, phone: event.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-1">
+                  <Label htmlFor="budget-company-rut" className="uppercase text-[12px] text-[var(--muted)]">RUT</Label>
+                  <Input
+                    className="h-8 px-2 py-1 text-sm"
+                    id="budget-company-rut"
+                    placeholder="RUT / ID"
+                    value={company.rut}
+                    onChange={(event) => setCompany((prev) => ({ ...prev, rut: cleanRut(event.target.value) }))}
+                  />
+                </div>
+                <div className="space-y-1 sm:col-span-2">
+                  <Label htmlFor="budget-company-address" className="uppercase text-[12px] text-[var(--muted)]">Direccion</Label>
+                  <Input
+                    className="h-8 px-2 py-1 text-sm"
+                    id="budget-company-address"
+                    value={company.address}
+                    onChange={(event) => setCompany((prev) => ({ ...prev, address: event.target.value }))}
+                  />
+                </div>
+                {/* Notas y condiciones movidas al final de la pestaña */}
+              </CardContent>
+            </Card>
             <Card id="budget-editor-cliente" className="border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow)]">
               <CardHeader className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="uppercase tracking-wide">Datos del cliente</CardTitle>
@@ -353,12 +425,16 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 <div className="space-y-1">
                   <Label htmlFor="budget-client-email" className="uppercase text-[12px] text-[var(--muted)]">Email</Label>
                   <Input
-                    className="h-8 px-2 py-1 text-sm"
+                    className={"h-8 px-2 py-1 text-sm " + (!validateEmail(client.email) ? 'border-red-500 focus-visible:ring-red-200' : '')}
                     id="budget-client-email"
                     type="email"
+                    aria-invalid={!validateEmail(client.email)}
                     value={client.email}
                     onChange={(event) => setClient((prev) => ({ ...prev, email: event.target.value }))}
                   />
+                  {!validateEmail(client.email) && (
+                    <div className="text-xs text-[var(--danger)]">Email inválido</div>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label htmlFor="budget-client-phone" className="uppercase text-[12px] text-[var(--muted)]">Telefono</Label>
@@ -833,20 +909,71 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </div>
             </div>
 
+            {/* Notas y condiciones (al final de la pestaña) */}
+            <div className="no-print rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2">
+              <div className="space-y-1">
+                <Label htmlFor="budget-company-notes" className="uppercase text-[12px] text-[var(--muted)]">Notas y condiciones</Label>
+                <Textarea
+                  className="min-h-24 px-2 py-1 text-sm"
+                  id="budget-company-notes"
+                  value={company.notes}
+                  onChange={(event) => setCompany((prev) => ({ ...prev, notes: event.target.value }))}
+                  placeholder="Tiempos de entrega, condiciones de pago, validez de la oferta, etc."
+                />
+              </div>
+            </div>
+
           </div>
         </ScrollArea>
   {/* Hoja de impresión: replica el layout de pantalla como en la imagen */}
   <div className="print-only p-6 space-y-4">
           {/* Encabezado: logo izquierda + título centrado */}
           <header className="flex items-center justify-between">
-            <div className="flex-1 flex items-center">
-              <img src={absoluteUrl('brand/industrial-plate/stencil_main.svg')} alt="Logo" style={{ height: 96 }} />
+            <div className="flex-1 flex items-center gap-3">
+              <img src={absoluteUrl('brand/industrial-plate/stencil_main.svg')} alt="Logo" style={{ height: 84 }} />
+              {(company?.name ?? '').trim() ? (
+                <div className="value" style={{ fontSize: 14, fontWeight: 600 }}>{company.name}</div>
+              ) : null}
             </div>
             <div className="flex-1 text-center">
-              <h1 className="uppercase">PRESUPUESTO</h1>
+              <h1 className="uppercase">
+                {(() => {
+                  const n = (company?.name ?? '').trim();
+                  return n ? `PRESUPUESTO — ${n}` : 'PRESUPUESTO';
+                })()}
+              </h1>
             </div>
             <div className="flex-1" />
           </header>
+
+          {/* Datos de la empresa */}
+          <section className="card-like p-3 space-y-2">
+            <div className="section-title">Datos de la empresa</div>
+            <div className="grid grid-cols-3 grid-gap">
+              <div className="space-y-1">
+                <div className="label">Nombre</div>
+                <div className="field value">{company.name || ' '}</div>
+              </div>
+              <div className="space-y-1">
+                <div className="label">Email</div>
+                <div className="field value">{company.email || ' '}</div>
+              </div>
+              <div className="space-y-1">
+                <div className="label">Telefono</div>
+                <div className="field value">{company.phone || ' '}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-3 grid-gap">
+              <div className="space-y-1">
+                <div className="label">RUT</div>
+                <div className="field value">{company.rut || ' '}</div>
+              </div>
+              <div className="space-y-1 col-span-2">
+                <div className="label">Direccion</div>
+                <div className="field value">{company.address || ' '}</div>
+              </div>
+            </div>
+          </section>
 
           {/* Datos del cliente */}
           <section className="card-like p-3 space-y-2">
@@ -1019,6 +1146,14 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               <div />
             </div>
           </section>
+
+          {/* Notas y condiciones (al final de la hoja) */}
+          {(company.notes ?? '').trim() ? (
+            <section className="card-like p-3 space-y-2">
+              <div className="section-title">Notas y condiciones</div>
+              <div className="field value" style={{ whiteSpace: 'pre-wrap' }}>{company.notes}</div>
+            </section>
+          ) : null}
 
           {/* Footer con logo transparente centrado */}
           <footer className="print-footer">
