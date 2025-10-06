@@ -51,7 +51,8 @@ export default function PatternCanvas2D({
       setFrame({ vw, vh });
     };
     compute();
-    let cleanup = () => {};
+    // Definimos cleanup con una función no vacía para el lint
+    let cleanup = () => { /* noop */ };
     if (typeof ResizeObserver !== 'undefined') {
       const ro = new ResizeObserver(() => compute());
       ro.observe(el);
@@ -63,7 +64,7 @@ export default function PatternCanvas2D({
       window.addEventListener('resize', compute);
       cleanup = () => window.removeEventListener('resize', compute);
     }
-    return cleanup;
+  return cleanup;
   }, [responsive, width, height, pattern?.materialLength, pattern?.materialWidth]);
 
   // Utilidades de color para tooltip
@@ -182,7 +183,9 @@ export default function PatternCanvas2D({
 
       // Etiqueta del material (superior izquierda, fuera del tablero)
       if (materialLabel) {
-      // etiqueta de material deshabilitada según requerimiento
+  // Etiqueta de material deshabilitada según requerimiento.
+  // No-op para satisfacer ESLint (no-empty):
+  void materialLabel;
       }
 
       // Piezas
