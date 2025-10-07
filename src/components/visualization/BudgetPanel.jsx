@@ -104,10 +104,10 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const printAreaRef = useRef(null); // contendrá toda la pestaña presupuesto visible
   const [client, setClient] = useLocalStorage('budget-client', emptyClient);
   const [company, setCompany] = useLocalStorage('budget-company', emptyCompany);
-  const [baseMaterials, setBaseMaterials] = useLocalStorage('budget-base-materials', [createMaterialRow()]);
-  const [edgeItems, setEdgeItems] = useLocalStorage('budget-edge-items', [createEdgeRow()]);
-  const [hardwareItems, setHardwareItems] = useLocalStorage('budget-hardware-items', [createHardwareRow()]);
-  const [otherItems, __setOtherItems] = useLocalStorage('budget-other-items', [createOtherRow()]);
+  const [baseMaterials, setBaseMaterials] = useLocalStorage('budget-base-materials', []);
+  const [edgeItems, setEdgeItems] = useLocalStorage('budget-edge-items', []);
+  const [hardwareItems, setHardwareItems] = useLocalStorage('budget-hardware-items', []);
+  const [otherItems, __setOtherItems] = useLocalStorage('budget-other-items', []);
   const [indirectPercent, setIndirectPercent] = useLocalStorage('budget-indirect-percent', 0);
   const [marginPercent, setMarginPercent] = useLocalStorage('budget-margin-percent', 0);
   const [taxPercent, setTaxPercent] = useLocalStorage('budget-tax-percent', 19);
@@ -122,7 +122,8 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const defaultBaseRows = useMemo(() => {
     const map = new Map();
     // 1) Usadas por patrones (post-optimización) — fuente de verdad para cantidad de planchas usadas
-    if (result?.patterns?.length) {
+    const hasPatterns = Array.isArray(result?.patterns) && result.patterns.length > 0;
+    if (hasPatterns) {
       for (const pattern of result.patterns) {
         const name = String(pattern.materialName || 'Material').trim();
         const len = Number(pattern.materialLength) || 0;
@@ -142,48 +143,39 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       }
     }
 
-    // 2) Si no hubo patrones para un material+medida, caer a cantidad estimada en Materiales
-    if (materials.length) {
-      for (const material of materials) {
-        const name = String(material.material || 'Material').trim();
-        const len = Number(material.length) || 0;
-        const wid = Number(material.width) || 0;
-        const key = `${name}|${len}x${wid}`;
-        if (map.has(key)) continue; // ya hay cantidad exacta desde patrones
-        const areaM2 = rectangleAreaToSquareMeters(len, wid, 1, units);
-        const estimatedQty = Math.max(0, toNumber(material.quantity));
-        map.set(key, {
-          name,
-          unit: 'plancha',
-          quantity: estimatedQty,
-          price: 0,
-          details: `${len} x ${wid} ${units}`,
-          areaM2,
-        });
-      }
+    // 2) Solo si NO hay patrones, podríamos caer a cantidades estimadas; para "solo items usados",
+    // evitamos sugerir filas con cantidad 0. Preferimos no agregar nada por defecto.
+    if (!hasPatterns) {
+      // Mantener vacío: el usuario puede agregar manualmente si lo desea.
     }
 
     if (map.size > 0) {
-      return Array.from(map.values()).map((item) => createMaterialRow(item));
+      // Filtrar cualquier fila con cantidad <= 0 por seguridad
+      return Array.from(map.values())
+        .filter((item) => toNumber(item.quantity) > 0)
+        .map((item) => createMaterialRow(item));
     }
-    return [createMaterialRow()];
+    // Sin patrones: no proponemos filas por defecto aquí.
+    return [];
   }, [result, materials, units]);
 
   const defaultEdgeRows = useMemo(() => {
     const totals = computeEdgeTotals(pieces) || {};
     const entries = Object.entries(totals);
     if (entries.length === 0) {
-      return [createEdgeRow({ name: 'General' })];
+      return [];
     }
     const wasteFactor = 1 + (toNumber(edgeWastePercent) / 100);
-    return entries.map(([type, lengthMm]) =>
-      createEdgeRow({
-        name: type,
-        price: 0,
-        // Metros lineales incluyendo desperdicio configurado en Tapacantos
-        quantity: toNumber(((lengthMm ?? 0) / 1000) * wasteFactor),
-      }),
-    );
+    return entries
+      .map(([type, lengthMm]) =>
+        createEdgeRow({
+          name: type,
+          price: 0,
+          // Metros lineales incluyendo desperdicio configurado en Tapacantos
+          quantity: toNumber(((lengthMm ?? 0) / 1000) * wasteFactor),
+        }),
+      )
+      .filter((row) => toNumber(row.quantity) > 0);
   }, [pieces, edgeWastePercent]);
 
   useEffect(() => {
@@ -197,9 +189,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     if (Array.isArray(edgeItems) && edgeItems.length <= 1 && !edgeItems[0]?.name && defaultEdgeRows.length) {
       setEdgeItems(defaultEdgeRows);
     }
-    if (Array.isArray(hardwareItems) && hardwareItems.length === 1 && !hardwareItems[0]?.name) {
-      setHardwareItems([createHardwareRow()]);
-    }
+    // No autoinicializamos herrajes/otros con filas vacías; el usuario puede agregarlas manualmente
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultBaseRows, defaultEdgeRows]);
 
@@ -239,9 +229,11 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             changed = true;
           }
         } else {
-          // Insertar nueva fila al final (precio 0 por defecto)
-          next.push(createMaterialRow(r));
-          changed = true;
+          // Insertar solo si la cantidad calculada es > 0
+          if (toNumber(r.quantity) > 0) {
+            next.push(createMaterialRow(r));
+            changed = true;
+          }
         }
       }
       return changed ? next : prevArr;
@@ -276,8 +268,11 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             changed = true;
           }
         } else {
-          next.push(createEdgeRow(r));
-          changed = true;
+          // Solo insertar si hay cantidad positiva
+          if (toNumber(r.quantity) > 0) {
+            next.push(createEdgeRow(r));
+            changed = true;
+          }
         }
       }
       return changed ? next : prevArr;
@@ -493,7 +488,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
               <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Materiales base</h3>
               <div className="space-y-1">
-                {baseMaterials.map((m) => (
+                {baseMaterials.filter((m) => toNumber(m.quantity) > 0).map((m) => (
                   <div key={m.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 0.8fr 1fr 1fr 1fr auto' }}>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">Tipo</Label>
@@ -562,7 +557,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
               <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Tapacantos</h3>
               <div className="space-y-1">
-                {edgeItems.map((e) => (
+                {edgeItems.filter((e) => toNumber(e.quantity) > 0).map((e) => (
                   <div key={e.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
@@ -620,7 +615,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
               <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Herrajes</h3>
               <div className="space-y-1">
-                {hardwareItems.map((h) => (
+                {hardwareItems.filter((h) => toNumber(h.quantity) > 0).map((h) => (
                   <div key={h.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
@@ -671,7 +666,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
               <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Otros</h3>
               <div className="space-y-1">
-                {otherItems.map((o) => (
+                {otherItems.filter((o) => toNumber(o.quantity) > 0).map((o) => (
                   <div key={o.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
@@ -920,7 +915,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
 
           {/* Materiales base */}
           <section className="card-like p-2.5 space-y-1.5">
-            {baseMaterials.map((m) => (
+            {baseMaterials.filter((m) => toNumber(m.quantity) > 0).map((m) => (
               <div key={m.id} className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr' }}>
                 <div className="space-y-1 pr-2">
                   <div className="label">Tipo</div>
@@ -944,12 +939,14 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 </div>
               </div>
             ))}
-            <div className="text-right"><span className="total-label">Total materiales base: </span><span className="total-value">{formatCLP(materialsTotal)}</span></div>
+            {baseMaterials.some((m) => toNumber(m.quantity) > 0) && (
+              <div className="text-right"><span className="total-label">Total materiales base: </span><span className="total-value">{formatCLP(materialsTotal)}</span></div>
+            )}
           </section>
 
           {/* Tapacantos */}
           <section className="card-like p-2.5 space-y-1.5">
-            {edgeItems.map((e) => (
+            {edgeItems.filter((e) => toNumber(e.quantity) > 0).map((e) => (
               <div key={e.id} className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
                 <div className="space-y-1 pr-2">
                   <div className="label">Nombre</div>
@@ -969,12 +966,14 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 </div>
               </div>
             ))}
-            <div className="text-right"><span className="total-label">Total tapacantos: </span><span className="total-value">{formatCLP(edgesTotal)}</span></div>
+            {edgeItems.some((e) => toNumber(e.quantity) > 0) && (
+              <div className="text-right"><span className="total-label">Total tapacantos: </span><span className="total-value">{formatCLP(edgesTotal)}</span></div>
+            )}
           </section>
 
           {/* Herrajes */}
           <section className="card-like p-2.5 space-y-1.5">
-            {hardwareItems.map((h) => (
+            {hardwareItems.filter((h) => toNumber(h.quantity) > 0).map((h) => (
               <div key={h.id} className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
                 <div className="space-y-1 pr-2">
                   <div className="label">Nombre</div>
@@ -994,12 +993,14 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 </div>
               </div>
             ))}
-            <div className="text-right"><span className="total-label">Total herrajes: </span><span className="total-value">{formatCLP(hardwareTotal)}</span></div>
+            {hardwareItems.some((h) => toNumber(h.quantity) > 0) && (
+              <div className="text-right"><span className="total-label">Total herrajes: </span><span className="total-value">{formatCLP(hardwareTotal)}</span></div>
+            )}
           </section>
 
           {/* Otros */}
           <section className="card-like p-3 space-y-2">
-            {otherItems.map((o) => (
+            {otherItems.filter((o) => toNumber(o.quantity) > 0).map((o) => (
               <div key={o.id} className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
                 <div className="space-y-1 pr-2">
                   <div className="label">Nombre</div>
@@ -1019,7 +1020,9 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 </div>
               </div>
             ))}
-            <div className="text-right"><span className="total-label">Total otros: </span><span className="total-value">{formatCLP(othersTotal)}</span></div>
+            {otherItems.some((o) => toNumber(o.quantity) > 0) && (
+              <div className="text-right"><span className="total-label">Total otros: </span><span className="total-value">{formatCLP(othersTotal)}</span></div>
+            )}
           </section>
 
           {/* Parámetros e Índices */}

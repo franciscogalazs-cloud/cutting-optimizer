@@ -61,7 +61,7 @@ function App() {
     rotationPenalty: 0,
   });
   // Historial deshabilitado: UI y atajos removidos
-  const [activeTab, setActiveTab] = useState("pieces");
+  const [activeTab, setActiveTab] = useState("home");
   useEffect(() => {
     setConfig((prev) => (prev.allowRotation ? prev : { ...prev, allowRotation: true }));
   }, [setConfig]);
