@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 // Select UI no usado actualmente en esta vista
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calculator, Copy, Trash2, Printer } from 'lucide-react';
+import { Calculator, Copy, Trash2, Printer, Plus } from 'lucide-react';
 import { computeEdgeTotals } from '@/features/edgebanding/edgeBanding.js';
 // SummarySheet removido según requerimiento de diseño
 import { useLocalStorage } from '@/hooks/useLocalStorage.js';
@@ -613,9 +613,20 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
 
             {/* Herrajes */}
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
-              <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Herrajes</h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[var(--text)]">Herrajes</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3"
+                  type="button"
+                  onClick={() => setHardwareItems((prev) => [...(Array.isArray(prev) ? prev : []), createHardwareRow()])}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Agregar ítem
+                </Button>
+              </div>
               <div className="space-y-1">
-                {hardwareItems.filter((h) => toNumber(h.quantity) > 0).map((h) => (
+                {(Array.isArray(hardwareItems) ? hardwareItems : []).map((h) => (
                   <div key={h.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
@@ -664,9 +675,20 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
 
             {/* Otros */}
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
-              <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Otros</h3>
+              <div className="mb-2 flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-[var(--text)]">Otros</h3>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-3"
+                  type="button"
+                  onClick={() => __setOtherItems((prev) => [...(Array.isArray(prev) ? prev : []), createOtherRow()])}
+                >
+                  <Plus className="h-4 w-4 mr-1" /> Agregar ítem
+                </Button>
+              </div>
               <div className="space-y-1">
-                {otherItems.filter((o) => toNumber(o.quantity) > 0).map((o) => (
+                {(Array.isArray(otherItems) ? otherItems : []).map((o) => (
                   <div key={o.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
