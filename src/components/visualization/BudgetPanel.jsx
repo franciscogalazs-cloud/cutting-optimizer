@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 // Select UI no usado actualmente en esta vista
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Calculator, Copy, Trash2, Printer, Plus } from 'lucide-react';
+import { Calculator, Copy, Trash2, Printer } from 'lucide-react';
 import { computeEdgeTotals } from '@/features/edgebanding/edgeBanding.js';
 // SummarySheet removido según requerimiento de diseño
 import { useLocalStorage } from '@/hooks/useLocalStorage.js';
@@ -108,10 +108,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const [edgeItems, setEdgeItems] = useLocalStorage('budget-edge-items', []);
   const [hardwareItems, setHardwareItems] = useLocalStorage('budget-hardware-items', []);
   const [otherItems, __setOtherItems] = useLocalStorage('budget-other-items', []);
-  const [indirectPercent, setIndirectPercent] = useLocalStorage('budget-indirect-percent', 0);
-  const [marginPercent, setMarginPercent] = useLocalStorage('budget-margin-percent', 0);
-  const [taxPercent, setTaxPercent] = useLocalStorage('budget-tax-percent', 19);
-  const [freight, setFreight] = useLocalStorage('budget-freight', 0);
+  // Parámetros financieros removidos (indirecto, margen, IVA, flete)
   // Leer el desperdicio configurado en la pestaña de Tapacantos para reflejarlo en las cantidades del presupuesto
   const [edgeWastePercent] = useLocalStorage('edgebanding-waste-percent', 0);
   // Desperdicio de tapacantos se calcula fuera; no se edita aquí.
@@ -189,7 +186,9 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     if (Array.isArray(edgeItems) && edgeItems.length <= 1 && !edgeItems[0]?.name && defaultEdgeRows.length) {
       setEdgeItems(defaultEdgeRows);
     }
-    // No autoinicializamos herrajes/otros con filas vacías; el usuario puede agregarlas manualmente
+  // Si herrajes/otros están completamente vacíos, mostramos una fila editable para facilitar el ingreso
+  setHardwareItems((prev) => (Array.isArray(prev) && prev.length > 0 ? prev : [createHardwareRow()]));
+  __setOtherItems((prev) => (Array.isArray(prev) && prev.length > 0 ? prev : [createOtherRow()]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultBaseRows, defaultEdgeRows]);
 
@@ -312,13 +311,11 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
   const hardwareTotal = hardwareItems.reduce((sum, item) => sum + toNumber(item.price) * toNumber(item.quantity), 0);
   const othersTotal = otherItems.reduce((sum, item) => sum + toNumber(item.price) * toNumber(item.quantity), 0);
   const directTotal = materialsTotal + edgesTotal + hardwareTotal + othersTotal;
-  const indirects = directTotal * (toNumber(indirectPercent) / 100);
-  const freightValue = toNumber(freight);
-  const subtotalNet = directTotal + indirects + freightValue;
-  const marginValue = subtotalNet * (toNumber(marginPercent) / 100);
-  const subtotalWithMargin = subtotalNet + marginValue;
-  const taxValue = subtotalWithMargin * (toNumber(taxPercent) / 100);
-  const totalWithTax = subtotalWithMargin + taxValue;
+  // Totales simplificados: Valor neto = directTotal; IVA = 19% automático; Total = neto + IVA
+  const netValue = directTotal;
+  const IVA_RATE = 0.19;
+  const taxValue = netValue * IVA_RATE;
+  const totalWithTax = netValue + taxValue;
   // (planillas intermedias removidas; se usa solo resumen de costos en impresión)
 
   // Exportación CSV removida por solicitud
@@ -367,7 +364,9 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       #budget-print-root .row-gap { row-gap: 6px; }
       #budget-print-root section, #budget-print-root .card-like { break-inside: avoid; }
       #budget-print-root .print-footer { text-align: center; margin-top: 10mm; }
-      #budget-print-root .print-footer img { opacity: 0.15; height: 48px; }
+      #budget-print-root .print-footer img { opacity: 0.15; height: 48px; filter: brightness(0); }
+      /* Logo en encabezado: pasar de blanco a negro solo en impresión */
+      #budget-print-root header img { filter: brightness(0); }
     `;
     // Pequeño delay para permitir que Radix desmonte portales sin conflicto
     setTimeout(() => {
@@ -613,24 +612,13 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
 
             {/* Herrajes */}
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[var(--text)]">Herrajes</h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3"
-                  type="button"
-                  onClick={() => setHardwareItems((prev) => [...(Array.isArray(prev) ? prev : []), createHardwareRow()])}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Agregar ítem
-                </Button>
-              </div>
+              <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Herrajes</h3>
               <div className="space-y-1">
                 {(Array.isArray(hardwareItems) ? hardwareItems : []).map((h) => (
                   <div key={h.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" value={h.name} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, name: ev.target.value } : row))} />
+                      <Input className="h-8 px-2 py-1 text-sm" placeholder="Bisagra 35mm / Corredera / Tornillos" value={h.name} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, name: ev.target.value } : row))} />
                     </div>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">$ c/u</Label>
@@ -673,26 +661,15 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </div>
             </div>
 
-            {/* Otros */}
+            {/* Varios */}
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[var(--text)]">Otros</h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-3"
-                  type="button"
-                  onClick={() => __setOtherItems((prev) => [...(Array.isArray(prev) ? prev : []), createOtherRow()])}
-                >
-                  <Plus className="h-4 w-4 mr-1" /> Agregar ítem
-                </Button>
-              </div>
+              <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Varios</h3>
               <div className="space-y-1">
                 {(Array.isArray(otherItems) ? otherItems : []).map((o) => (
                   <div key={o.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" value={o.name} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, name: ev.target.value } : row))} />
+                      <Input className="h-8 px-2 py-1 text-sm" placeholder="Varios" value={o.name} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, name: ev.target.value } : row))} />
                     </div>
                     <div className="min-w-0">
                       <Label className="uppercase text-[12px] text-[var(--muted)]">$ c/u</Label>
@@ -735,94 +712,21 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </div>
             </div>
 
-            {/* Fila compacta de parámetros y total (según imagen), ubicada justo debajo de Herrajes */}
-            <div className="no-print rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2">
-              <div
-                className="grid items-end gap-1"
-                style={{ gridTemplateColumns: 'repeat(2, minmax(140px,1fr)) minmax(140px,1fr) minmax(160px,1fr) auto' }}
-              >
-                <div className="space-y-1 min-w-0">
-                  <Label className="uppercase text-[12px] text-[var(--muted)]">% Indirectos</Label>
-                  <Input
-                    className="h-8 px-2 py-1 text-sm"
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={indirectPercent}
-                    onChange={(e) => setIndirectPercent(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <Label className="uppercase text-[12px] text-[var(--muted)]">% Margen</Label>
-                  <Input
-                    className="h-8 px-2 py-1 text-sm"
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={marginPercent}
-                    onChange={(e) => setMarginPercent(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <Label className="uppercase text-[12px] text-[var(--muted)]">IVA %</Label>
-                  <Input
-                    className="h-8 px-2 py-1 text-sm"
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={taxPercent}
-                    onChange={(e) => setTaxPercent(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <Label className="uppercase text-[12px] text-[var(--muted)]">Flete (CLP)</Label>
-                  <Input
-                    className="h-8 px-2 py-1 text-sm"
-                    type="number"
-                    step="any"
-                    min="0"
-                    value={freight}
-                    onChange={(e) => setFreight(e.target.value)}
-                  />
-                </div>
-                <div className="flex justify-end gap-1 justify-self-end">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    title="Limpiar parámetros"
-                    aria-label="Limpiar parámetros"
-                    className="text-[var(--danger)] size-8"
-                    type="button"
-                    onClick={() => {
-                      setIndirectPercent(0);
-                      setMarginPercent(0);
-                      setTaxPercent(0);
-                      setFreight(0);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            </div>
+            {/* Parámetros financieros removidos */}
 
             {/* Reemplazado por la planilla de visualización SummarySheet (solo pantalla) */}
 
             {/* Visualización tipo planilla removida: se ajustará a diseño de imagen */}
 
-            {/* Bloque de totales finales según la imagen */}
+            {/* Bloque de totales finales: Valor neto, IVA 19% y Total */}
             <div className="no-print rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2">
-              <div className="grid items-end gap-1" style={{ gridTemplateColumns: 'repeat(4, minmax(160px,1fr)) auto' }}>
+              <div className="grid items-end gap-1" style={{ gridTemplateColumns: 'repeat(3, minmax(160px,1fr)) auto' }}>
                 <div className="space-y-1 min-w-0">
-                  <Label className="uppercase text-[12px] text-[var(--muted)]">Costo directo</Label>
-                  <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(directTotal)} />
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">Valor neto</Label>
+                  <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(netValue)} />
                 </div>
                 <div className="space-y-1 min-w-0">
-                  <Label className="uppercase text-[12px] text-[var(--muted)]">Neto</Label>
-                  <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(subtotalWithMargin)} />
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <Label className="uppercase text-[12px] text-[var(--muted)]">IVA</Label>
+                  <Label className="uppercase text-[12px] text-[var(--muted)]">IVA (19%)</Label>
                   <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(taxValue)} />
                 </div>
                 <div className="space-y-1 min-w-0">
@@ -832,7 +736,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
                 <div className="flex justify-end gap-2 justify-self-end">
                   <Button variant="outline" size="icon" className="size-8" title="Copiar totales" aria-label="Copiar totales" type="button"
                     onClick={() => {
-                      const txt = `Costo directo: ${formatCLP(directTotal)}\nNeto: ${formatCLP(subtotalWithMargin)}\nIVA: ${formatCLP(taxValue)}\nTotal: ${formatCLP(totalWithTax)}`;
+                      const txt = `Valor neto: ${formatCLP(netValue)}\nIVA (19%): ${formatCLP(taxValue)}\nTotal: ${formatCLP(totalWithTax)}`;
                       navigator.clipboard?.writeText?.(txt).catch(() => {});
                     }}
                   >
@@ -1020,7 +924,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
             )}
           </section>
 
-          {/* Otros */}
+          {/* Varios */}
           <section className="card-like p-3 space-y-2">
             {otherItems.filter((o) => toNumber(o.quantity) > 0).map((o) => (
               <div key={o.id} className="grid" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
@@ -1043,45 +947,21 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
               </div>
             ))}
             {otherItems.some((o) => toNumber(o.quantity) > 0) && (
-              <div className="text-right"><span className="total-label">Total otros: </span><span className="total-value">{formatCLP(othersTotal)}</span></div>
+              <div className="text-right"><span className="total-label">Total varios: </span><span className="total-value">{formatCLP(othersTotal)}</span></div>
             )}
           </section>
 
-          {/* Parámetros e Índices */}
-          <section className="card-like p-3">
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-              <div className="space-y-1 pr-2">
-                <div className="label">% Indirectos</div>
-                <div className="field value">{toNumber(indirectPercent)}</div>
-              </div>
-              <div className="space-y-1 pr-2">
-                <div className="label">% Margen</div>
-                <div className="field value">{toNumber(marginPercent)}</div>
-              </div>
-              <div className="space-y-1 pr-2">
-                <div className="label">IVA %</div>
-                <div className="field value">{toNumber(taxPercent)}</div>
-              </div>
-              <div className="space-y-1">
-                <div className="label">Flete (CLP)</div>
-                <div className="field value">{formatCLP(freightValue)}</div>
-              </div>
-            </div>
-          </section>
+          {/* Parámetros removidos en impresión */}
 
-          {/* Totales finales */}
+          {/* Totales finales: Valor neto, IVA 19% y Total */}
           <section className="card-like p-3">
-            <div className="grid" style={{ gridTemplateColumns: 'repeat(4, 1fr) auto' }}>
+            <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr) auto' }}>
               <div className="space-y-1 pr-2">
-                <div className="label">Costo directo</div>
-                <div className="field value">{formatCLP(directTotal)}</div>
+                <div className="label">Valor neto</div>
+                <div className="field value">{formatCLP(netValue)}</div>
               </div>
               <div className="space-y-1 pr-2">
-                <div className="label">Neto</div>
-                <div className="field value">{formatCLP(subtotalWithMargin)}</div>
-              </div>
-              <div className="space-y-1 pr-2">
-                <div className="label">IVA</div>
+                <div className="label">IVA (19%)</div>
                 <div className="field value">{formatCLP(taxValue)}</div>
               </div>
               <div className="space-y-1">

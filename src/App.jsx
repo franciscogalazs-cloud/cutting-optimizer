@@ -89,16 +89,6 @@ function App() {
     (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
   }, [SCROLL_FINE_TUNE]);
 
-  // Helper para desplazar la vista al encabezado de Tapacantos
-  const scrollToEdgebanding = useCallback(() => {
-    const target = edgebandingHeaderRef.current;
-    if (!target) return;
-    const barEl = tabsBarRef.current;
-    const barH = barEl ? barEl.getBoundingClientRect().height : 0;
-    const top = target.getBoundingClientRect().top + window.scrollY - barH + SCROLL_FINE_TUNE;
-    (document.scrollingElement || window).scrollTo({ top, behavior: 'smooth' });
-  }, [SCROLL_FINE_TUNE]);
-
   // Helper para desplazar la vista al encabezado de Materiales
   const scrollToMaterials = useCallback(() => {
     const target = materialsHeaderRef.current;
@@ -153,13 +143,8 @@ function App() {
     requestAnimationFrame(() => requestAnimationFrame(() => scrollToPieces()));
   }, [activeTab, scrollToPieces]);
 
-  // Al activar la pestaña de tapacantos, desplazamos al encabezado "Tapacantos"
-  useEffect(() => {
-    if (activeTab !== "edgebanding") return;
-    requestAnimationFrame(() => requestAnimationFrame(() => scrollToEdgebanding()));
-  }, [activeTab, scrollToEdgebanding]);
-
-  // Al activar la pestaña de materiales, desplazamos al encabezado "Materiales disponibles"
+  // Auto-scroll desactivado para 'edgebanding'.
+  // Para 'materials', volvemos a habilitar el auto-scroll al encabezado "Materiales disponibles".
   useEffect(() => {
     if (activeTab !== "materials") return;
     requestAnimationFrame(() => requestAnimationFrame(() => scrollToMaterials()));
@@ -504,6 +489,7 @@ function App() {
                 }}
                 alt="Logo"
                 className="block h-20 sm:h-24 w-auto select-none transition-transform duration-200 ease-out will-change-transform group-hover:scale-105 group-hover:drop-shadow-lg"
+                style={{ opacity: 0.7 }}
                 draggable={false}
               />
               </span>
@@ -584,9 +570,6 @@ function App() {
             </TabsTrigger>
             <TabsTrigger
               value="edgebanding"
-              onClick={() => {
-                requestAnimationFrame(() => requestAnimationFrame(() => scrollToEdgebanding()));
-              }}
               className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
             >
               <Scissors className="h-4 w-4" />
