@@ -2,9 +2,16 @@
 
 // Tipos de datos para la aplicación de optimización de cortes
 
+const safeId = () => {
+  try {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  } catch {}
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
 export const createPiece = (data = {}, options = {}) => {
   const base = {
-    id: data.id || crypto.randomUUID(),
+    id: data.id || safeId(),
     length: data.length || 0,
     width: data.width || 0,
     quantity: data.quantity || 1,
@@ -20,7 +27,7 @@ export const createPiece = (data = {}, options = {}) => {
 };
 
 export const createMaterial = (data = {}) => ({
-  id: data.id || crypto.randomUUID(),
+  id: data.id || safeId(),
   length: data.length || 0,
   width: data.width || 0,
   quantity: data.quantity || 1,

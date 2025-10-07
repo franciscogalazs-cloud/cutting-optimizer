@@ -1,5 +1,5 @@
 import { Book, Lightbulb, Settings, Zap, Target, Calculator } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -7,13 +7,16 @@ import { Badge } from '@/components/ui/badge';
 export const InfoModal = ({ isOpen, onClose }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" aria-describedby="info-modal-desc">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Book className="h-6 w-6" />
             <span>Optimizador de Cortes de Melamina - Guía Completa</span>
             <Badge variant="outline">v1.0 Pro</Badge>
           </DialogTitle>
+          <DialogDescription id="info-modal-desc" className="sr-only">
+            Guía de uso, características y consejos para el optimizador de cortes.
+          </DialogDescription>
         </DialogHeader>
 
         <Tabs defaultValue="guide" className="w-full">

@@ -13,7 +13,7 @@ const PRESETS = [
   { name: 'Terciado', lengthCm: 240, widthCm: 120 },
 ];
 
-export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfigChange, materials = [] }) => {
+export const MaterialForm = ({ onAddMaterial, onRemoveMaterial, units = 'mm', pieces = [], onConfigChange, materials = [] }) => {
   const formRef = useRef(null);
   const [formData, setFormData] = useState({
     length: '',
@@ -129,7 +129,8 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfi
       margin: parseFloat(formData.margin),
     });
 
-    onAddMaterial(material);
+    const normalizedMaterial = { ...material, id: String(material.id) };
+    onAddMaterial(normalizedMaterial);
     onConfigChange?.({ kerfWidth: material.kerf, margin: material.margin });
 
     setFormData({
@@ -167,7 +168,11 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfi
             <Package className="h-4 w-4 text-emerald-700" />
             <span>Agregar material</span>
           </div>
-          <Button type="button" onClick={() => formRef.current?.requestSubmit()} className="rounded-full py-2 px-4">
+          <Button
+            type="submit"
+            form="material-form"
+            className="rounded-full py-2 px-4"
+          >
             <Package className="h-4 w-4" />
             Agregar material
           </Button>
@@ -194,7 +199,9 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfi
           })}
         </div>
 
-  <form ref={formRef} onSubmit={handleSubmit} className="space-y-0">
+  <form id="material-form" ref={formRef} onSubmit={handleSubmit} className="space-y-0">
+    {/* Submit oculto para compatibilidad y tecla Enter */}
+    <button type="submit" className="hidden" aria-hidden="true" />
           <div className="grid items-end gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             {/* Nombre del material */}
             <div className="space-y-2">
@@ -273,15 +280,45 @@ export const MaterialForm = ({ onAddMaterial, units = 'mm', pieces = [], onConfi
             <div className="mt-2">
               <p className="text-[11px] text-slate-500 mb-1">Materiales agregados</p>
               <div className="flex flex-wrap gap-1.5">
-                {Array.from(new Set(materials.map(m => String(m?.material ?? '').trim()).filter(Boolean))).map((name) => (
-                  <span
-                    key={name}
-                    className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text)]"
-                    title={name}
-                  >
-                    {name}
-                  </span>
-                ))}
+                {materials.map((m) => {
+                  const name = String(m?.material ?? '').trim() || 'Material';
+                  const L = m?.length ?? '';
+                  const W = m?.width ?? '';
+                  const toCm = (val) => {
+                    const n = Number.parseFloat(val);
+                    if (!Number.isFinite(n)) return '';
+                    switch (units) {
+                      case 'mm':
+                        return n / 10;
+                      case 'in':
+                        return n * 2.54;
+                      default:
+                        return n;
+                    }
+                  };
+                  const fmt = (n) => (Number.isFinite(n) ? (Math.abs(n % 1) < 1e-6 ? String(Math.round(n)) : String(Number(n.toFixed(2)))) : '');
+                  const Lcm = toCm(L);
+                  const Wcm = toCm(W);
+                  const title = `${name} · ${fmt(Lcm)} × ${fmt(Wcm)} (cm)`;
+                  return (
+                    <span
+                      key={m.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text)]"
+                      title={title}
+                    >
+                      <span className="truncate max-w-[16rem]">{name} · {fmt(Lcm)} × {fmt(Wcm)} (cm)</span>
+                      <button
+                        type="button"
+                        aria-label="Quitar material"
+                        title="Quitar"
+                        className="ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full border border-[var(--border)] hover:bg-red-50 text-[10px] leading-none"
+                        onClick={() => onRemoveMaterial && onRemoveMaterial(m.id)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}

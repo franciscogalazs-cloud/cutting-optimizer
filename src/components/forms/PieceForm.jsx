@@ -17,8 +17,9 @@ const EDGE_LABELS = {
   derecha: 'Derecha',
 };
 
-export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotation = true, onToggleRotation, pieces = [] }) => {
+export const PieceForm = ({ onAddPiece, onRemovePiece, units = 'mm', materials = [], allowRotation = true, onToggleRotation, pieces = [] }) => {
   const formRef = useRef(null);
+  const hiddenSubmitRef = useRef(null);
   const materialNames = useMemo(
     () => Array.from(new Set(materials.map((material) => material.material))).filter(Boolean),
     [materials],
@@ -78,6 +79,10 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
     const key = materialNames.join('|');
     if (prevMaterialKey.current !== key) {
       setFormData((prev) => {
+        if (materialNames.length === 0) {
+          // Mantener vacío si no hay materiales disponibles
+          return { ...prev, material: '' };
+        }
         if (!materialNames.includes(prev.material)) {
           return { ...prev, material: materialOptions[0]?.name || '' };
         }
@@ -105,32 +110,48 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
     if (!formData.length || parseFloat(formData.length) <= 0) nextErrors.length = 'El largo debe ser mayor a 0';
     if (!formData.width || parseFloat(formData.width) <= 0) nextErrors.width = 'El ancho debe ser mayor a 0';
     if (!formData.quantity || parseInt(formData.quantity, 10) <= 0) nextErrors.quantity = 'La cantidad debe ser mayor a 0';
-    if (!formData.label.trim()) nextErrors.label = 'El nombre de pieza es requerido';
-    if (!formData.material || !materialNames.includes(formData.material)) nextErrors.material = 'Selecciona un material disponible';
+    // Nombre y material no bloquean el alta (se podrán editar después)
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      try { console.warn('[PieceForm] validateForm() failed', { formData }); } catch {}
+      return;
+    }
 
+    const qRaw = parseInt(formData.quantity, 10);
+    const safeQty = Number.isFinite(qRaw) && qRaw > 0 ? qRaw : 1;
+    const L = Number.parseFloat(formData.length);
+    const W = Number.parseFloat(formData.width);
+    if (!Number.isFinite(L) || !Number.isFinite(W) || L <= 0 || W <= 0) {
+      try { console.warn('[PieceForm] invalid dimensions', { L, W, formData }); } catch {}
+      return;
+    }
     const piece = createPiece(
       {
-        length: parseFloat(formData.length),
-        width: parseFloat(formData.width),
-        quantity: parseInt(formData.quantity, 10),
+        length: L,
+        width: W,
+        quantity: safeQty,
         label: formData.label.trim(),
         material: formData.material,
         canRotate: formData.canRotate,
         edges,
-        largoMm: toMillimeters(parseFloat(formData.length), units),
-        anchoMm: toMillimeters(parseFloat(formData.width), units),
+        largoMm: toMillimeters(L, units),
+        anchoMm: toMillimeters(W, units),
       },
       { units },
     );
 
-    onAddPiece?.(piece);
+    // Forzar id string para consistencia en comparaciones
+    const normalizedPiece = { ...piece, id: String(piece.id) };
+    try {
+      onAddPiece?.(normalizedPiece);
+    } catch (err) {
+      console.warn('[PieceForm] onAddPiece threw', err);
+    }
     resetForm();
   };
 
@@ -180,7 +201,24 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
               />
               <span className="flex items-center gap-1" title="Permitir rotación" aria-label="Permitir rotación"><RotateCcw className="h-4 w-4" /></span>
             </label>
-            <Button type="button" onClick={() => formRef.current?.requestSubmit()} className="rounded-full py-2 px-4">
+            <Button
+              type="submit"
+              form="piece-form"
+              className="rounded-full py-2 px-4"
+              onClick={(e) => {
+                // Robustecer envío en navegadores que ignoren el atributo form
+                try {
+                  const formEl = formRef.current;
+                  if (formEl?.requestSubmit) {
+                    e.preventDefault();
+                    formEl.requestSubmit();
+                    return;
+                  }
+                } catch {}
+                // Fallback: usar botón submit oculto
+                try { hiddenSubmitRef.current?.click(); } catch {}
+              }}
+            >
               <Plus className="h-4 w-4" />
               Agregar pieza
             </Button>
@@ -188,7 +226,9 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
         </div>
       </CardHeader>
       <CardContent className="bg-white">
-        <form ref={formRef} onSubmit={handleSubmit} className="card-scroll p-4 pt-2 space-y-4 max-h-[520px] overflow-auto">
+  <form id="piece-form" ref={formRef} onSubmit={handleSubmit} className="card-scroll p-4 pt-2 space-y-4 max-h-[520px] overflow-auto">
+          {/* Submit oculto para compatibilidad con navegadores sin requestSubmit y para Enter */}
+          <button ref={hiddenSubmitRef} type="submit" className="hidden" aria-hidden="true" />
           <div className="grid items-end gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             <div className="flex flex-col justify-end gap-2 min-w-0">
               <Label htmlFor="piece-label">Nombre de pieza</Label>
@@ -243,7 +283,7 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
             <div className="flex flex-col justify-end gap-2 min-w-0">
               <Label>Material</Label>
               <Select
-                value={materialOptions.find((option) => option.name === formData.material) ? formData.material : undefined}
+                value={materialOptions.find((option) => option.name === formData.material) ? formData.material : ''}
                 onValueChange={(value) => handleFieldChange('material', value)}
                 disabled={materialOptions.length === 0}
               >
@@ -272,15 +312,32 @@ export const PieceForm = ({ onAddPiece, units = 'mm', materials = [], allowRotat
             <div className="mt-2">
               <p className="text-[11px] text-slate-500 mb-1">Piezas agregadas</p>
               <div className="flex flex-wrap gap-1.5">
-                {Array.from(new Set(pieces.map(p => String(p?.label ?? '').trim()).filter(Boolean))).map((name, idx) => (
-                  <span
-                    key={`${name}-${idx}`}
-                    className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text)]"
-                    title={name}
-                  >
-                    {name}
-                  </span>
-                ))}
+                {pieces.map((p) => {
+                  const name = String(p?.label ?? '').trim() || 'Pieza';
+                  const L = p?.length ?? '';
+                  const W = p?.width ?? '';
+                  const Q = Number.isFinite(Number(p?.quantity)) ? Number(p.quantity) : 1;
+                  const MAT = String(p?.material ?? '').trim();
+                  const title = `${name} · ${L} × ${W} (${units}) · x${Q}${MAT ? ` · ${MAT}` : ''}`;
+                  return (
+                    <span
+                      key={p.id}
+                      className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text)]"
+                      title={title}
+                    >
+                      <span className="truncate max-w-[16rem]">{name} · {L} × {W} ({units}) · x{Q}{MAT ? ` · ${MAT}` : ''}</span>
+                      <button
+                        type="button"
+                        aria-label="Quitar pieza"
+                        title="Quitar"
+                        className="ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full border border-[var(--border)] hover:bg-red-50 text-[10px] leading-none"
+                        onClick={() => onRemovePiece && onRemovePiece(p.id)}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  );
+                })}
               </div>
             </div>
           )}

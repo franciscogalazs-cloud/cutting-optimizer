@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 // import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Download, Grid3X3, Play, Scissors, Calculator, Home, Square, Layers } from "lucide-react";
 import { toast } from "sonner";
 import { PieceForm } from "./components/forms/PieceForm";
@@ -161,19 +162,44 @@ function App() {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [editingPiece, setEditingPiece] = useState(null);
   const [editingMaterial, setEditingMaterial] = useState(null);
+  const [showClearModal, setShowClearModal] = useState(false);
   const { result, optimize, error } = useOptimization();
   const efficiencyFactor = 0.9;
 
+  // Inicio limpio una sola vez por sesión: limpiar piezas/materiales solo en el primer load de la sesión
+  useEffect(() => {
+    try {
+      // Limpiar todas las claves relevantes para evitar datos antiguos
+      const KEYS = [
+        'cutting-pieces',
+        'cutting-materials',
+        'budget-client',
+        'budget-company',
+        'budget-base-materials',
+        'budget-edge-items',
+        'budget-hardware-items',
+        'budget-other-items',
+      ];
+      for (const k of KEYS) {
+        try { window.localStorage.removeItem(k); } catch {}
+      }
+      setPieces([]);
+      setMaterials([]);
+    } catch {
+      // ignorar errores de storage
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Handler centralizado para limpiar datos y recargar
   const handleClearAll = useCallback(() => {
-    if (confirm('¿Estás seguro de que quieres limpiar todos los datos?')) {
-      try {
-        localStorage.clear();
-      } catch {
-        console.warn('localStorage.clear failed');
-      } finally {
-        window.location.reload();
-      }
+    try {
+      localStorage.removeItem('cutting-pieces');
+      localStorage.removeItem('cutting-materials');
+    } catch {
+      console.warn('localStorage partial clear failed');
+    } finally {
+      window.location.reload();
     }
   }, []);
   useEffect(() => {
@@ -246,30 +272,40 @@ function App() {
     });
   }, [pieces, config.units, setMaterials]);
   const handleAddPiece = (piece) => {
-    // Remover flags temporales (e.g., duplicado en borrador) y cualquier id previo
-    const { isDuplicateDraft: _dup, id: _oldId, ...clean } = piece || {};
+    // Remover flags temporales (e.g., duplicado en borrador)
+    const { isDuplicateDraft: _dup, ...clean } = piece || {};
+    // Validaciones defensivas por si el origen envía datos malos
+    const q = Number(clean?.quantity);
+    const L = Number(clean?.length);
+    const W = Number(clean?.width);
+    if (!Number.isFinite(L) || !Number.isFinite(W) || L <= 0 || W <= 0 || !Number.isFinite(q) || q <= 0) {
+      try { console.warn('[App] handleAddPiece invalid payload', { clean }); } catch {}
+      return;
+    }
     const normalized = normalizePiece(clean, config.units);
     const newPiece = {
       ...clean,
       ...normalized,
-      id: Date.now() + Math.random(),
-      color: "hsl(" + Math.random() * 360 + ", 70%, 60%)",
+      // Conservar id si existe (p. ej. desde createPiece); generar uno string si falta
+      id: clean?.id ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      color: clean?.color || `hsl(${Math.floor(Math.random()*360)}, 70%, 60%)`,
       length: mmToUnits(normalized.largoMm, config.units),
       width: mmToUnits(normalized.anchoMm, config.units),
     };
-  setPieces((prev) => [...prev, newPiece]);
+    setPieces((prev) => [...prev, newPiece]);
   };
   const handleAddMaterial = (material) => {
-    // Remover flags temporales y cualquier id previo en duplicados
-    const { isDuplicateDraft: _dup, id: _oldId, ...clean } = material || {};
+    // Remover flags temporales en duplicados
+    const { isDuplicateDraft: _dup, ...clean } = material || {};
     const newMaterial = {
       ...clean,
-      id: Date.now() + Math.random(),
+      id: clean?.id ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     };
-  setMaterials((prev) => [...prev, newMaterial]);
+    setMaterials((prev) => [...prev, newMaterial]);
   };
   const handleDeletePiece = (id) => {
-  setPieces((prev) => prev.filter((p) => p.id !== id));
+    const target = String(id);
+    setPieces((prev) => prev.filter((p) => String(p.id) !== target));
   };
   const handleDeleteMaterial = (id) => {
   setMaterials((prev) => prev.filter((m) => m.id !== id));
@@ -288,9 +324,13 @@ function App() {
     setEditingMaterial(duplicateDraft);
   };
   const handleEditPiece = (id, updatedPiece) => {
+    const target = String(id);
     setPieces((prev) =>
       prev.map((piece) => {
-        if (piece.id !== id) return piece;
+        if (String(piece.id) !== target) return piece;
+        // Sanitizar cantidad
+        const rawQty = Number(updatedPiece?.quantity);
+        const nextQuantity = Number.isFinite(rawQty) && rawQty > 0 ? Math.floor(rawQty) : piece.quantity;
         // Si el usuario rotó manualmente (intercambió largo/ancho) y no envió edges nuevos,
         // rotamos también los cantos para que sigan el mismo lado físico.
         const isSwap =
@@ -313,7 +353,8 @@ function App() {
           };
         }
 
-        const merged = { ...piece, ...updatedPiece, ...(edgesAfter ? { edges: edgesAfter } : null) };
+  // Importante: preservar el id original aunque updatedPiece no lo traiga
+  const merged = { ...piece, ...updatedPiece, quantity: nextQuantity, ...(edgesAfter ? { edges: edgesAfter } : null), id: piece.id };
         const normalized = normalizePiece({ ...merged, largoMm: null, anchoMm: null }, config.units);
         return {
           ...merged,
@@ -601,7 +642,7 @@ function App() {
                 </svg>
               </button>
               <button
-                onClick={handleClearAll}
+                onClick={() => setShowClearModal(true)}
                 aria-label="Limpiar"
                 title="Limpiar"
                 className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-[var(--text)] bg-white shadow-md hover:shadow-lg
@@ -633,6 +674,7 @@ function App() {
             <section className="grid gap-4">
               <MaterialForm
                 onAddMaterial={handleAddMaterial}
+                onRemoveMaterial={handleDeleteMaterial}
                 units={config.units}
                 kerfWidth={config.kerfWidth}
                 margin={config.margin}
@@ -641,6 +683,7 @@ function App() {
               />
               <PieceForm
                 onAddPiece={handleAddPiece}
+                onRemovePiece={handleDeletePiece}
                 units={config.units}
                 materials={materials}
                 pieces={pieces}
@@ -816,6 +859,34 @@ function App() {
           }
         }}
       />
+
+      {/* Modal nativo para limpiar datos */}
+      <Dialog open={showClearModal} onOpenChange={setShowClearModal}>
+        <DialogContent className="max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle>Limpiar datos</DialogTitle>
+            <DialogDescription id="clear-data-desc" className="sr-only">
+              Confirmación para limpiar piezas y materiales de la sesión actual.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2 text-sm text-[var(--text)]">
+            <p>Se eliminarán los datos de la sesión:</p>
+            <ul className="list-disc pl-5">
+              <li>Piezas</li>
+              <li>Materiales</li>
+            </ul>
+            <p className="mt-2">Se conservarán:</p>
+            <ul className="list-disc pl-5">
+              <li>Presupuesto (Empresa/Cliente y listas)</li>
+              <li>Configuración (unidades, kerf, margen)</li>
+            </ul>
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" onClick={() => setShowClearModal(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleClearAll}>Limpiar</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
   </div>
   );
 }

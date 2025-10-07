@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,11 +14,14 @@ export function VersionHistoryModal({
 }) {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl w-[95vw]">
+      <DialogContent className="max-w-3xl w-[95vw]" aria-describedby="version-history-desc">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <History className="h-5 w-5" /> Historial de versiones
           </DialogTitle>
+          <DialogDescription id="version-history-desc" className="sr-only">
+            Lista de versiones guardadas del proyecto con acciones para restaurar o eliminar.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <div className="flex justify-between items-center">

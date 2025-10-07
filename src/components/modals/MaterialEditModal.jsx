@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -49,9 +49,12 @@ export const MaterialEditModal = ({ open, onClose, material, onSave, units = 'mm
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white">
+      <DialogContent className="max-w-md bg-white" aria-describedby="material-edit-desc">
         <DialogHeader>
           <DialogTitle>Editar Material</DialogTitle>
+          <DialogDescription id="material-edit-desc" className="sr-only">
+            Formulario para editar dimensiones y parámetros del material seleccionado.
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">

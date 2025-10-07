@@ -4,6 +4,20 @@ export const useLocalStorage = (key, initialValue) => {
   // Función para obtener el valor del localStorage
   const getStoredValue = useCallback(() => {
     try {
+      // Política: siempre arrancar en limpio para estas claves
+      const ALWAYS_BLANK_KEYS = new Set([
+        'cutting-pieces',
+        'cutting-materials',
+        'budget-client',
+        'budget-company',
+        'budget-base-materials',
+        'budget-edge-items',
+        'budget-hardware-items',
+        'budget-other-items',
+      ]);
+      if (typeof window !== 'undefined' && ALWAYS_BLANK_KEYS.has(key)) {
+        return initialValue;
+      }
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initialValue;
     } catch (error) {
@@ -57,9 +71,9 @@ export const useLocalStorage = (key, initialValue) => {
 
 // Hook especializado para el proyecto
 export const useProjectData = () => {
-  const [pieces, setPieces] = useLocalStorage('cutting-optimizer-pieces', []);
-  const [materials, setMaterials] = useLocalStorage('cutting-optimizer-materials', []);
-  const [config, setConfig] = useLocalStorage('cutting-optimizer-config', {
+  const [pieces, setPieces] = useLocalStorage('cutting-pieces', []);
+  const [materials, setMaterials] = useLocalStorage('cutting-materials', []);
+  const [config, setConfig] = useLocalStorage('cutting-config', {
     algorithm: 'bfd',
     allowRotation: true,
     kerf: 3,

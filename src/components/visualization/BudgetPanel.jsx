@@ -100,7 +100,7 @@ const printStyles = `
   }
 `;
 
-export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' }) => {
+export const BudgetPanel = ({ result, pieces = [], units = 'cm' }) => {
   const printAreaRef = useRef(null); // contendrá toda la pestaña presupuesto visible
   const [client, setClient] = useLocalStorage('budget-client', emptyClient);
   const [company, setCompany] = useLocalStorage('budget-company', emptyCompany);
@@ -154,7 +154,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     }
     // Sin patrones: no proponemos filas por defecto aquí.
     return [];
-  }, [result, materials, units]);
+  }, [result, units]);
 
   const defaultEdgeRows = useMemo(() => {
     const totals = computeEdgeTotals(pieces) || {};
@@ -336,7 +336,7 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
     if (!node) return window.print();
   const extraCss = `
       /* Página y visibilidad */
-      @page { size: A4; margin: 12mm; }
+      @page { size: A4; margin: 10mm; }
       .no-print { display: none !important; }
       .print-only { display: block !important; }
       #budget-print-root [data-print-hide] { display: none !important; }
@@ -350,20 +350,21 @@ export const BudgetPanel = ({ result, pieces = [], materials = [], units = 'cm' 
       [role="button"]:not([role="combobox"]) { display: none !important; }
 
       /* Estética similar a pantalla */
-      #budget-print-root { font-size: 12px; line-height: 1.35; color: var(--text); }
-      #budget-print-root h1 { font-size: 22px; font-weight: 700; letter-spacing: .02em; }
-      #budget-print-root .card-like { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
-      #budget-print-root .field { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; background: var(--surface); }
+      #budget-print-root { font-size: 11px; line-height: 1.25; color: var(--text); }
+      #budget-print-root h1 { font-size: 20px; font-weight: 700; letter-spacing: .02em; margin: 0 0 6px 0; }
+      #budget-print-root h2, #budget-print-root h3 { margin: 6px 0 4px 0; }
+      #budget-print-root .card-like { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 6px; }
+      #budget-print-root .field { border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; background: var(--surface); }
       #budget-print-root .label { color: var(--muted); font-size: 11px; text-transform: uppercase; }
       #budget-print-root .value { color: var(--text); font-size: 12px; }
-      #budget-print-root .section-title { text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: var(--text); }
+      #budget-print-root .section-title { text-transform: uppercase; letter-spacing: .06em; font-weight: 600; color: var(--text); margin: 6px 0 4px 0; }
       #budget-print-root .muted { color: var(--muted); }
       #budget-print-root .total-label { text-transform: uppercase; color: var(--muted); font-size: 11px; }
       #budget-print-root .total-value { color: var(--text); font-weight: 600; }
-      #budget-print-root .grid-gap { gap: 8px; }
-      #budget-print-root .row-gap { row-gap: 6px; }
+      #budget-print-root .grid-gap { gap: 6px; }
+      #budget-print-root .row-gap { row-gap: 4px; }
       #budget-print-root section, #budget-print-root .card-like { break-inside: avoid; }
-      #budget-print-root .print-footer { text-align: center; margin-top: 10mm; }
+      #budget-print-root .print-footer { text-align: center; margin-top: 6mm; }
       #budget-print-root .print-footer img { opacity: 0.15; height: 48px; filter: brightness(0); }
       /* Logo en encabezado: pasar de blanco a negro solo en impresión */
       #budget-print-root header img { filter: brightness(0); }

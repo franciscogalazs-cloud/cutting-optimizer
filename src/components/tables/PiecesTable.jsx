@@ -63,7 +63,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
                     <span className="col-span-2">
                       <span>Material: </span>
                       <Select
-                        value={materialNames.includes(piece.material) ? piece.material : undefined}
+                        value={materialNames.includes(piece.material) ? piece.material : ''}
                         onValueChange={(value) => onEdit && onEdit(piece.id, { material: value })}
                         disabled={materialNames.length === 0}
                       >
@@ -204,7 +204,7 @@ export const PiecesTable = ({ pieces, onEdit, onDelete, onEditRequest, onDuplica
                   </TableCell>
                   <TableCell className="text-center">
                     <Select
-                      value={materialNames.includes(piece.material) ? piece.material : undefined}
+                      value={materialNames.includes(piece.material) ? piece.material : ''}
                       onValueChange={(value) => onEdit && onEdit(piece.id, { material: value })}
                       disabled={materialNames.length === 0}
                     >

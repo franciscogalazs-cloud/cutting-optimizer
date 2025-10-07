@@ -1,6 +1,6 @@
 import { useMemo, useRef, useEffect, useCallback } from 'react';
 import { FileText, ExternalLink, Printer, Download } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { printElement } from '@/lib/print';
@@ -84,12 +84,15 @@ export const ExportModal = ({ isOpen, onClose, result, pieces, materials, config
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl w-[95vw] pr-12">
+      <DialogContent className="max-w-6xl w-[95vw] pr-12" aria-describedby="export-modal-desc">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 pr-10">
             <FileText className="h-5 w-5 text-red-600" />
             Reporte (HTML)
           </DialogTitle>
+          <DialogDescription id="export-modal-desc" className="sr-only">
+            Vista previa del reporte en HTML con opciones para imprimir o descargar.
+          </DialogDescription>
         </DialogHeader>
         <div className="mt-3">
           <Card className="border-[var(--border)] bg-[var(--surface)]">

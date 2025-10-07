@@ -21,6 +21,18 @@ const createEdgesFromPiece = (piece, units) => {
 };
 
 export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', materials = [] }) => {
+  const mmToUnits = (valueMm, u) => {
+    const n = Number(valueMm);
+    if (!Number.isFinite(n)) return 0;
+    switch (u) {
+      case 'cm':
+        return Number((n / 10).toFixed(3));
+      case 'in':
+        return Number((n / 25.4).toFixed(3));
+      default:
+        return Number(n.toFixed(3));
+    }
+  };
   const labelInputRef = useRef(null);
   const [form, setForm] = useState({
     label: '',
@@ -52,8 +64,9 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
     const normalized = normalizePiece(piece, units);
     setForm({
       label: normalized.label ?? '',
-      length: normalized.length ?? normalized.largoMm ?? 0,
-      width: normalized.width ?? normalized.anchoMm ?? 0,
+      // Mostrar siempre en unidades actuales
+      length: mmToUnits(normalized.largoMm ?? 0, units),
+      width: mmToUnits(normalized.anchoMm ?? 0, units),
       quantity: normalized.quantity ?? normalized.cantidad ?? 1,
       material: normalized.material ?? (materialNames[0] ?? ''),
       canRotate: normalized.canRotate ?? true,
@@ -92,11 +105,9 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
 
   const validate = () => {
     const nextErrors = {};
-    if (!form.label.trim()) nextErrors.label = 'Requerido';
     if (!(Number(form.length) > 0)) nextErrors.length = 'Debe ser > 0';
     if (!(Number(form.width) > 0)) nextErrors.width = 'Debe ser > 0';
     if (!(Number.isInteger(Number(form.quantity)) && Number(form.quantity) > 0)) nextErrors.quantity = 'Debe ser entero > 0';
-    if (!form.material || !materialNames.includes(form.material)) nextErrors.material = 'Selecciona un material disponible';
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
@@ -105,13 +116,14 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
     if (!validate()) return;
     const lengthValue = Number(form.length);
     const widthValue = Number(form.width);
-    const quantityValue = Number(form.quantity);
+    const qRaw = Number(form.quantity);
+    const quantityValue = Number.isFinite(qRaw) && qRaw > 0 ? Math.floor(qRaw) : 1;
     onSave?.({
       label: form.label.trim(),
       length: lengthValue,
       width: widthValue,
       quantity: quantityValue,
-      material: form.material,
+      material: materialNames.length > 0 && materialNames.includes(form.material) ? form.material : '',
       canRotate: Boolean(form.canRotate),
       edges: cloneEdges(edges),
       largoMm: toMillimeters(lengthValue, units),
@@ -195,7 +207,7 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
                 <Input value="Sin materiales disponibles" disabled />
               ) : (
                 <Select
-                  value={materialNames.includes(form.material) ? form.material : undefined}
+                  value={materialNames.includes(form.material) ? form.material : ''}
                   onValueChange={(value) => setField('material', value)}
                   disabled={materialNames.length === 0}
                 >
