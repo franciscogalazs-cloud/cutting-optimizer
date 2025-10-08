@@ -487,229 +487,314 @@ export const BudgetPanel = ({ result, pieces = [], units = 'cm' }) => {
             {/* Materiales base */}
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
               <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Materiales base</h3>
-              <div className="space-y-1">
+              {/* Móvil: tarjetas apiladas */}
+              <div className="sm:hidden space-y-2">
                 {baseMaterials.filter((m) => toNumber(m.quantity) > 0).map((m) => (
-                  <div key={m.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 0.8fr 1fr 1fr 1fr auto' }}>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Tipo</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" value={m.name} readOnly />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Unidad</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" value={m.unit || 'plancha'} readOnly />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Precio (CLP)</Label>
-                      <Input
-                        className="h-8 px-2 py-1 text-sm"
-                        type="number"
-                        step="any"
-                        min="0"
-                        value={m.price}
-                        onChange={(e) => setBaseMaterials((prev) => prev.map((row) => row.id === m.id ? { ...row, price: e.target.value } : row))}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad</Label>
-                      <Input
-                        className="h-8 px-2 py-1 text-sm"
-                        type="number"
-                        step="any"
-                        min="0"
-                        value={m.quantity}
-                        onChange={(e) => setBaseMaterials((prev) => prev.map((row) => row.id === m.id ? { ...row, quantity: e.target.value } : row))}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(toNumber(m.price) * toNumber(m.quantity))} />
-                    </div>
-                    <div className="flex items-end justify-end gap-1 self-end">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8"
-                        type="button"
-                        title="Duplicar y Agregar"
-                        aria-label="Duplicar y Agregar"
-                        onClick={() => duplicateRow(setBaseMaterials, m.id, createMaterialRow)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8 text-[var(--danger)]"
-                        type="button"
-                        title="Eliminar"
-                        aria-label="Eliminar"
-                        onClick={() => removeRow(setBaseMaterials, m.id, createMaterialRow)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  <div key={m.id} className="rounded-md border border-[var(--border)] bg-[var(--bg)]/20 p-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-medium text-[var(--text)] truncate" title={m.name}>{m.name}</div>
+                        <div className="mt-1 text-[12px] text-[var(--muted)] grid grid-cols-2 gap-x-4 gap-y-1">
+                          <span>Unidad: <span className="tabular-nums">{m.unit || 'plancha'}</span></span>
+                          <span>Total: <span className="tabular-nums">{formatCLP(toNumber(m.price) * toNumber(m.quantity))}</span></span>
+                          <span className="col-span-2">Precio (CLP):
+                            <Input
+                              className="mt-1 h-8 px-2 py-1 text-sm"
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={m.price}
+                              onChange={(e) => setBaseMaterials((prev) => prev.map((row) => row.id === m.id ? { ...row, price: e.target.value } : row))}
+                            />
+                          </span>
+                          <span className="col-span-2">Cantidad:
+                            <Input
+                              className="mt-1 h-8 px-2 py-1 text-sm"
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={m.quantity}
+                              onChange={(e) => setBaseMaterials((prev) => prev.map((row) => row.id === m.id ? { ...row, quantity: e.target.value } : row))}
+                            />
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-[var(--text)]" title="Duplicar y Agregar" onClick={() => duplicateRow(setBaseMaterials, m.id, createMaterialRow)}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-[var(--danger)] hover:text-[var(--danger)]" title="Eliminar" onClick={() => removeRow(setBaseMaterials, m.id, createMaterialRow)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
+              </div>
+              {/* sm+: grilla completa */}
+              <div className="hidden sm:block">
+                <div className="space-y-1">
+                  {baseMaterials.filter((m) => toNumber(m.quantity) > 0).map((m) => (
+                    <div key={m.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 0.8fr 1fr 1fr 1fr auto' }}>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Tipo</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" value={m.name} readOnly />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Unidad</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" value={m.unit || 'plancha'} readOnly />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Precio (CLP)</Label>
+                        <Input
+                          className="h-8 px-2 py-1 text-sm"
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={m.price}
+                          onChange={(e) => setBaseMaterials((prev) => prev.map((row) => row.id === m.id ? { ...row, price: e.target.value } : row))}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad</Label>
+                        <Input
+                          className="h-8 px-2 py-1 text-sm"
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={m.quantity}
+                          onChange={(e) => setBaseMaterials((prev) => prev.map((row) => row.id === m.id ? { ...row, quantity: e.target.value } : row))}
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(toNumber(m.price) * toNumber(m.quantity))} />
+                      </div>
+                      <div className="flex items-end justify-end gap-1 self-end">
+                        <Button variant="outline" size="icon" className="size-8" type="button" title="Duplicar y Agregar" aria-label="Duplicar y Agregar" onClick={() => duplicateRow(setBaseMaterials, m.id, createMaterialRow)}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="size-8 text-[var(--danger)]" type="button" title="Eliminar" aria-label="Eliminar" onClick={() => removeRow(setBaseMaterials, m.id, createMaterialRow)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Tapacantos */}
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
               <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Tapacantos</h3>
-              <div className="space-y-1">
+              {/* Móvil: tarjetas */}
+              <div className="sm:hidden space-y-2">
                 {edgeItems.filter((e) => toNumber(e.quantity) > 0).map((e) => (
-                  <div key={e.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" value={e.name} readOnly />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">$ / ml</Label>
-                      <Input
-                        className="h-8 px-2 py-1 text-sm"
-                        type="number"
-                        step="any"
-                        min="0"
-                        value={e.price}
-                        onChange={(ev) => setEdgeItems((prev) => prev.map((row) => row.id === e.id ? { ...row, price: ev.target.value } : row))}
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad (ml)</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" value={toNumber(e.quantity)} readOnly />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(toNumber(e.price) * toNumber(e.quantity))} />
-                    </div>
-                    <div className="flex items-end justify-end gap-1 self-end">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8"
-                        type="button"
-                        title="Duplicar y Agregar"
-                        aria-label="Duplicar y Agregar"
-                        onClick={() => duplicateRow(setEdgeItems, e.id, createEdgeRow)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8 text-[var(--danger)]"
-                        type="button"
-                        title="Eliminar"
-                        aria-label="Eliminar"
-                        onClick={() => removeRow(setEdgeItems, e.id, createEdgeRow)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  <div key={e.id} className="rounded-md border border-[var(--border)] bg-[var(--bg)]/20 p-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-medium text-[var(--text)] truncate" title={e.name}>{e.name}</div>
+                        <div className="mt-1 text-[12px] text-[var(--muted)] grid grid-cols-2 gap-x-4 gap-y-1">
+                          <span>Cantidad: <span className="tabular-nums">{toNumber(e.quantity)} ml</span></span>
+                          <span>Total: <span className="tabular-nums">{formatCLP(toNumber(e.price) * toNumber(e.quantity))}</span></span>
+                          <span className="col-span-2">$ / ml:
+                            <Input
+                              className="mt-1 h-8 px-2 py-1 text-sm"
+                              type="number"
+                              step="any"
+                              min="0"
+                              value={e.price}
+                              onChange={(ev) => setEdgeItems((prev) => prev.map((row) => row.id === e.id ? { ...row, price: ev.target.value } : row))}
+                            />
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-[var(--text)]" title="Duplicar y Agregar" onClick={() => duplicateRow(setEdgeItems, e.id, createEdgeRow)}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-[var(--danger)] hover:text-[var(--danger)]" title="Eliminar" onClick={() => removeRow(setEdgeItems, e.id, createEdgeRow)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
+              </div>
+              {/* sm+: grilla */}
+              <div className="hidden sm:block">
+                <div className="space-y-1">
+                  {edgeItems.filter((e) => toNumber(e.quantity) > 0).map((e) => (
+                    <div key={e.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" value={e.name} readOnly />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">$ / ml</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={e.price} onChange={(ev) => setEdgeItems((prev) => prev.map((row) => row.id === e.id ? { ...row, price: ev.target.value } : row))} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad (ml)</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" value={toNumber(e.quantity)} readOnly />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(toNumber(e.price) * toNumber(e.quantity))} />
+                      </div>
+                      <div className="flex items-end justify-end gap-1 self-end">
+                        <Button variant="outline" size="icon" className="size-8" type="button" title="Duplicar y Agregar" aria-label="Duplicar y Agregar" onClick={() => duplicateRow(setEdgeItems, e.id, createEdgeRow)}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="size-8 text-[var(--danger)]" type="button" title="Eliminar" aria-label="Eliminar" onClick={() => removeRow(setEdgeItems, e.id, createEdgeRow)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Herrajes */}
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
               <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Herrajes</h3>
-              <div className="space-y-1">
+              {/* Móvil: tarjetas */}
+              <div className="sm:hidden space-y-2">
                 {(Array.isArray(hardwareItems) ? hardwareItems : []).map((h) => (
-                  <div key={h.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" placeholder="Bisagra 35mm / Corredera / Tornillos" value={h.name} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, name: ev.target.value } : row))} />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">$ c/u</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={h.price} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, price: ev.target.value } : row))} />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={h.quantity} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, quantity: ev.target.value } : row))} />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(toNumber(h.price) * toNumber(h.quantity))} />
-                    </div>
-                    <div className="flex items-end justify-end gap-1 self-end">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8"
-                        type="button"
-                        title="Duplicar y Agregar"
-                        aria-label="Duplicar y Agregar"
-                        onClick={() => duplicateRow(setHardwareItems, h.id, createHardwareRow)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8 text-[var(--danger)]"
-                        type="button"
-                        title="Eliminar"
-                        aria-label="Eliminar"
-                        onClick={() => removeRow(setHardwareItems, h.id, createHardwareRow)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  <div key={h.id} className="rounded-md border border-[var(--border)] bg-[var(--bg)]/20 p-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-medium text-[var(--text)] truncate" title={h.name || 'Herraje'}>{h.name || 'Herraje'}</div>
+                        <div className="mt-1 text-[12px] text-[var(--muted)] grid grid-cols-2 gap-x-4 gap-y-1">
+                          <span>Total: <span className="tabular-nums">{formatCLP(toNumber(h.price) * toNumber(h.quantity))}</span></span>
+                          <span className="col-span-2">$ c/u:
+                            <Input className="mt-1 h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={h.price} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, price: ev.target.value } : row))} />
+                          </span>
+                          <span className="col-span-2">Cantidad:
+                            <Input className="mt-1 h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={h.quantity} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, quantity: ev.target.value } : row))} />
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-[var(--text)]" title="Duplicar y Agregar" onClick={() => duplicateRow(setHardwareItems, h.id, createHardwareRow)}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-[var(--danger)] hover:text-[var(--danger)]" title="Eliminar" onClick={() => removeRow(setHardwareItems, h.id, createHardwareRow)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
+              </div>
+              {/* sm+: grilla */}
+              <div className="hidden sm:block">
+                <div className="space-y-1">
+                  {(Array.isArray(hardwareItems) ? hardwareItems : []).map((h) => (
+                    <div key={h.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" placeholder="Bisagra 35mm / Corredera / Tornillos" value={h.name} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, name: ev.target.value } : row))} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">$ c/u</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={h.price} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, price: ev.target.value } : row))} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={h.quantity} onChange={(ev) => setHardwareItems((prev) => prev.map((row) => row.id === h.id ? { ...row, quantity: ev.target.value } : row))} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(toNumber(h.price) * toNumber(h.quantity))} />
+                      </div>
+                      <div className="flex items-end justify-end gap-1 self-end">
+                        <Button variant="outline" size="icon" className="size-8" type="button" title="Duplicar y Agregar" aria-label="Duplicar y Agregar" onClick={() => duplicateRow(setHardwareItems, h.id, createHardwareRow)}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="size-8 text-[var(--danger)]" type="button" title="Eliminar" aria-label="Eliminar" onClick={() => removeRow(setHardwareItems, h.id, createHardwareRow)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Varios */}
             <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-2" data-print-hide>
               <h3 className="mb-2 text-sm font-semibold text-[var(--text)]">Varios</h3>
-              <div className="space-y-1">
+              {/* Móvil: tarjetas */}
+              <div className="sm:hidden space-y-2">
                 {(Array.isArray(otherItems) ? otherItems : []).map((o) => (
-                  <div key={o.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" placeholder="Varios" value={o.name} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, name: ev.target.value } : row))} />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">$ c/u</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={o.price} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, price: ev.target.value } : row))} />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={o.quantity} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, quantity: ev.target.value } : row))} />
-                    </div>
-                    <div className="min-w-0">
-                      <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
-                      <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(toNumber(o.price) * toNumber(o.quantity))} />
-                    </div>
-                    <div className="flex items-end justify-end gap-1 self-end">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8"
-                        type="button"
-                        title="Duplicar y Agregar"
-                        aria-label="Duplicar y Agregar"
-                        onClick={() => duplicateRow(__setOtherItems, o.id, createOtherRow)}
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="size-8 text-[var(--danger)]"
-                        type="button"
-                        title="Eliminar"
-                        aria-label="Eliminar"
-                        onClick={() => removeRow(__setOtherItems, o.id, createOtherRow)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  <div key={o.id} className="rounded-md border border-[var(--border)] bg-[var(--bg)]/20 p-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-[13px] font-medium text-[var(--text)] truncate" title={o.name || 'Ítem'}>{o.name || 'Ítem'}</div>
+                        <div className="mt-1 text-[12px] text-[var(--muted)] grid grid-cols-2 gap-x-4 gap-y-1">
+                          <span>Total: <span className="tabular-nums">{formatCLP(toNumber(o.price) * toNumber(o.quantity))}</span></span>
+                          <span className="col-span-2">$ c/u:
+                            <Input className="mt-1 h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={o.price} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, price: ev.target.value } : row))} />
+                          </span>
+                          <span className="col-span-2">Cantidad:
+                            <Input className="mt-1 h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={o.quantity} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, quantity: ev.target.value } : row))} />
+                          </span>
+                        </div>
+                      </div>
+                      <div className="shrink-0">
+                        <div className="flex justify-end gap-2">
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-[var(--text)]" title="Duplicar y Agregar" onClick={() => duplicateRow(__setOtherItems, o.id, createOtherRow)}>
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-8 w-8 p-0 text-[var(--danger)] hover:text-[var(--danger)]" title="Eliminar" onClick={() => removeRow(__setOtherItems, o.id, createOtherRow)}>
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 ))}
+              </div>
+              {/* sm+: grilla */}
+              <div className="hidden sm:block">
+                <div className="space-y-1">
+                  {(Array.isArray(otherItems) ? otherItems : []).map((o) => (
+                    <div key={o.id} className="grid items-end gap-1" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr auto' }}>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Nombre</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" placeholder="Varios" value={o.name} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, name: ev.target.value } : row))} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">$ c/u</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={o.price} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, price: ev.target.value } : row))} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Cantidad</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" type="number" step="any" min="0" value={o.quantity} onChange={(ev) => __setOtherItems((prev) => prev.map((row) => row.id === o.id ? { ...row, quantity: ev.target.value } : row))} />
+                      </div>
+                      <div className="min-w-0">
+                        <Label className="uppercase text-[12px] text-[var(--muted)]">Total</Label>
+                        <Input className="h-8 px-2 py-1 text-sm" readOnly value={formatCLP(toNumber(o.price) * toNumber(o.quantity))} />
+                      </div>
+                      <div className="flex items-end justify-end gap-1 self-end">
+                        <Button variant="outline" size="icon" className="size-8" type="button" title="Duplicar y Agregar" aria-label="Duplicar y Agregar" onClick={() => duplicateRow(__setOtherItems, o.id, createOtherRow)}>
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" className="size-8 text-[var(--danger)]" type="button" title="Eliminar" aria-label="Eliminar" onClick={() => removeRow(__setOtherItems, o.id, createOtherRow)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
