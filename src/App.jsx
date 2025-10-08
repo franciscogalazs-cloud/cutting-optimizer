@@ -487,7 +487,7 @@ function App() {
       {/* Oscurecedor removido a solicitud: la imagen de fondo se muestra sin sombreado */}
   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
     {/* Header eliminado: renderizamos TabsList directamente para borrar logo y botones del header */}
-  <div ref={tabsBarRef} className="sticky top-0 z-50 bg-transparent relative isolate shadow-md">
+  <div ref={tabsBarRef} className="sticky top-0 z-50 bg-transparent relative isolate shadow-md" style={{ paddingTop: 'var(--sa-top)' }}>
           {/* Underlay fijo: replica el fondo bajo el header para que no se vea contenido detrás al hacer scroll */}
           <div
             aria-hidden
@@ -529,20 +529,20 @@ function App() {
                   }
                 }}
                 alt="Logo"
-                className="block h-20 sm:h-24 w-auto select-none transition-transform duration-200 ease-out will-change-transform group-hover:scale-105 group-hover:drop-shadow-lg"
+                className="block h-16 sm:h-20 w-auto select-none transition-transform duration-200 ease-out will-change-transform group-hover:scale-105 group-hover:drop-shadow-lg"
                 style={{ opacity: 0.7 }}
                 draggable={false}
               />
               </span>
             </div>
           {/* Barra de historial/guardar removida a solicitud */}
-          <TabsList className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-transparent p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar">
+          <TabsList className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-transparent p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar snap-x snap-mandatory">
             <TabsTrigger
               value="home"
               onClick={() => {
                 requestAnimationFrame(() => (document.scrollingElement || window).scrollTo({ top: 0, behavior: 'smooth' }));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
             >
               <Home className="h-4 w-4" />
               <span>Inicio</span>
@@ -552,7 +552,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToPieces()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
             >
               <Square className="h-4 w-4" />
               <span>Piezas</span>
@@ -562,7 +562,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToMaterials()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
             >
               <Layers className="h-4 w-4" />
               <span>Materiales</span>
@@ -582,7 +582,7 @@ function App() {
                 }
               }}
               aria-label={isOptimizing ? "Patrones" : (optimizedBoards > 0 ? "Optimizar (hover: Patrones)" : "Optimizar")}
-              className="group flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
+              className="group flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
             >
               {isOptimizing || activeTab === "patterns" ? (
                 <>
@@ -611,7 +611,7 @@ function App() {
             </TabsTrigger>
             <TabsTrigger
               value="edgebanding"
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
             >
               <Scissors className="h-4 w-4" />
               <span>Tapacantos</span>
@@ -621,7 +621,7 @@ function App() {
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToBudget()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg"
+              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
             >
               <Calculator className="h-4 w-4" />
               <span>Presupuesto</span>
@@ -662,7 +662,7 @@ function App() {
           </div>
         </div>
         {/* Modal de historial removido de la interfaz actual */}
-  <main className={`${BASE_CONTAINER} flex flex-col gap-8 py-3`}>
+  <main className={`${BASE_CONTAINER} flex flex-col gap-8 py-3`} style={{ paddingBottom: 'calc(12px + var(--sa-bottom))' }}>
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {kpiItems.map((item) => (
               <KpiCard key={item.label} {...item} />
