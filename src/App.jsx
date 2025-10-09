@@ -24,6 +24,7 @@ import { BudgetPanel } from "./components/visualization/BudgetPanel.jsx";
 // Pestaña IA retirada; reemplazada por Inicio
 import { normalizePiece, toMillimeters, cloneEdges, defaultEdges } from "./types/pieces.js";
 import { areaToSquareMeters, formatSquareMeters } from "./lib/format.js";
+import { mapEdgesForRotation } from "./lib/edge-mapping.js";
 import { useOptimization } from "./hooks/useOptimization";
 // Historial opcional removido de la UI por ahora
 import { useLocalStorage } from "./hooks/useLocalStorage";
@@ -46,17 +47,45 @@ function App() {
   const BASE_CONTAINER = "mx-auto w-full max-w-5xl px-2 sm:px-4 lg:px-6";
   // Fondo global mediante overlay fijo detrás de la UI
   const tabsBarRef = useRef(null);
+  const tabsListRef = useRef(null);
+  const lastBarWidthRef = useRef(0);
+  const [compactBar, setCompactBar] = useState(false);
+  const compactRef = useRef(false);
+  useEffect(() => { compactRef.current = compactBar; }, [compactBar]);
   const patternsHeaderRef = useRef(null);
   const edgebandingHeaderRef = useRef(null);
   const materialsHeaderRef = useRef(null);
   const budgetHeaderRef = useRef(null);
   const piecesHeaderRef = useRef(null);
-  const [pieces, setPieces] = useLocalStorage("cutting-pieces", []);
-  const [materials, setMaterials] = useLocalStorage("cutting-materials", []);
+  // Semillas por defecto: 6 piezas 125x61 y 1 material Melamina 275x183 (en cm por defecto)
+  const seedPieces = (units = 'cm') => {
+    // 1 pieza llamada "costado" 125x61 con cantidad 6 sobre material "Melamina 15mm"
+    const L = 125; const W = 61;
+    const base = {
+      id: 'p1',
+      label: 'costado',
+      length: L,
+      width: W,
+      quantity: 6,
+      material: 'Melamina 15mm',
+      canRotate: true,
+      edges: defaultEdges,
+      ...normalizePiece({ length: L, width: W, edges: defaultEdges }, units),
+    };
+    return [base];
+  };
+  const seedMaterials = (units = 'cm') => {
+    // Plancha "Melamina 15mm" de 250 x 183 (en cm por defecto)
+    const LEN = units === 'cm' ? 250 : (units === 'mm' ? 2500 : 98.43);
+    const WID = units === 'cm' ? 183 : (units === 'mm' ? 1830 : 72.05);
+    return [{ id: 'm1', material: 'Melamina 15mm', length: LEN, width: WID, quantity: 1, price: 0, kerf: 0, margin: 0 }];
+  };
+  const [pieces, setPieces] = useLocalStorage("cutting-pieces", seedPieces('cm'));
+  const [materials, setMaterials] = useLocalStorage("cutting-materials", seedMaterials('cm'));
   const [config, setConfig] = useLocalStorage("cutting-config", {
     units: "cm",
-    kerfWidth: 3,
-    margin: 5,
+    kerfWidth: 0,
+    margin: 0,
     allowRotation: true,
     separation: 0,
     rotationPenalty: 0,
@@ -69,6 +98,72 @@ function App() {
 
   // Ajuste fino único para el scroll de anclaje (piezas y patrones)
   const SCROLL_FINE_TUNE = -36; // px (20px más arriba que antes)
+
+  // Modo compacto de barra: mostrar solo iconos si no caben los tabs + acciones
+  useEffect(() => {
+    const el = tabsListRef.current;
+    if (!el) return;
+
+    // Histéresis y debounce más agresivos para evitar parpadeos en transiciones/hover
+    const ENTER_MARGIN = 28; // activar compacto si falta ancho > 28px
+    const EXIT_MARGIN = 56;  // salir de compacto si sobran >= 56px
+    const EXIT_WIDTH_DELTA = 20; // salida requiere que el contenedor haya crecido al menos 20px
+    const REQUIRED_STABLE_TICKS = 2; // número de lecturas estables antes de aplicar salida
+
+    const stableExitTicksRef = { current: 0 };
+    let frameId = 0;
+    let resizeTid = 0;
+
+    const run = () => {
+      try {
+        const w = el.clientWidth;
+        const need = el.scrollWidth - w;
+        const isCompact = compactRef.current;
+
+        if (!isCompact) {
+          // Reset de estabilidad en estado expandido
+          stableExitTicksRef.current = 0;
+          if (need > ENTER_MARGIN) setCompactBar(true);
+        } else {
+          const widthGrew = (w - lastBarWidthRef.current) > EXIT_WIDTH_DELTA;
+          const hasSpace = need < -EXIT_MARGIN;
+          if (widthGrew && hasSpace) {
+            stableExitTicksRef.current += 1;
+          } else {
+            stableExitTicksRef.current = 0;
+          }
+          if (stableExitTicksRef.current >= REQUIRED_STABLE_TICKS) {
+            setCompactBar(false);
+            stableExitTicksRef.current = 0;
+          }
+        }
+
+        lastBarWidthRef.current = w;
+      } catch {}
+    };
+
+    const schedule = () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(run);
+    };
+    const onResize = () => {
+      if (resizeTid) clearTimeout(resizeTid);
+      // Pequeño debounce para estabilizar layout (maximizar/restaurar, reflows por hover)
+      resizeTid = setTimeout(schedule, 100);
+    };
+
+    // Primer cálculo en el siguiente frame para tener layout listo
+    const raf = requestAnimationFrame(schedule);
+    const ro = new ResizeObserver(onResize);
+    try { ro.observe(el); } catch {}
+    window.addEventListener('resize', onResize);
+    return () => {
+      if (frameId) cancelAnimationFrame(frameId);
+      if (resizeTid) clearTimeout(resizeTid);
+      try { ro.disconnect(); } catch {}
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
 
   // Helper reutilizable para desplazar la vista al encabezado de Patrones
   const scrollToPatterns = useCallback(() => {
@@ -166,30 +261,7 @@ function App() {
   const { result, optimize, error } = useOptimization();
   const efficiencyFactor = 0.9;
 
-  // Inicio limpio una sola vez por sesión: limpiar piezas/materiales solo en el primer load de la sesión
-  useEffect(() => {
-    try {
-      // Limpiar todas las claves relevantes para evitar datos antiguos
-      const KEYS = [
-        'cutting-pieces',
-        'cutting-materials',
-        'budget-client',
-        'budget-company',
-        'budget-base-materials',
-        'budget-edge-items',
-        'budget-hardware-items',
-        'budget-other-items',
-      ];
-      for (const k of KEYS) {
-        try { window.localStorage.removeItem(k); } catch {}
-      }
-      setPieces([]);
-      setMaterials([]);
-    } catch {
-      // ignorar errores de storage
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Nota: si ya existe storage previo, useLocalStorage usará ese y no las semillas.
 
   // Handler centralizado para limpiar datos y recargar
   const handleClearAll = useCallback(() => {
@@ -331,8 +403,8 @@ function App() {
         // Sanitizar cantidad
         const rawQty = Number(updatedPiece?.quantity);
         const nextQuantity = Number.isFinite(rawQty) && rawQty > 0 ? Math.floor(rawQty) : piece.quantity;
-        // Si el usuario rotó manualmente (intercambió largo/ancho) y no envió edges nuevos,
-        // rotamos también los cantos para que sigan el mismo lado físico.
+
+        // Detectar si el usuario intercambió largo/ancho manualmente
         const isSwap =
           updatedPiece &&
           typeof updatedPiece.length !== 'undefined' &&
@@ -340,24 +412,22 @@ function App() {
           Number(updatedPiece.length) === Number(piece.width) &&
           Number(updatedPiece.width) === Number(piece.length);
 
+        // Si no se enviaron nuevos edges y hubo swap, rotar cantos 90° CCW de forma determinista
         let edgesAfter = updatedPiece?.edges;
         if (!edgesAfter && isSwap) {
-          const e = piece.edges || {};
-          // Rotación 90° antihoraria (CCW) por defecto:
-          // new.top = right, new.right = bottom, new.bottom = left, new.left = top
-          edgesAfter = {
-            arriba: e?.derecha ?? { enabled: false, tipo: null },
-            derecha: e?.abajo ?? { enabled: false, tipo: null },
-            abajo: e?.izquierda ?? { enabled: false, tipo: null },
-            izquierda: e?.arriba ?? { enabled: false, tipo: null },
-          };
+          const rotated = mapEdgesForRotation(piece.edges || defaultEdges, true, 'CCW');
+          edgesAfter = cloneEdges(rotated || defaultEdges);
         }
 
-  // Importante: preservar el id original aunque updatedPiece no lo traiga
-  const merged = { ...piece, ...updatedPiece, quantity: nextQuantity, ...(edgesAfter ? { edges: edgesAfter } : null), id: piece.id };
-        const normalized = normalizePiece({ ...merged, largoMm: null, anchoMm: null }, config.units);
+        const baseNext = {
+          ...piece,
+          ...updatedPiece,
+          quantity: nextQuantity,
+          edges: cloneEdges(edgesAfter ?? updatedPiece?.edges ?? piece.edges),
+        };
+        const normalized = normalizePiece(baseNext, config.units);
         return {
-          ...merged,
+          ...baseNext,
           ...normalized,
           length: mmToUnits(normalized.largoMm, config.units),
           width: mmToUnits(normalized.anchoMm, config.units),
@@ -367,21 +437,18 @@ function App() {
   };
 
   const handleDuplicatePiece = (piece) => {
-    const baseLabel = (piece.label ?? piece.name ?? "Pieza").toString();
+    // Crear borrador de duplicado: se abrirá el modal y se confirmará para agregar
     const duplicateDraft = {
       ...piece,
-      // sin id: se asignará al guardar
       id: undefined,
-      label: `${baseLabel} (copia)`,
+      label: piece?.label ? `${piece.label} (copia)` : undefined,
       quantity: 1,
-      material: '',
-      canRotate: true,
-      edges: cloneEdges(defaultEdges),
+      material: piece?.material ?? '',
+      canRotate: piece?.canRotate ?? true,
+      edges: cloneEdges(piece?.edges ?? defaultEdges),
       isDuplicateDraft: true,
     };
-    // Abrir modal de edición con borrador (no agregado aún)
     setEditingPiece(duplicateDraft);
-    // Asegurar foco en la pestaña de piezas
     setActiveTab("pieces");
   };
   const handleEditMaterial = (id, updatedMaterial) => {
@@ -536,36 +603,43 @@ function App() {
               </span>
             </div>
           {/* Barra de historial/guardar removida a solicitud */}
-          <TabsList className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-transparent p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar snap-x snap-mandatory">
+          <TabsList
+            ref={tabsListRef}
+            className="w-full rounded-[var(--radius)] border border-[var(--border)] bg-transparent p-1 text-sm text-[var(--muted)] overflow-x-auto no-scrollbar snap-x snap-mandatory"
+            style={{ "--bar-item-px": "clamp(0.5rem, 1.2vw, 0.75rem)", "--bar-item-py": "clamp(0.375rem, 0.9vw, 0.5rem)", "--bar-icon": "clamp(0.9rem, 1.4vw, 1rem)", "--bar-item-h": "calc(var(--bar-icon) + (2 * var(--bar-item-py)))" }}
+          >
             <TabsTrigger
               value="home"
               onClick={() => {
                 requestAnimationFrame(() => (document.scrollingElement || window).scrollTo({ top: 0, behavior: 'smooth' }));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
+              aria-label="Inicio"
+              className={`group flex items-center justify-center ${compactBar ? 'gap-0' : 'gap-2'} rounded-[var(--radius)] px-[var(--bar-item-px)] py-[var(--bar-item-py)] min-h-[var(--bar-item-h)] font-medium leading-none whitespace-nowrap transition text-[var(--text)] shadow-md hover:shadow-lg snap-start`}
             >
-              <Home className="h-4 w-4" />
-              <span>Inicio</span>
+              <Home className="h-[var(--bar-icon)] w-[var(--bar-icon)]" />
+              <span className={`transition-all duration-250 ease-in-out ${compactBar ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[10rem] group-hover:opacity-100' : 'max-w-[10rem] opacity-100'}`}>Inicio</span>
             </TabsTrigger>
             <TabsTrigger
               value="pieces"
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToPieces()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
+              aria-label="Piezas"
+              className={`group flex items-center justify-center ${compactBar ? 'gap-0' : 'gap-2'} rounded-[var(--radius)] px-[var(--bar-item-px)] py-[var(--bar-item-py)] min-h-[var(--bar-item-h)] font-medium leading-none whitespace-nowrap transition text-[var(--text)] shadow-md hover:shadow-lg snap-start`}
             >
-              <Square className="h-4 w-4" />
-              <span>Piezas</span>
+              <Square className="h-[var(--bar-icon)] w-[var(--bar-icon)]" />
+              <span className={`transition-all duration-250 ease-in-out ${compactBar ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[10rem] group-hover:opacity-100' : 'max-w-[10rem] opacity-100'}`}>Piezas</span>
             </TabsTrigger>
             <TabsTrigger
               value="materials"
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToMaterials()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
+              aria-label="Materiales"
+              className={`group flex items-center justify-center ${compactBar ? 'gap-0' : 'gap-2'} rounded-[var(--radius)] px-[var(--bar-item-px)] py-[var(--bar-item-py)] min-h-[var(--bar-item-h)] font-medium leading-none whitespace-nowrap transition text-[var(--text)] shadow-md hover:shadow-lg snap-start`}
             >
-              <Layers className="h-4 w-4" />
-              <span>Materiales</span>
+              <Layers className="h-[var(--bar-icon)] w-[var(--bar-icon)]" />
+              <span className={`transition-all duration-250 ease-in-out ${compactBar ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[10rem] group-hover:opacity-100' : 'max-w-[10rem] opacity-100'}`}>Materiales</span>
             </TabsTrigger>
             <TabsTrigger
               value="patterns"
@@ -581,80 +655,82 @@ function App() {
                   requestAnimationFrame(() => requestAnimationFrame(() => scrollToPatterns()));
                 }
               }}
-              aria-label={isOptimizing ? "Patrones" : (optimizedBoards > 0 ? "Optimizar (hover: Patrones)" : "Optimizar")}
-              className="group flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
+              aria-label={isOptimizing || activeTab === 'patterns' ? 'Patrones' : 'Optimizar'}
+              className={`group flex items-center justify-center ${compactBar ? 'gap-0' : 'gap-2'} rounded-[var(--radius)] px-[var(--bar-item-px)] py-[var(--bar-item-py)] min-h-[var(--bar-item-h)] font-medium leading-none whitespace-nowrap transition text-[var(--text)] shadow-md hover:shadow-lg snap-start`}
             >
               {isOptimizing || activeTab === "patterns" ? (
                 <>
-                  <Grid3X3 className="h-4 w-4" />
-                  <span>Patrones</span>
+                  <Grid3X3 className="h-[var(--bar-icon)] w-[var(--bar-icon)]" />
+                  <span className={`transition-all duration-250 ease-in-out ${compactBar ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[10rem] group-hover:opacity-100' : 'max-w-[10rem] opacity-100'}`}>Patrones</span>
                 </>
               ) : optimizedBoards > 0 ? (
                 // Hay patrones: en reposo mostrar "Optimizar" y en hover cambiar a "Patrones" con transición suave
                 <>
                   <span className="relative grid place-items-center">
-                    <Play className="h-4 w-4 transition-opacity duration-200 opacity-100 group-hover:opacity-0" />
-                    <Grid3X3 className="h-4 w-4 absolute transition-opacity duration-200 opacity-0 group-hover:opacity-100" />
+                    <Play className="h-[var(--bar-icon)] w-[var(--bar-icon)] transition-opacity duration-200 opacity-100 group-hover:opacity-0" />
+                    <Grid3X3 className="h-[var(--bar-icon)] w-[var(--bar-icon)] absolute transition-opacity duration-200 opacity-0 group-hover:opacity-100" />
                   </span>
-                  <span className="relative grid place-items-center">
-                    <span className="transition-opacity duration-200 opacity-100 group-hover:opacity-0">Optimizar</span>
-                    <span className="absolute transition-opacity duration-200 opacity-0 group-hover:opacity-100">Patrones</span>
-                  </span>
+                  {!compactBar && (
+                    <span className="relative grid place-items-center">
+                      <span className="transition-opacity duration-200 opacity-100 group-hover:opacity-0">Optimizar</span>
+                      <span className="absolute transition-opacity duration-200 opacity-0 group-hover:opacity-100">Patrones</span>
+                    </span>
+                  )}
                 </>
               ) : (
                 // No hay patrones aún: mostrar "Optimizar"
                 <>
-                  <Play className="h-4 w-4" />
-                  <span>Optimizar</span>
+                  <Play className="h-[var(--bar-icon)] w-[var(--bar-icon)]" />
+                  <span className={`transition-all duration-250 ease-in-out ${compactBar ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[10rem] group-hover:opacity-100' : 'max-w-[10rem] opacity-100'}`}>Optimizar</span>
                 </>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="edgebanding"
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
+              aria-label="Tapacantos"
+              className={`group flex items-center justify-center ${compactBar ? 'gap-0' : 'gap-2'} rounded-[var(--radius)] px-[var(--bar-item-px)] py-[var(--bar-item-py)] min-h-[var(--bar-item-h)] font-medium leading-none whitespace-nowrap transition text-[var(--text)] shadow-md hover:shadow-lg snap-start`}
             >
-              <Scissors className="h-4 w-4" />
-              <span>Tapacantos</span>
+              <Scissors className="h-[var(--bar-icon)] w-[var(--bar-icon)]" />
+              <span className={`transition-all duration-250 ease-in-out ${compactBar ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[10rem] group-hover:opacity-100' : 'max-w-[10rem] opacity-100'}`}>Tapacantos</span>
             </TabsTrigger>
             <TabsTrigger
               value="budget"
               onClick={() => {
                 requestAnimationFrame(() => requestAnimationFrame(() => scrollToBudget()));
               }}
-              className="flex items-center justify-center gap-2 rounded-[var(--radius)] px-3 py-2 font-medium transition text-[var(--text)] shadow-md hover:shadow-lg snap-start"
+              aria-label="Presupuesto"
+              className={`group flex items-center justify-center ${compactBar ? 'gap-0' : 'gap-2'} rounded-[var(--radius)] px-[var(--bar-item-px)] py-[var(--bar-item-py)] min-h-[var(--bar-item-h)] font-medium leading-none whitespace-nowrap transition text-[var(--text)] shadow-md hover:shadow-lg snap-start`}
             >
-              <Calculator className="h-4 w-4" />
-              <span>Presupuesto</span>
+              <Calculator className="h-[var(--bar-icon)] w-[var(--bar-icon)]" />
+              <span className={`transition-all duration-250 ease-in-out ${compactBar ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[10rem] group-hover:opacity-100' : 'max-w-[10rem] opacity-100'}`}>Presupuesto</span>
             </TabsTrigger>
             {/* Acciones: Ayuda y Limpiar, ubicadas al costado derecho del botón Presupuesto */}
-            <div className="flex items-center gap-2 pl-2">
+            <div className={`flex items-center ${compactBar ? 'gap-1' : 'gap-2'} pl-2`}>
               <button
                 onClick={() => setShowInfoModal(true)}
                 aria-label="Ayuda"
-                title="Ayuda"
-                className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-[var(--text)] bg-white shadow-md hover:shadow-lg
-                           h-[28px] w-[32px] sm:h-[32px] sm:w-[36px] hover:bg-white/90 transition-colors"
+                className={`group inline-flex items-center justify-center ${compactBar ? 'gap-0' : 'gap-2'} rounded-[var(--radius)] px-[var(--bar-item-px)] py-[var(--bar-item-py)] min-h-[var(--bar-item-h)] font-medium leading-none whitespace-nowrap border border-[var(--border)] text-[var(--text)] bg-white shadow-md hover:shadow-lg hover:bg-white/90 transition-colors`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[var(--bar-icon)] w-[var(--bar-icon)]">
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                   <line x1="12" y1="17" x2="12" y2="17"></line>
                 </svg>
+                <span className={`transition-all duration-250 ease-in-out ${compactBar ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[10rem] group-hover:opacity-100' : 'max-w-[10rem] opacity-100'}`}>Ayuda</span>
               </button>
               <button
                 onClick={() => setShowClearModal(true)}
                 aria-label="Limpiar"
-                title="Limpiar"
-                className="inline-flex items-center justify-center rounded-[12px] border border-[var(--border)] text-[var(--text)] bg-white shadow-md hover:shadow-lg
-                           h-[28px] w-[32px] sm:h-[32px] sm:w-[36px] hover:bg-white/90 transition-colors"
+                className={`group inline-flex items-center justify-center ${compactBar ? 'gap-0' : 'gap-2'} rounded-[var(--radius)] px-[var(--bar-item-px)] py-[var(--bar-item-py)] min-h-[var(--bar-item-h)] font-medium leading-none whitespace-nowrap border border-[var(--border)] text-[var(--text)] bg-white shadow-md hover:shadow-lg hover:bg-white/90 transition-colors`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-[var(--bar-icon)] w-[var(--bar-icon)]">
                   <path d="M3 6h18"></path>
                   <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
                   <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                   <line x1="10" y1="11" x2="10" y2="17"></line>
                   <line x1="14" y1="11" x2="14" y2="17"></line>
                 </svg>
+                <span className={`transition-all duration-250 ease-in-out ${compactBar ? 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-[10rem] group-hover:opacity-100' : 'max-w-[10rem] opacity-100'}`}>Limpiar</span>
               </button>
             </div>
             {/* Pestaña IA eliminada */}

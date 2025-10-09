@@ -4,10 +4,8 @@ export const useLocalStorage = (key, initialValue) => {
   // Función para obtener el valor del localStorage
   const getStoredValue = useCallback(() => {
     try {
-      // Política: siempre arrancar en limpio para estas claves
+      // Política: siempre arrancar en limpio para estas claves (excepto piezas/materiales que ahora tienen semilla por defecto)
       const ALWAYS_BLANK_KEYS = new Set([
-        'cutting-pieces',
-        'cutting-materials',
         'budget-client',
         'budget-company',
         'budget-base-materials',
@@ -19,7 +17,13 @@ export const useLocalStorage = (key, initialValue) => {
         return initialValue;
       }
       const item = window.localStorage.getItem(key);
-      return item ? JSON.parse(item) : initialValue;
+      if (!item) return initialValue;
+      const parsed = JSON.parse(item);
+      // Migración suave: si tenemos [] guardado pero initialValue trae una semilla útil, úsala.
+      if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(initialValue) && initialValue.length > 0) {
+        return initialValue;
+      }
+      return parsed;
     } catch (error) {
       console.warn(`Error reading localStorage key "${key}":`, error);
       return initialValue;

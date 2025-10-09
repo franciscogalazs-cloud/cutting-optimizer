@@ -184,7 +184,7 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
   <section className="grid grid-rows-[auto,1fr] min-h-[calc(100vh-160px)]">
           <div>
             <div className="flex justify-center">
-              <div className="relative w-full max-w-[900px]">
+              <div className="relative w-full">
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 z-10 flex flex-col gap-2">
                   <button
                     type="button"

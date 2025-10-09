@@ -43,20 +43,9 @@ export default function PatternCanvas2D({
     if (!el) return;
     const compute = () => {
       const cw = el.clientWidth || width;
-      const sheetW = Number(pattern?.materialLength) || 0;
-      const sheetH = Number(pattern?.materialWidth) || 0;
-      const ratio = sheetW > 0 && sheetH > 0 ? sheetH / sheetW : (height && width ? height / width : 0.625);
       const vw = Math.max(280, cw);
-      // Altura ideal por proporción
-      const ideal = Math.round(vw * ratio);
-      // Altura disponible en pantalla (sin solapar con header/otros)
-      const vpH = window.innerHeight || document.documentElement.clientHeight || 0;
-      const rect = el.getBoundingClientRect();
-      const top = rect?.top || 0;
-      const available = Math.max(200, Math.floor(vpH - top - 12));
-      // Usar la menor entre disponible e ideal, con mínimos razonables
-      const vh = Math.max(220, Math.min(available, ideal));
-      setFrame({ vw, vh });
+      // Mantener altura fija: solo actualizamos vw
+      setFrame({ vw, vh: height });
     };
     compute();
     // Observadores: ancho del contenedor + cambios de viewport/orientación/scroll
@@ -169,13 +158,13 @@ export default function PatternCanvas2D({
     };
 
     const render = () => {
-      const vw = responsive ? frame.vw : width;
-      const vh = responsive ? frame.vh : height;
-      const dpr = window.devicePixelRatio || 1;
-      cv.width = vw * dpr;
-      cv.height = vh * dpr;
-      cv.style.width = `${vw}px`;
-      cv.style.height = `${vh}px`;
+  const vw = responsive ? frame.vw : width;
+  const vh = height; // altura fija: no se ajusta automáticamente
+  const dpr = window.devicePixelRatio || 1;
+  cv.width = vw * dpr;
+  cv.height = vh * dpr;
+  // Mantener CSS en 100% del contenedor para que el marco (border) coincida con el canvas
+  // El tamaño visual se controla por el contenedor; aquí solo ajustamos el buffer interno
 
       const sheetW = Number(pattern.materialLength) || 0;
       const sheetH = Number(pattern.materialWidth) || 0;
@@ -600,7 +589,7 @@ export default function PatternCanvas2D({
     <div
       className="relative rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] overflow-hidden"
       ref={containerRef}
-      style={{ width: '100%', height: responsive ? `${frame.vh}px` : height }}
+  style={{ width: '100%', height: `${height}px` }}
     >
       <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
       {tooltip && (
