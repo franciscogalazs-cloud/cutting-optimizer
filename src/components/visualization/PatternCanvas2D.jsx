@@ -44,10 +44,18 @@ export default function PatternCanvas2D({
     const compute = () => {
       const cw = el.clientWidth || width;
       const sheetW = Number(pattern?.materialLength) || 0;
-        const sheetH = Number(pattern?.materialWidth) || 0;
+      const sheetH = Number(pattern?.materialWidth) || 0;
       const ratio = sheetW > 0 && sheetH > 0 ? sheetH / sheetW : (height && width ? height / width : 0.625);
-      const vw = Math.max(320, cw);
-      const vh = Math.max(240, Math.round(vw * ratio));
+      const vw = Math.max(280, cw);
+      // Altura ideal por proporción
+      const ideal = Math.round(vw * ratio);
+      // Altura disponible en pantalla (sin solapar con header/otros)
+      const vpH = window.innerHeight || document.documentElement.clientHeight || 0;
+      const rect = el.getBoundingClientRect();
+      const top = rect?.top || 0;
+      const available = Math.max(200, Math.floor(vpH - top - 12));
+      // Usar la menor entre disponible e ideal, con mínimos razonables
+      const vh = Math.max(220, Math.min(available, ideal));
       setFrame({ vw, vh });
     };
     compute();
