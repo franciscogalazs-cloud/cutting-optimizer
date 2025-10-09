@@ -34,7 +34,7 @@ export default function PatternCanvas2D({
   const [frame, setFrame] = useState({ vw: width, vh: height });
 
   // Observa el ancho del contenedor para ajustar el canvas cuando responsive=true
-  useEffect(() => {
+    useEffect(() => {
     if (!responsive) {
       setFrame({ vw: width, vh: height });
       return;
@@ -44,7 +44,7 @@ export default function PatternCanvas2D({
     const compute = () => {
       const cw = el.clientWidth || width;
       const sheetW = Number(pattern?.materialLength) || 0;
-      const sheetH = Number(pattern?.materialWidth) || 0;
+        const sheetH = Number(pattern?.materialWidth) || 0;
       const ratio = sheetW > 0 && sheetH > 0 ? sheetH / sheetW : (height && width ? height / width : 0.625);
       const vw = Math.max(320, cw);
       const vh = Math.max(240, Math.round(vw * ratio));
@@ -442,8 +442,8 @@ export default function PatternCanvas2D({
             let screenX = pos.x;
             let screenY = pos.y;
             // clamp básico dentro del canvas
-            const vw = width;
-            const vh = height;
+            const vw = responsive ? frame.vw : width;
+            const vh = responsive ? frame.vh : height;
             screenX = Math.max(6, Math.min(vw - 6, screenX));
             screenY = Math.max(6, Math.min(vh - 6, screenY));
             setTooltip({ x: screenX, y: screenY, text, color: ext.color, side: ext.side });
@@ -481,7 +481,7 @@ export default function PatternCanvas2D({
       // Highlight de pieza externo (desde lista), solo si no hay hover interno
       if (!hoverPiece && Number.isInteger(highlightPieceIndex)) {
         const ext = pieceZones.find((pz) => pz.index === highlightPieceIndex);
-        if (ext) {
+          if (ext) {
           try {
             ctx.save();
             ctx.globalAlpha = 0.14;
@@ -528,8 +528,8 @@ export default function PatternCanvas2D({
           let screenX = pos.x;
           let screenY = pos.y;
           // Clamp dentro del canvas visual
-          const vw = width;
-          const vh = height;
+          const vw = responsive ? frame.vw : width;
+          const vh = responsive ? frame.vh : height;
           screenX = Math.max(6, Math.min(vw - 6, screenX));
           screenY = Math.max(6, Math.min(vh - 6, screenY));
 
