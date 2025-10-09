@@ -59,20 +59,31 @@ export default function PatternCanvas2D({
       setFrame({ vw, vh });
     };
     compute();
-    // Definimos cleanup con una función no vacía para el lint
-    let cleanup = () => { /* noop */ };
+    // Observadores: ancho del contenedor + cambios de viewport/orientación/scroll
+    const observers = [];
     if (typeof ResizeObserver !== 'undefined') {
       const ro = new ResizeObserver(() => compute());
       ro.observe(el);
-      cleanup = () => {
-        ro.disconnect();
-      };
-    } else {
-      // Fallback si no hay ResizeObserver
-      window.addEventListener('resize', compute);
-      cleanup = () => window.removeEventListener('resize', compute);
+      observers.push(() => ro.disconnect());
     }
-  return cleanup;
+    // Siempre escuchar eventos globales relevantes
+    window.addEventListener('resize', compute);
+    window.addEventListener('orientationchange', compute);
+    window.addEventListener('scroll', compute, { passive: true });
+    if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+      window.visualViewport.addEventListener('resize', compute);
+    }
+    return () => {
+      observers.forEach((fn) => {
+        try { fn(); } catch {}
+      });
+      window.removeEventListener('resize', compute);
+      window.removeEventListener('orientationchange', compute);
+      window.removeEventListener('scroll', compute, { passive: true });
+      if (window.visualViewport && typeof window.visualViewport.removeEventListener === 'function') {
+        window.visualViewport.removeEventListener('resize', compute);
+      }
+    };
   }, [responsive, width, height, pattern?.materialLength, pattern?.materialWidth]);
 
   // Utilidades de color para tooltip
