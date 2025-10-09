@@ -78,6 +78,7 @@ cmd /c npm run lint
 - Presupuesto imprimible: muestra solo ítems usados, totales con Valor neto + IVA 19% + Total, y detalles de Empresa/Cliente (incluye RUT y Dirección).
 - Persistencia local automática (localStorage) y sincronización entre pestañas.
 - Branding listo para GitHub Pages (base path) y logos con filtros adecuados para impresión.
+- Barra superior inteligente (compacta): tabs y acciones se autoajustan al ancho disponible; si no caben, muestran solo iconos y revelan las etiquetas al pasar el mouse. Al maximizar/restaurar, las etiquetas vuelven automáticamente sin parpadeos (histéresis + debounce).
 
 ## Arquitectura y flujo
 
@@ -87,6 +88,7 @@ cmd /c npm run lint
 - Reportes/impresión: `src/lib/report.js`, `src/lib/report-html.js` y `src/lib/print.js`.
 - Estado/persistencia: `src/hooks/useLocalStorage.js` y `src/hooks/useOptimization.js`.
 - Theming claro en `src/theme/ThemeProvider.jsx` más utilidades en `src/theme/*`.
+- Modo compacto de tabs/botones: gestionado en `src/App.jsx` con `ResizeObserver`, histéresis y debounce; los componentes de tabs usan `forwardRef` para permitir mediciones precisas (`src/components/ui/tabs.jsx`).
 
 ## Modelo de datos (contrato mínimo)
 
@@ -95,6 +97,10 @@ cmd /c npm run lint
 - Resultado: cada `pattern` incluye `materialId, materialLength, materialWidth, pieces[{ x, y, width, height, rotated, label, color, edges }], utilization/waste`.
 
 Helpers clave: `normalizePiece()` y factories en `src/types/` (`createCuttingPattern`, `createPlacedPiece`).
+
+Notas sobre cantos (edgebanding):
+- El campo `edges` sigue el esquema `{ arriba, abajo, izquierda, derecha }` con `{ enabled, tipo }`.
+- Si el usuario intercambia manualmente largo/ancho en edición, se remapean los cantos de manera determinista usando `mapEdgesForRotation(edges, true, 'CCW')` para mantener la correspondencia física de lados.
 
 ## Cómo usar (rápido)
 
@@ -107,6 +113,11 @@ Helpers clave: `normalizePiece()` y factories en `src/types/` (`createCuttingPat
 5) Imprime o exporta desde Presupuesto (se abre el diálogo de impresión del navegador).
 
 Nota: en impresión se filtran automáticamente ítems con cantidad = 0.
+
+Consejos de uso de la barra compacta:
+- Si ves solo iconos, pasa el mouse por encima para revelar la etiqueta de cada tab/botón.
+- Al maximizar/restaurar la ventana, el sistema detecta el nuevo ancho y expande etiquetas cuando hay espacio suficiente.
+- Para evitar “parpadeos”, se aplican márgenes de entrada/salida, verificados por lecturas estables y un pequeño debounce.
 
 ## Linting
 
@@ -131,6 +142,10 @@ pnpm run preview
 ```
 
 `build` ejecuta primero `tools/brand-build.mjs` para aplicar textos/logos a SVGs antes del `vite build`.
+
+Seeds y estado inicial:
+- La app puede inicializarse con piezas/materiales por defecto (por ejemplo, una pieza “costado” y una plancha “Melamina 15mm”) y con kerf/margen en 0 para pruebas rápidas.
+- Si prefieres comenzar totalmente en blanco, limpia el `localStorage` del dominio o usa la acción “Limpiar” dentro de la app.
 
 ## Branding y assets
 
