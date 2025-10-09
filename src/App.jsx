@@ -675,6 +675,7 @@ function App() {
               <MaterialForm
                 onAddMaterial={handleAddMaterial}
                 onRemoveMaterial={handleDeleteMaterial}
+                onEditRequest={setEditingMaterial}
                 units={config.units}
                 kerfWidth={config.kerfWidth}
                 margin={config.margin}
@@ -684,6 +685,7 @@ function App() {
               <PieceForm
                 onAddPiece={handleAddPiece}
                 onRemovePiece={handleDeletePiece}
+                onEditRequest={setEditingPiece}
                 units={config.units}
                 materials={materials}
                 pieces={pieces}

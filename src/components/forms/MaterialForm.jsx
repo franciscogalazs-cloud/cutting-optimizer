@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Package } from 'lucide-react';
+import { Package, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,7 +13,7 @@ const PRESETS = [
   { name: 'Terciado', lengthCm: 240, widthCm: 120 },
 ];
 
-export const MaterialForm = ({ onAddMaterial, onRemoveMaterial, units = 'mm', pieces = [], onConfigChange, materials = [] }) => {
+export const MaterialForm = ({ onAddMaterial, onRemoveMaterial, onEditRequest, units = 'mm', pieces = [], onConfigChange, materials = [] }) => {
   const formRef = useRef(null);
   const [formData, setFormData] = useState({
     length: '',
@@ -306,7 +306,24 @@ export const MaterialForm = ({ onAddMaterial, onRemoveMaterial, units = 'mm', pi
                       className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text)]"
                       title={title}
                     >
-                      <span className="truncate max-w-[16rem]">{name} · {fmt(Lcm)} × {fmt(Wcm)} (cm)</span>
+                      <button
+                        type="button"
+                        className="truncate max-w-[16rem] text-left hover:underline"
+                        onClick={() => onEditRequest && onEditRequest(m)}
+                        title="Editar material"
+                        aria-label="Editar material"
+                      >
+                        {name} · {fmt(Lcm)} × {fmt(Wcm)} (cm)
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Editar material"
+                        title="Editar"
+                        className="ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full border border-[var(--border)] text-[10px] leading-none hover:bg-slate-50"
+                        onClick={() => onEditRequest && onEditRequest(m)}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </button>
                       <button
                         type="button"
                         aria-label="Quitar material"

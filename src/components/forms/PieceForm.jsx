@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Plus, RotateCcw } from 'lucide-react';
+import { Plus, RotateCcw, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,7 +17,7 @@ const EDGE_LABELS = {
   derecha: 'Derecha',
 };
 
-export const PieceForm = ({ onAddPiece, onRemovePiece, units = 'mm', materials = [], allowRotation = true, onToggleRotation, pieces = [] }) => {
+export const PieceForm = ({ onAddPiece, onRemovePiece, onEditRequest, units = 'mm', materials = [], allowRotation = true, onToggleRotation, pieces = [] }) => {
   const formRef = useRef(null);
   const hiddenSubmitRef = useRef(null);
   const materialNames = useMemo(
@@ -325,7 +325,24 @@ export const PieceForm = ({ onAddPiece, onRemovePiece, units = 'mm', materials =
                       className="inline-flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2 py-0.5 text-[11px] text-[var(--text)]"
                       title={title}
                     >
-                      <span className="truncate max-w-[16rem]">{name} · {L} × {W} ({units}) · x{Q}{MAT ? ` · ${MAT}` : ''}</span>
+                      <button
+                        type="button"
+                        className="truncate max-w-[16rem] text-left hover:underline"
+                        onClick={() => onEditRequest && onEditRequest(p)}
+                        title="Editar pieza"
+                        aria-label="Editar pieza"
+                      >
+                        {name} · {L} × {W} ({units}) · x{Q}{MAT ? ` · ${MAT}` : ''}
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Editar pieza"
+                        title="Editar"
+                        className="ml-1 inline-flex items-center justify-center h-4 w-4 rounded-full border border-[var(--border)] text-[10px] leading-none hover:bg-slate-50"
+                        onClick={() => onEditRequest && onEditRequest(p)}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </button>
                       <button
                         type="button"
                         aria-label="Quitar pieza"
