@@ -153,7 +153,7 @@ function App() {
     };
 
     // Primer cálculo en el siguiente frame para tener layout listo
-    const raf = requestAnimationFrame(schedule);
+  const RAF = requestAnimationFrame(schedule);
     const ro = new ResizeObserver(onResize);
     try { ro.observe(el); } catch {}
     window.addEventListener('resize', onResize);
@@ -415,8 +415,14 @@ function App() {
         // Si no se enviaron nuevos edges y hubo swap, rotar cantos 90° CCW de forma determinista
         let edgesAfter = updatedPiece?.edges;
         if (!edgesAfter && isSwap) {
+          // Si los edges originales existen, rotar; si no, usar default
           const rotated = mapEdgesForRotation(piece.edges || defaultEdges, true, 'CCW');
           edgesAfter = cloneEdges(rotated || defaultEdges);
+        }
+
+        // Si el swap fue solicitado pero los edges no se rotaron, forzar rotación
+        if (isSwap && !edgesAfter) {
+          edgesAfter = cloneEdges(mapEdgesForRotation(piece.edges || defaultEdges, true, 'CCW'));
         }
 
         const baseNext = {
@@ -425,6 +431,21 @@ function App() {
           quantity: nextQuantity,
           edges: cloneEdges(edgesAfter ?? updatedPiece?.edges ?? piece.edges),
         };
+        // Si cambió largo/ancho (incluye swap), asegurar que los mm reflejen las nuevas dimensiones
+        const lengthChanged = Object.prototype.hasOwnProperty.call(updatedPiece || {}, 'length');
+        const widthChanged = Object.prototype.hasOwnProperty.call(updatedPiece || {}, 'width');
+        if (lengthChanged || widthChanged) {
+          const nextLen = Number(baseNext.length);
+          const nextWid = Number(baseNext.width);
+          if (Number.isFinite(nextLen) && Number.isFinite(nextWid) && nextLen > 0 && nextWid > 0) {
+            baseNext.largoMm = toMillimeters(nextLen, config.units);
+            baseNext.anchoMm = toMillimeters(nextWid, config.units);
+          } else {
+            // Si por alguna razón vienen inválidos, elimina mm para que normalize los derive de los valores válidos existentes
+            delete baseNext.largoMm;
+            delete baseNext.anchoMm;
+          }
+        }
         const normalized = normalizePiece(baseNext, config.units);
         return {
           ...baseNext,
@@ -554,7 +575,7 @@ function App() {
       {/* Oscurecedor removido a solicitud: la imagen de fondo se muestra sin sombreado */}
   <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
     {/* Header eliminado: renderizamos TabsList directamente para borrar logo y botones del header */}
-  <div ref={tabsBarRef} className="sticky top-0 z-50 bg-transparent relative isolate shadow-md" style={{ paddingTop: 'var(--sa-top)' }}>
+  <div ref={tabsBarRef} className="sticky top-0 z-50 bg-transparent isolate shadow-md" style={{ paddingTop: 'var(--sa-top)' }}>
           {/* Underlay fijo: replica el fondo bajo el header para que no se vea contenido detrás al hacer scroll */}
           <div
             aria-hidden

@@ -28,3 +28,7 @@ dist/
 *.log
 .env
 .env.*
+
+# ESLint cache
+.eslintcache*
+.eslintcache-debug.txt
