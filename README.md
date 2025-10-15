@@ -40,10 +40,13 @@ Nota PowerShell: si ves restricciones de ejecución con npm, anteponer `cmd /c` 
 - `build` – Aplica branding y ejecuta `vite build`
 - `preview` – Sirve el build en local
 - `start` – Alias de preview con host/puerto fijo
+- `preview:local` – Sirve el build en http://localhost:4173
 - `lint` – Lint del proyecto
 - `lint:fix` – Lint con auto-fix
 - `brand:apply` – Aplica branding a assets/SVG
 - `favicons` – Genera favicons PNG desde SVG
+- `clean` – Elimina dist, caches y artefactos temporales
+- `clean:cache` – Limpia únicamente caches locales
 
 Ejemplos en PowerShell:
 
@@ -141,6 +144,12 @@ Para previsualizar:
 pnpm run preview
 ```
 
+O bien forzar el puerto local habitual:
+
+```powershell
+pnpm run preview:local
+```
+
 `build` ejecuta primero `tools/brand-build.mjs` para aplicar textos/logos a SVGs antes del `vite build`.
 
 Seeds y estado inicial:
@@ -158,6 +167,16 @@ Seeds y estado inicial:
 - `vite.config.js` define `base: '/cutting-optimizer/'`.
 - Los reportes usan rutas absolutas compatibles con el base.
 - React 18.3.x para compatibilidad en producción.
+
+## Tareas de VS Code
+
+Se añadieron tareas para facilitar flujos comunes desde “Tasks: Run Task”:
+
+- `clean`: ejecuta `pnpm clean`.
+- `clean:cache`: ejecuta `pnpm clean:cache`.
+- `preview:local`: ejecuta `pnpm preview:local` en background.
+
+Están definidas en `.vscode/tasks.json`.
 
 ## Notas y decisiones de UX
 
@@ -182,6 +201,17 @@ Seeds y estado inicial:
 - `src/lib/` – Formato, paths, reporte/impresión y utilidades.
 - `src/types/` – Tipos/factories del dominio.
 - `theme/` y `styles/` – Tokens y estilos base.
+
+## Notas de versión
+
+### v0.1.0
+
+- Limpieza: se eliminaron módulos y componentes de IA no usados (`src/ai/**` y `src/components/ai/**`), junto con archivos temporales/patches.
+- Removido `src/components/visualization/SummarySheet.tsx` (migrado a `.jsx`).
+- Nuevos scripts en `package.json`: `clean`, `clean:cache`, `preview:local`.
+- Nuevas tareas de VS Code: `clean`, `clean:cache`, `preview:local`.
+- `.gitignore` actualizado para ignorar caches de ESLint y artefactos.
+- Lint/Build verificados en verde.
 
 ## Contribuciones
 
