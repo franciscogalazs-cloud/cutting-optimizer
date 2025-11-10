@@ -19,6 +19,13 @@ export const createPiece = (data = {}, options = {}) => {
     material: data.material || 'Melamina',
     canRotate: data.canRotate !== undefined ? data.canRotate : true,
     priority: data.priority || 1,
+    // Agregar configuración de tapacantos por defecto si no existe
+    edges: data.edges || {
+      arriba: { enabled: false, tipo: 'PVC' },
+      abajo: { enabled: false, tipo: 'PVC' },
+      izquierda: { enabled: false, tipo: 'PVC' },
+      derecha: { enabled: false, tipo: 'PVC' }
+    },
     ...data,
   };
 

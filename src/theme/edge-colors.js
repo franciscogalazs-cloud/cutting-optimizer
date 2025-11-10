@@ -56,6 +56,10 @@ const isBlackish = (c) => {
   return false;
 };
 
+// Registry para mantener colores únicos por tipo de tapacanto
+const typeColorRegistry = new Map();
+let nextColorIndex = 0;
+
 // Hash simple y estable para strings (para indexar paleta por tipo)
 const hashString = (str = '') => {
   let h = 0;
@@ -66,8 +70,46 @@ const hashString = (str = '') => {
 };
 
 const pickFromPaletteByType = (type = '') => {
-  const idx = hashString(type) % SAFE_PALETTE.length;
-  return SAFE_PALETTE[idx];
+  // Si ya tenemos un color asignado para este tipo, devolverlo
+  if (typeColorRegistry.has(type)) {
+    return typeColorRegistry.get(type);
+  }
+  
+  // Si es un tipo predefinido, usar su color específico
+  if (EDGE_TYPE_COLORS[type]) {
+    typeColorRegistry.set(type, EDGE_TYPE_COLORS[type]);
+    return EDGE_TYPE_COLORS[type];
+  }
+  
+  // Para tipos nuevos, asignar el siguiente color disponible de la paleta
+  const color = SAFE_PALETTE[nextColorIndex % SAFE_PALETTE.length];
+  nextColorIndex++;
+  
+  typeColorRegistry.set(type, color);
+  return color;
+};
+
+// Función para resetear el registry (útil para pruebas o cuando se reinicia la aplicación)
+export const resetColorRegistry = () => {
+  typeColorRegistry.clear();
+  nextColorIndex = 0;
+};
+
+// Función para obtener todos los tipos registrados y sus colores
+export const getRegisteredEdgeTypes = () => {
+  return Array.from(typeColorRegistry.entries()).map(([type, color]) => ({
+    type,
+    color
+  }));
+};
+
+// Función para pre-registrar tipos de tapacanto comunes
+export const preRegisterCommonTypes = () => {
+  Object.entries(EDGE_TYPE_COLORS).forEach(([type, color]) => {
+    if (!typeColorRegistry.has(type)) {
+      typeColorRegistry.set(type, color);
+    }
+  });
 };
 
 // mantenido como referencia; no se usa directamente
@@ -87,13 +129,17 @@ const pickFromPaletteByType = (type = '') => {
 /**
  * Devuelve un color para el tapacanto según el tipo seleccionado, evitando negro
  * y ajustando por contraste con el color base de la pieza si se provee.
+ * Garantiza que cada tipo de tapacanto único tenga un color único.
  */
 export const getEdgeColor = (type, index = 0, baseFill) => {
-  // Política combinada:
-  // 1) Determinar color base por tipo (consistencia entre vistas)
+  // Pre-registrar tipos comunes si no están ya registrados
+  preRegisterCommonTypes();
+  
+  // Política mejorada:
+  // 1) Determinar color base por tipo usando el registry de colores únicos
   // 2) Si hay color de pieza (plancha), ajustar para asegurar diferencia/contraste
   let color = type
-    ? (EDGE_TYPE_COLORS[type] || pickFromPaletteByType(type))
+    ? pickFromPaletteByType(type)
     : (SAFE_PALETTE[index % SAFE_PALETTE.length] || '#2563eb');
 
   if (isBlackish(color)) color = '#2563eb';

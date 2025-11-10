@@ -77,7 +77,7 @@ const DEFAULT_PREFS = {
 // utilidades no usadas eliminadas para pasar lint
 // pickEdgeColor viene de util centralizado (evita negro y mantiene contraste)
 
-export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm', ai: _ai = null, onExport = null }) => {
+export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm', ai: _ai = null, onExport = null, highlightedPiece = null }) => {
   const preferencesFromStorage = useMemo(() => loadPreferences(), []);
   const [prefs, setPrefs] = useState(() => ({ ...DEFAULT_PREFS, ...(preferencesFromStorage ?? {}) }));
   const { showDimensions, showLabels, showEdges } = prefs;
@@ -92,6 +92,42 @@ export const AdvancedCuttingPattern = ({ patterns, materials = [], units = 'mm',
   useEffect(() => {
     savePreferences(prefs);
   }, [prefs]);
+
+  // Efecto para encontrar y resaltar la pieza solicitada
+  useEffect(() => {
+    if (!highlightedPiece) {
+      setHoveredPiece(null);
+      return;
+    }
+
+    // Buscar la pieza en todos los patrones
+    for (let patternIndex = 0; patternIndex < validPatterns.length; patternIndex++) {
+      const pattern = validPatterns[patternIndex];
+      const pieces = pattern.pieces || [];
+      
+      for (let pieceIndex = 0; pieceIndex < pieces.length; pieceIndex++) {
+        const piece = pieces[pieceIndex];
+        
+        // Verificar si esta pieza coincide con la pieza resaltada
+        // Comparar por originalId y originalInstance si están disponibles
+        const matchesOriginal = piece.originalId === highlightedPiece.originalId && 
+                               piece.originalInstance === highlightedPiece.originalInstance;
+        
+        // También comparar por label como fallback
+        const matchesLabel = piece.label === highlightedPiece.label;
+        
+        if (matchesOriginal || matchesLabel) {
+          // Cambiar al patrón correcto y resaltar la pieza
+          console.log(`✅ Pieza resaltada: ${piece.label} en patrón ${patternIndex + 1}`);
+          setCurrentPatternIndex(patternIndex);
+          setHoveredPiece(pieceIndex);
+          return;
+        }
+      }
+    }
+    
+    console.log('⚠️ Pieza no encontrada para resaltar:', highlightedPiece.label);
+  }, [highlightedPiece, validPatterns]);
 
   // La navegación por teclado (flechas) la maneja ThumbnailStrip; evitamos duplicar aquí.
 

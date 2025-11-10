@@ -92,6 +92,7 @@ function App() {
   });
   // Historial deshabilitado: UI y atajos removidos
   const [activeTab, setActiveTab] = useState("home");
+  const [highlightedPiece, setHighlightedPiece] = useState(null); // Para resaltar pieza específica en canvas
   useEffect(() => {
     setConfig((prev) => (prev.allowRotation ? prev : { ...prev, allowRotation: true }));
   }, [setConfig]);
@@ -258,6 +259,7 @@ function App() {
   const [editingPiece, setEditingPiece] = useState(null);
   const [editingMaterial, setEditingMaterial] = useState(null);
   const [showClearModal, setShowClearModal] = useState(false);
+  const reoptimizeTimeoutRef = useRef(null);
   const { result, optimize, error } = useOptimization();
   const efficiencyFactor = 0.9;
 
@@ -343,6 +345,64 @@ function App() {
       return updated ? nextMaterials : current;
     });
   }, [pieces, config.units, setMaterials]);
+
+  // Función para re-optimización automática después de cambios en tapacantos
+  const triggerAutoReoptimization = useCallback(() => {
+    // Solo re-optimizar si ya hay patrones generados
+    if (!result?.patterns?.length) {
+      console.log('🔍 No hay patrones para re-optimizar');
+      return;
+    }
+    
+    console.log('🔄 Programando re-optimización automática en 1 segundo...');
+    
+    // Limpiar timeout anterior si existe
+    if (reoptimizeTimeoutRef.current) {
+      clearTimeout(reoptimizeTimeoutRef.current);
+    }
+    
+    // Programar nueva re-optimización
+    reoptimizeTimeoutRef.current = setTimeout(async () => {
+      console.log('⚡ Ejecutando re-optimización automática...');
+      setIsOptimizing(true);
+      try {
+        await optimize(pieces, materials, { ...config, algorithm: 'guillotine' });
+        console.log('✅ Re-optimización automática completada');
+      } catch (error) {
+        console.warn('❌ Error en re-optimización automática:', error);
+      } finally {
+        setIsOptimizing(false);
+      }
+    }, 1000);
+  }, [result?.patterns?.length, pieces, materials, config, optimize]);
+
+  // Declarar handleOptimize antes de usarlo en useEffect
+  const handleOptimize = useCallback(async () => {
+    if (pieces.length === 0) {
+      toast.error("Agrega al menos una pieza para optimizar");
+      return;
+    }
+    if (materials.length === 0) {
+      toast.error("Agrega al menos un material para optimizar");
+      return;
+    }
+    setIsOptimizing(true);
+    try {
+  await optimize(pieces, materials, { ...config, algorithm: 'guillotine' });
+      setActiveTab("patterns");
+    // Sin auto-scroll: dejamos KPI visibles al cargar patrones
+      toast.success("Optimizacion completada exitosamente");
+    } catch {
+      // Registrar error en consola para diagnóstico además del toast
+      console.warn('optimize failed');
+      toast.error('Error durante la optimizacion');
+    } finally {
+      setIsOptimizing(false);
+    }
+  }, [pieces, materials, config, optimize, setActiveTab]);
+
+
+
   const handleAddPiece = (piece) => {
     // Remover flags temporales (e.g., duplicado en borrador)
     const { isDuplicateDraft: _dup, ...clean } = piece || {};
@@ -397,6 +457,37 @@ function App() {
   };
   const handleEditPiece = (id, updatedPiece) => {
     const target = String(id);
+    
+    // Si es una instancia individual (tiene originalId), manejar diferente
+    if (updatedPiece?.originalId) {
+      const originalId = String(updatedPiece.originalId);
+      const instanceIndex = updatedPiece.originalInstance;
+      
+      setPieces((prev) =>
+        prev.map((piece) => {
+          if (String(piece.id) !== originalId) return piece;
+          
+          // Actualizar solo la configuración de tapacantos de esta instancia específica
+          const instanceEdges = { ...piece.instanceEdges };
+          instanceEdges[instanceIndex] = cloneEdges(updatedPiece.edges || defaultEdges);
+          
+          return {
+            ...piece,
+            instanceEdges
+          };
+        })
+      );
+      
+      // Activar re-optimización automática para actualizar el canvas
+      console.log('🎯 Pieza instancia editada, activando re-optimización...');
+      triggerAutoReoptimization();
+      return;
+    }
+    
+    // Detectar si los cambios incluyen tapacantos para decidir si re-optimizar
+    const edgesChanged = updatedPiece?.edges !== undefined;
+    
+    // Manejo normal para piezas no instanciadas
     setPieces((prev) =>
       prev.map((piece) => {
         if (String(piece.id) !== target) return piece;
@@ -455,6 +546,12 @@ function App() {
         };
       }),
     );
+    
+    // Activar re-optimización automática solo si cambiaron los tapacantos
+    if (edgesChanged) {
+      console.log('🎯 Pieza normal editada (edges cambiaron), activando re-optimización...');
+      triggerAutoReoptimization();
+    }
   };
 
   const handleDuplicatePiece = (piece) => {
@@ -474,30 +571,6 @@ function App() {
   };
   const handleEditMaterial = (id, updatedMaterial) => {
   setMaterials((prev) => prev.map((material) => (material.id === id ? { ...material, ...updatedMaterial } : material)));
-  };
-  // Ejecuta la optimización con el algoritmo seleccionado (por ahora, guillotina)
-  const handleOptimize = async () => {
-    if (pieces.length === 0) {
-      toast.error("Agrega al menos una pieza para optimizar");
-      return;
-    }
-    if (materials.length === 0) {
-      toast.error("Agrega al menos un material para optimizar");
-      return;
-    }
-    setIsOptimizing(true);
-    try {
-  await optimize(pieces, materials, { ...config, algorithm: 'guillotine' });
-      setActiveTab("patterns");
-    // Sin auto-scroll: dejamos KPI visibles al cargar patrones
-      toast.success("Optimizacion completada exitosamente");
-    } catch {
-      // Registrar error en consola para diagnóstico además del toast
-      console.warn('optimize failed');
-      toast.error('Error durante la optimizacion');
-    } finally {
-      setIsOptimizing(false);
-    }
   };
   const totalPieces = pieces.reduce((sum, piece) => sum + piece.quantity, 0);
   const avgUsedM2 = (() => {
@@ -844,6 +917,7 @@ function App() {
                   patterns={result.patterns}
                   materials={materials}
                   units={config.units}
+                  highlightedPiece={highlightedPiece}
                   onExport={() => setShowExportModal(true)}
                 />
               )}
@@ -868,7 +942,34 @@ function App() {
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <h2 ref={edgebandingHeaderRef} className="text-lg font-semibold text-[var(--text)]">Tapacantos</h2>
               </div>
-              <EdgeBandingPanel pieces={pieces} units={config.units} onEditPiece={setEditingPiece} />
+              <EdgeBandingPanel 
+                pieces={pieces} 
+                units={config.units} 
+                onEditPiece={(updatedPiece) => {
+                  if (updatedPiece?.originalId) {
+                    // Es una pieza virtual (instancia individual)
+                    handleEditPiece(updatedPiece.id, updatedPiece);
+                  } else {
+                    // Es una pieza normal, abrir modal de edición
+                    setEditingPiece(updatedPiece);
+                  }
+                }}
+                onDeletePiece={handleDeletePiece}
+                onGoToPiece={(virtualPiece, globalIndex) => {
+                  // Cambiar a la pestaña de patrones/optimización
+                  setActiveTab('patterns');
+                  
+                  // Establecer la pieza a resaltar
+                  setHighlightedPiece({
+                    originalId: virtualPiece.originalId,
+                    originalInstance: virtualPiece.originalInstance,
+                    label: virtualPiece.label,
+                    globalIndex
+                  });
+                  
+                  console.log('🎯 Navegando a pieza:', virtualPiece.label);
+                }}
+              />
             </TabsContent>
 
             {/* Pestaña de estadísticas retirada a solicitud */}
@@ -939,7 +1040,17 @@ function App() {
             const payload = { ...editingPiece, ...data };
             handleAddPiece(payload);
           } else {
-            handleEditPiece(editingPiece.id, data);
+            // Si es una pieza virtual (instancia individual), incluir información de la instancia
+            if (editingPiece.originalId) {
+              const payload = {
+                ...data,
+                originalId: editingPiece.originalId,
+                originalInstance: editingPiece.originalInstance
+              };
+              handleEditPiece(editingPiece.id, payload);
+            } else {
+              handleEditPiece(editingPiece.id, data);
+            }
           }
         }}
       />
@@ -961,28 +1072,28 @@ function App() {
 
       {/* Modal nativo para limpiar datos */}
       <Dialog open={showClearModal} onOpenChange={setShowClearModal}>
-        <DialogContent className="max-w-md bg-white">
+        <DialogContent className="max-w-md bg-[var(--surface)] border-[var(--border)]">
           <DialogHeader>
-            <DialogTitle>Limpiar datos</DialogTitle>
+            <DialogTitle className="text-[var(--text)]">Limpiar datos</DialogTitle>
             <DialogDescription id="clear-data-desc" className="sr-only">
               Confirmación para limpiar piezas y materiales de la sesión actual.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-2 text-sm text-[var(--text)]">
             <p>Se eliminarán los datos de la sesión:</p>
-            <ul className="list-disc pl-5">
+            <ul className="list-disc pl-5 text-[var(--text)]">
               <li>Piezas</li>
               <li>Materiales</li>
             </ul>
             <p className="mt-2">Se conservarán:</p>
-            <ul className="list-disc pl-5">
+            <ul className="list-disc pl-5 text-[var(--text)]">
               <li>Presupuesto (Empresa/Cliente y listas)</li>
               <li>Configuración (unidades, kerf, margen)</li>
             </ul>
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" onClick={() => setShowClearModal(false)}>Cancelar</Button>
-            <Button variant="destructive" onClick={handleClearAll}>Limpiar</Button>
+            <Button className="bg-gray-500 hover:bg-gray-600 text-white" onClick={handleClearAll}>Limpiar</Button>
           </div>
         </DialogContent>
       </Dialog>

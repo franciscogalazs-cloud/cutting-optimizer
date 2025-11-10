@@ -49,9 +49,9 @@ export const MaterialEditModal = ({ open, onClose, material, onSave, units = 'mm
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white" aria-describedby="material-edit-desc">
+      <DialogContent className="max-w-md bg-[var(--surface)] border-[var(--border)]" aria-describedby="material-edit-desc">
         <DialogHeader>
-          <DialogTitle>Editar Material</DialogTitle>
+          <DialogTitle className="text-[var(--text)]">Editar Material</DialogTitle>
           <DialogDescription id="material-edit-desc" className="sr-only">
             Formulario para editar dimensiones y parámetros del material seleccionado.
           </DialogDescription>
@@ -59,33 +59,33 @@ export const MaterialEditModal = ({ open, onClose, material, onSave, units = 'mm
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Largo ({units})</Label>
+              <Label className="text-[var(--text)]">Largo ({units})</Label>
               <Input type="number" step="0.1" min="0" value={form.length} onChange={e => setField('length', e.target.value)} />
-              {errors.length && <p className="text-xs text-red-600 mt-1">{errors.length}</p>}
+              {errors.length && <p className="text-xs text-[var(--danger)] mt-1">{errors.length}</p>}
             </div>
             <div>
-              <Label>Ancho ({units})</Label>
+              <Label className="text-[var(--text)]">Ancho ({units})</Label>
               <Input type="number" step="0.1" min="0" value={form.width} onChange={e => setField('width', e.target.value)} />
-              {errors.width && <p className="text-xs text-red-600 mt-1">{errors.width}</p>}
+              {errors.width && <p className="text-xs text-[var(--danger)] mt-1">{errors.width}</p>}
             </div>
           </div>
           {/* Se oculta la cantidad; se calcula automáticamente durante la optimización. */}
           
           {/* Precio eliminado del modal. Se define directamente en Presupuesto. */}
           <div>
-            <Label>Material</Label>
+            <Label className="text-[var(--text)]">Material</Label>
             <Input value={form.material} onChange={e => setField('material', e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Grosor sierra ({units})</Label>
+              <Label className="text-[var(--text)]">Grosor sierra ({units})</Label>
               <Input type="number" step="0.1" min="0" value={form.kerf} onChange={e => setField('kerf', e.target.value)} />
-              {errors.kerf && <p className="text-xs text-red-600 mt-1">{errors.kerf}</p>}
+              {errors.kerf && <p className="text-xs text-[var(--danger)] mt-1">{errors.kerf}</p>}
             </div>
             <div>
-              <Label>Margen ({units})</Label>
+              <Label className="text-[var(--text)]">Margen ({units})</Label>
               <Input type="number" step="0.1" min="0" value={form.margin} onChange={e => setField('margin', e.target.value)} />
-              {errors.margin && <p className="text-xs text-red-600 mt-1">{errors.margin}</p>}
+              {errors.margin && <p className="text-xs text-[var(--danger)] mt-1">{errors.margin}</p>}
             </div>
           </div>
           <div className="flex justify-end space-x-2 pt-2">

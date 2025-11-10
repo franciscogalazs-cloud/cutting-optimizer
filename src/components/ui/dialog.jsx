@@ -60,10 +60,6 @@ const DialogContent = React.forwardRef(function DialogContent(
         {...props}
       >
         {children}
-        {/* Fallback accesible: si el consumidor no provee DialogDescription, este evita el warning de Radix */}
-        <DialogPrimitive.Description className="sr-only">
-          Diálogo
-        </DialogPrimitive.Description>
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"

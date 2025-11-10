@@ -227,14 +227,34 @@ export class BestFitDecreasing {
       return labelColorMap.get(key);
     };
 
+    // Contador global para numerar todas las piezas individuales secuencialmente
+    let globalPieceNumber = 1;
+    
     pieces.forEach(piece => {
       for (let i = 0; i < piece.quantity; i++) {
+        // Obtener configuración de tapacantos específica para esta instancia
+        let instanceEdges;
+        if (piece.instanceEdges && piece.instanceEdges[i]) {
+          instanceEdges = piece.instanceEdges[i];
+        } else {
+          // Para compatibilidad hacia atrás, usar la configuración base de la pieza
+          instanceEdges = piece.edges || {};
+        }
+        
+        // Crear etiqueta numerada individualmente
+        const baseLabel = piece.label || 'Pieza';
+        const numberedLabel = piece.quantity > 1 ? `${baseLabel} #${i + 1}` : baseLabel;
+        
         expandedPieces.push({
           ...piece,
           id: `${piece.id}_${i}`,
+          label: numberedLabel,
+          edges: instanceEdges,
           originalId: piece.id,
+          originalInstance: i,
           color: getPieceColor(piece),
           instanceNumber: i + 1,
+          globalNumber: globalPieceNumber++
         });
       }
     });
@@ -388,6 +408,8 @@ export class BestFitDecreasing {
             color: p.color,
             // Propagar tapacantos desde la pieza original
             edges: p.edges,
+            originalId: p.originalId,
+            originalInstance: p.originalInstance,
           }));
           remainingPieces.splice(bestIdx, 1);
           placedAny = true;

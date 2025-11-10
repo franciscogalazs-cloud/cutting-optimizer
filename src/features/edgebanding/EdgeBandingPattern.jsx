@@ -30,7 +30,7 @@ const formatValue = (value) => {
 
 // Tooltip: usamos color sólido con opacidad y borde del mismo color
 
-const PiecePreview = ({ piece, original, index, units, onEditPiece }) => {
+const PiecePreview = ({ piece, original, index, units, onEditPiece, onDeletePiece, onGoToPiece, globalIndex }) => {
   // Hooks deben ir antes de cualquier return condicional
   const containerRef = useRef(null);
   const [tt, setTt] = useState(null);
@@ -66,14 +66,36 @@ const PiecePreview = ({ piece, original, index, units, onEditPiece }) => {
     }
   };
 
+  const handleDelete = () => {
+    if (typeof onDeletePiece === "function") {
+      const pieceName = piece.label || piece.nombre || `Pieza ${index + 1}`;
+      if (confirm(`¿Estás seguro que quieres borrar "${pieceName}"?`)) {
+        // Usar el ID original de la pieza para borrar toda la pieza, no solo una instancia
+        const pieceId = original?.originalId || original?.id || piece.id;
+        onDeletePiece(pieceId);
+      }
+    }
+  };
+
   return sidesWithEdge.length === 0 ? null : (
     <div className="flex flex-col gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm" key={piece.id ?? index}>
       <div className="flex items-center justify-between gap-2">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-[var(--text)]">{piece.label || piece.nombre || `Pieza ${index + 1}`}</p>
-          <p className="text-xs text-[var(--muted)]">
-            {formatValue(piece.length ?? piece.largoMm)} x {formatValue(piece.width ?? piece.anchoMm)} {units}
-          </p>
+        <div className="flex items-center gap-2 min-w-0">
+          {onGoToPiece && (
+            <button
+              onClick={() => onGoToPiece?.(original, globalIndex)}
+              className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--surface)] text-xs font-medium text-[var(--text)] hover:bg-[var(--primary)] hover:text-white hover:border-[var(--primary)] transition-colors cursor-pointer flex-shrink-0"
+              title="Ir al canvas y resaltar esta pieza"
+            >
+              {globalIndex + 1}
+            </button>
+          )}
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-[var(--text)]">{piece.label || piece.nombre || `Pieza ${index + 1}`}</p>
+            <p className="text-xs text-[var(--muted)]">
+              {formatValue(piece.length ?? piece.largoMm)} x {formatValue(piece.width ?? piece.anchoMm)} {units}
+            </p>
+          </div>
         </div>
         <Badge variant="outline" className="text-xs text-[var(--muted)]">
           Cantidad: {quantity}
@@ -179,27 +201,77 @@ const PiecePreview = ({ piece, original, index, units, onEditPiece }) => {
           })}
         </div>
       </div>
-      {onEditPiece && (
-        <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={handleEdit} className="text-[var(--text)]">
-            Modificar lados
-          </Button>
+      {(onEditPiece || onDeletePiece) && (
+        <div className="flex justify-center gap-2">
+          {onEditPiece && (
+            <Button variant="outline" size="sm" onClick={handleEdit} className="text-[var(--text)]">
+              Modificar lados
+            </Button>
+          )}
+          {onDeletePiece && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDelete} 
+              className="text-red-600 hover:text-white hover:bg-red-600 border-red-300 hover:border-red-600 transition-colors"
+            >
+              Borrar
+            </Button>
+          )}
         </div>
       )}
     </div>
   );
 };
 
-export const EdgeBandingPattern = ({ pieces = [], units = "cm", onEditPiece }) => {
-  const normalized = useMemo(() => {
+export const EdgeBandingPattern = ({ pieces = [], units = "cm", onEditPiece, onDeletePiece, onGoToPiece }) => {
+  // Lista expandida de piezas individuales (usando la misma lógica del EdgeBandingPanel)
+  const expandedPieces = useMemo(() => {
     if (!Array.isArray(pieces)) return [];
-    return pieces
-      .map((piece) => {
-        const parsed = normalizePiece(piece, piece?.units || units);
-        return { original: piece, merged: { ...piece, ...parsed } };
+    
+    return pieces.flatMap((p) =>
+      Array.from({ length: p.quantity || 1 }, (_, idx) => {
+        // Obtener configuración de tapacantos específica para esta instancia
+        let instanceEdges;
+        if (p.instanceEdges && p.instanceEdges[idx]) {
+          instanceEdges = p.instanceEdges[idx];
+        } else {
+          // Para compatibilidad hacia atrás, usar la configuración base de la pieza
+          instanceEdges = p.edges || {};
+        }
+        
+        // Crear etiqueta numerada individualmente
+        const baseLabel = p.label || 'Pieza';
+        const numberedLabel = p.quantity > 1 ? `${baseLabel} #${idx + 1}` : baseLabel;
+        
+        return {
+          piece: p,
+          instance: idx + 1,
+          // Pieza virtual con configuración específica de esta instancia
+          virtualPiece: {
+            ...p,
+            id: `${p.id}-${idx}`,
+            label: numberedLabel,
+            edges: instanceEdges,
+            originalId: p.id,
+            originalInstance: idx
+          }
+        };
+      })
+    );
+  }, [pieces]);
+
+  const normalized = useMemo(() => {
+    return expandedPieces
+      .map(({ virtualPiece }) => {
+        const parsed = normalizePiece(virtualPiece, virtualPiece?.units || units);
+        return { 
+          virtualPiece,
+          merged: { ...virtualPiece, ...parsed } 
+        };
       })
       .filter(({ merged }) => EDGE_SIDES.some((side) => merged.edges?.[side]?.enabled));
-  }, [pieces, units]);
+  }, [expandedPieces, units]);
 
   if (normalized.length === 0) return null;
 
@@ -210,16 +282,26 @@ export const EdgeBandingPattern = ({ pieces = [], units = "cm", onEditPiece }) =
         Visualiza las piezas que requieren tapacanto y los lados involucrados.
       </p>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-        {normalized.map(({ original, merged }, index) => (
-          <PiecePreview
-            key={original.id ?? index}
-            piece={merged}
-            original={original}
-            index={index}
-            units={units}
-            onEditPiece={onEditPiece}
-          />
-        ))}
+        {normalized.map(({ virtualPiece, merged }, index) => {
+          // Calcular el índice global usando la misma lógica que en EdgeBandingPanel
+          const globalIndex = expandedPieces.findIndex(
+            ({ virtualPiece: vp }) => vp.originalId === virtualPiece.originalId && vp.originalInstance === virtualPiece.originalInstance
+          );
+          
+          return (
+            <PiecePreview
+              key={virtualPiece.id ?? index}
+              piece={merged}
+              original={virtualPiece} // Pasar la pieza virtual para que el callback funcione correctamente
+              index={index}
+              units={units}
+              onEditPiece={onEditPiece}
+              onDeletePiece={onDeletePiece}
+              onGoToPiece={onGoToPiece}
+              globalIndex={globalIndex >= 0 ? globalIndex : index}
+            />
+          );
+        })}
       </div>
     </div>
   );

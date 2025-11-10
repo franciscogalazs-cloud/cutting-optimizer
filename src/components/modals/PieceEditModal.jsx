@@ -5,20 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { cloneEdges, EDGE_SIDES, defaultEdges, normalizePiece, toMillimeters } from '@/types/pieces.js';
-import { EdgeTypeSelect } from '@/features/edgebanding/EdgeTypeSelect.jsx';
+import { normalizePiece, toMillimeters } from '@/types/pieces.js';
 
-const EDGE_LABELS = {
-  arriba: 'Arriba',
-  abajo: 'Abajo',
-  izquierda: 'Izquierda',
-  derecha: 'Derecha',
-};
 
-const createEdgesFromPiece = (piece, units) => {
-  const normalized = normalizePiece(piece, units);
-  return cloneEdges(normalized.edges ?? defaultEdges);
-};
 
 export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', materials = [] }) => {
   const mmToUnits = (valueMm, u) => {
@@ -42,7 +31,6 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
     material: 'Melamina',
     canRotate: true,
   });
-  const [edges, setEdges] = useState(cloneEdges(defaultEdges));
   const [errors, setErrors] = useState({});
 
   const materialNames = useMemo(
@@ -71,7 +59,6 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
       material: normalized.material ?? (materialNames[0] ?? ''),
       canRotate: normalized.canRotate ?? true,
     });
-    setEdges(createEdgesFromPiece(normalized, units));
     setErrors({});
   }, [piece, materialNames, units]);
 
@@ -97,7 +84,7 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
         } catch {
           // noop
         }
-      }, 0);
+      }, 100);
     }
   }, [open]);
 
@@ -105,70 +92,68 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
 
   const validate = () => {
     const nextErrors = {};
-    if (!(Number(form.length) > 0)) nextErrors.length = 'Debe ser > 0';
-    if (!(Number(form.width) > 0)) nextErrors.width = 'Debe ser > 0';
-    if (!(Number.isInteger(Number(form.quantity)) && Number(form.quantity) > 0)) nextErrors.quantity = 'Debe ser entero > 0';
+    const lengthNum = Number(form.length);
+    const widthNum = Number(form.width);
+    const quantityNum = Number(form.quantity);
+    
+    if (!Number.isFinite(lengthNum) || lengthNum <= 0) nextErrors.length = 'Debe ser > 0';
+    if (!Number.isFinite(widthNum) || widthNum <= 0) nextErrors.width = 'Debe ser > 0';
+    if (!Number.isFinite(quantityNum) || !Number.isInteger(quantityNum) || quantityNum <= 0) nextErrors.quantity = 'Debe ser entero > 0';
+    
     setErrors(nextErrors);
     return Object.keys(nextErrors).length === 0;
   };
 
   const handleSave = () => {
     if (!validate()) return;
-    const lengthValue = Number(form.length);
-    const widthValue = Number(form.width);
-    const qRaw = Number(form.quantity);
-    const quantityValue = Number.isFinite(qRaw) && qRaw > 0 ? Math.floor(qRaw) : 1;
-    onSave?.({
-      label: form.label.trim(),
-      length: lengthValue,
-      width: widthValue,
-      quantity: quantityValue,
-      material: materialNames.length > 0 && materialNames.includes(form.material) ? form.material : '',
-      canRotate: Boolean(form.canRotate),
-      edges: cloneEdges(edges),
-      largoMm: toMillimeters(lengthValue, units),
-      anchoMm: toMillimeters(widthValue, units),
-    });
+    
+    try {
+      const lengthValue = Number(form.length);
+      const widthValue = Number(form.width);
+      const qRaw = Number(form.quantity);
+      const quantityValue = Number.isFinite(qRaw) && qRaw > 0 ? Math.floor(qRaw) : 1;
+      
+      const pieceData = {
+        label: (form.label || '').trim(),
+        length: lengthValue,
+        width: widthValue,
+        quantity: quantityValue,
+        material: materialNames.length > 0 && materialNames.includes(form.material) ? form.material : '',
+        canRotate: Boolean(form.canRotate),
+        largoMm: toMillimeters(lengthValue, units),
+        anchoMm: toMillimeters(widthValue, units),
+      };
+      
+      onSave?.(pieceData);
+      onClose?.();
+    } catch (error) {
+      console.error('Error al guardar pieza:', error);
+    }
+  };
+
+
+
+  const handleClose = () => {
+    setErrors({});
     onClose?.();
   };
 
-  const handleEdgeToggle = (side, checked) => {
-    const enabled = checked === true;
-    setEdges((prev) => ({
-      ...prev,
-      [side]: {
-        enabled,
-        tipo: enabled ? (prev[side].tipo ?? 'General') : prev[side].tipo,
-      },
-    }));
-  };
-
-  const handleEdgeTypeChange = (side, tipo) => {
-    setEdges((prev) => ({
-      ...prev,
-      [side]: {
-        ...prev[side],
-        tipo,
-      },
-    }));
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg bg-white" aria-describedby="piece-edit-desc">
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-lg bg-[var(--surface)] border-[var(--border)]" aria-describedby="piece-edit-desc">
         <DialogHeader>
-          <DialogTitle>Editar Pieza</DialogTitle>
+          <DialogTitle className="text-[var(--text)]">Editar Pieza</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <p id="piece-edit-desc" className="sr-only">Formulario para editar una pieza.</p>
           <div>
-            <Label>Etiqueta</Label>
+            <Label className="text-[var(--text)]">Etiqueta</Label>
             <Input ref={labelInputRef} value={form.label} onChange={(event) => setField('label', event.target.value)} />
-            {errors.label && <p className="mt-1 text-xs text-red-600">{errors.label}</p>}
+            {errors.label && <p className="mt-1 text-xs text-[var(--danger)]">{errors.label}</p>}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Largo ({units})</Label>
+              <Label className="text-[var(--text)]">Largo ({units})</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -176,10 +161,10 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
                 value={form.length}
                 onChange={(event) => setField('length', event.target.value)}
               />
-              {errors.length && <p className="mt-1 text-xs text-red-600">{errors.length}</p>}
+              {errors.length && <p className="mt-1 text-xs text-[var(--danger)]">{errors.length}</p>}
             </div>
             <div>
-              <Label>Ancho ({units})</Label>
+              <Label className="text-[var(--text)]">Ancho ({units})</Label>
               <Input
                 type="number"
                 step="0.1"
@@ -187,28 +172,32 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
                 value={form.width}
                 onChange={(event) => setField('width', event.target.value)}
               />
-              {errors.width && <p className="mt-1 text-xs text-red-600">{errors.width}</p>}
+              {errors.width && <p className="mt-1 text-xs text-[var(--danger)]">{errors.width}</p>}
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label>Cantidad</Label>
+              <Label className="text-[var(--text)]">Cantidad</Label>
               <Input
                 type="number"
                 min="1"
                 value={form.quantity}
                 onChange={(event) => setField('quantity', event.target.value)}
               />
-              {errors.quantity && <p className="mt-1 text-xs text-red-600">{errors.quantity}</p>}
+              {errors.quantity && <p className="mt-1 text-xs text-[var(--danger)]">{errors.quantity}</p>}
             </div>
             <div>
-              <Label>Material</Label>
+              <Label className="text-[var(--text)]">Material</Label>
               {materialNames.length === 0 ? (
                 <Input value="Sin materiales disponibles" disabled />
               ) : (
                 <Select
                   value={materialNames.includes(form.material) ? form.material : ''}
-                  onValueChange={(value) => setField('material', value)}
+                  onValueChange={(value) => {
+                    if (value && materialNames.includes(value)) {
+                      setField('material', value);
+                    }
+                  }}
                   disabled={materialNames.length === 0}
                 >
                   <SelectTrigger className="w-full">
@@ -229,48 +218,18 @@ export const PieceEditModal = ({ open, onClose, piece, onSave, units = 'mm', mat
                   </SelectContent>
                 </Select>
               )}
-              {errors.material && <p className="mt-1 text-xs text-red-600">{errors.material}</p>}
+              {errors.material && <p className="mt-1 text-xs text-[var(--danger)]">{errors.material}</p>}
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <Checkbox id="canRotate_edit" checked={!!form.canRotate} onCheckedChange={(value) => setField('canRotate', value === true)} />
-            <Label htmlFor="canRotate_edit">Permitir rotación</Label>
+            <Label htmlFor="canRotate_edit" className="text-[var(--text)]">Permitir rotación</Label>
           </div>
 
           {/* Campo de orientación fija (veta) eliminado por solicitud */}
 
-          <div className="rounded-lg border border-gray-200 p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">Tapacantos</span>
-              <span className="text-xs text-gray-500">Ajusta los lados necesarios</span>
-            </div>
-            <div className="space-y-3">
-              {EDGE_SIDES.map((side) => {
-                const edgeId = `edit-edge-${side}`;
-                const info = edges[side];
-                return (
-                  <div key={side} className="flex items-center justify-between gap-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox
-                        id={edgeId}
-                        checked={info.enabled}
-                        onCheckedChange={(checked) => handleEdgeToggle(side, checked)}
-                      />
-                      <Label htmlFor={edgeId}>{EDGE_LABELS[side]}</Label>
-                    </div>
-                    <EdgeTypeSelect
-                      disabled={!info.enabled}
-                      value={info.tipo}
-                      onChange={(tipo) => handleEdgeTypeChange(side, tipo)}
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
           <div className="flex justify-end space-x-2 pt-2">
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
+            <Button variant="outline" onClick={handleClose}>Cancelar</Button>
             <Button onClick={handleSave}>Guardar</Button>
           </div>
         </div>

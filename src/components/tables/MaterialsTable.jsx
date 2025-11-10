@@ -45,7 +45,7 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, onDuplicate
                     <span>Ancho: <span className="tabular-nums">{material.width}</span> {units}</span>
                     <span>Sierra: <span className="tabular-nums">{material.kerf}</span> {units}</span>
                     <span>Margen: <span className="tabular-nums">{material.margin}</span> {units}</span>
-                    <span>Área: <span className="tabular-nums">{formatSquareMeters(rectangleAreaToSquareMeters(material.length, material.width, material.quantity, units))}</span></span>
+                    <span>Área: <span className="tabular-nums">{formatSquareMeters(rectangleAreaToSquareMeters(material.length, material.width, 1, units))}</span> m²</span>
                   </div>
                 </div>
                 <div className="shrink-0">
@@ -104,7 +104,7 @@ export const MaterialsTable = ({ materials, onDelete, onEditRequest, onDuplicate
                   <TableCell>{material.width}</TableCell>
                   <TableCell>{material.kerf}</TableCell>
                   <TableCell>{material.margin}</TableCell>
-                  <TableCell>{formatSquareMeters(rectangleAreaToSquareMeters(material.length, material.width, material.quantity, units))}</TableCell>
+                  <TableCell>{formatSquareMeters(rectangleAreaToSquareMeters(material.length, material.width, 1, units))} m²</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button

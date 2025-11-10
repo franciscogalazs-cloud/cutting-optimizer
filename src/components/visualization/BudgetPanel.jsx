@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 // Select UI no usado actualmente en esta vista
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Calculator, Copy, Trash2, Printer } from 'lucide-react';
-import { computeEdgeTotals } from '@/features/edgebanding/edgeBanding.js';
+import { computeEdgeTotals, expandPiecesWithEdges } from '@/features/edgebanding/edgeBanding.js';
 // SummarySheet removido según requerimiento de diseño
 import { useLocalStorage } from '@/hooks/useLocalStorage.js';
 import { formatCLP, rectangleAreaToSquareMeters } from '@/lib/format.js';
@@ -157,7 +157,13 @@ export const BudgetPanel = ({ result, pieces = [], units = 'cm' }) => {
   }, [result, units]);
 
   const defaultEdgeRows = useMemo(() => {
-    const totals = computeEdgeTotals(pieces) || {};
+    // Expandir las piezas para manejar instanceEdges correctamente, como hace EdgeBandingPanel
+    const expandedPieces = expandPiecesWithEdges(pieces);
+    const piecesForCalculation = expandedPieces.map((piece) => ({
+      ...piece,
+      units: units // Agregar las unidades a cada pieza
+    }));
+    const totals = computeEdgeTotals(piecesForCalculation) || {};
     const entries = Object.entries(totals);
     if (entries.length === 0) {
       return [];
@@ -173,7 +179,7 @@ export const BudgetPanel = ({ result, pieces = [], units = 'cm' }) => {
         }),
       )
       .filter((row) => toNumber(row.quantity) > 0);
-  }, [pieces, edgeWastePercent]);
+  }, [pieces, edgeWastePercent, units]);
 
   useEffect(() => {
     // Si no hay datos previos guardados, inicializamos desde resultado/materiales

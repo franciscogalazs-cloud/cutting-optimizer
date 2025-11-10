@@ -6,16 +6,10 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { EdgeTypeSelect } from '@/features/edgebanding/EdgeTypeSelect.jsx';
-import { cloneEdges, EDGE_SIDES, defaultEdges, toMillimeters } from '@/types/pieces.js';
+import { toMillimeters } from '@/types/pieces.js';
 import { createPiece } from '../../types/index.js';
 
-const EDGE_LABELS = {
-  arriba: 'Arriba',
-  abajo: 'Abajo',
-  izquierda: 'Izquierda',
-  derecha: 'Derecha',
-};
+
 
 export const PieceForm = ({ onAddPiece, onRemovePiece, onEditRequest, units = 'mm', materials = [], allowRotation = true, onToggleRotation, pieces = [] }) => {
   const formRef = useRef(null);
@@ -56,7 +50,6 @@ export const PieceForm = ({ onAddPiece, onRemovePiece, onEditRequest, units = 'm
     canRotate: true,
   });
 
-  const [edges, setEdges] = useState(() => cloneEdges(defaultEdges));
   const [errors, setErrors] = useState({});
   const prevUnits = useRef(units);
   const prevMaterialKey = useRef(materialNames.join('|'));
@@ -101,7 +94,6 @@ export const PieceForm = ({ onAddPiece, onRemovePiece, onEditRequest, units = 'm
       material: materialOptions[0]?.name || '',
       canRotate: allowRotation,
     });
-    setEdges(cloneEdges(defaultEdges));
     setErrors({});
   };
 
@@ -138,7 +130,6 @@ export const PieceForm = ({ onAddPiece, onRemovePiece, onEditRequest, units = 'm
         label: formData.label.trim(),
         material: formData.material,
         canRotate: formData.canRotate,
-        edges,
         largoMm: toMillimeters(L, units),
         anchoMm: toMillimeters(W, units),
       },
@@ -160,25 +151,7 @@ export const PieceForm = ({ onAddPiece, onRemovePiece, onEditRequest, units = 'm
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
-  const handleEdgeToggle = (side, checked) => {
-    setEdges((prev) => ({
-      ...prev,
-      [side]: {
-        enabled: checked,
-        tipo: checked ? prev[side].tipo ?? 'General' : prev[side].tipo,
-      },
-    }));
-  };
 
-  const handleEdgeTypeChange = (side, tipo) => {
-    setEdges((prev) => ({
-      ...prev,
-      [side]: {
-        ...prev[side],
-        tipo,
-      },
-    }));
-  };
 
   return (
   <Card className="rounded-2xl shadow-lg border border-[var(--border)] bg-white overflow-hidden">
@@ -359,33 +332,7 @@ export const PieceForm = ({ onAddPiece, onRemovePiece, onEditRequest, units = 'm
             </div>
           )}
 
-          <div className="mt-1 flex items-center gap-4 whitespace-nowrap">
-            <span className="text-sm font-medium text-slate-800 shrink-0">Tapacantos</span>
-            {EDGE_SIDES.map((side) => {
-              const info = edges[side];
-              const id = `edge-${side}`;
-              return (
-                <div key={side} className="inline-flex items-center gap-2 pr-2 shrink-0">
-                  <Checkbox
-                    id={id}
-                    checked={info.enabled}
-                    onCheckedChange={(checked) => handleEdgeToggle(side, checked === true)}
-                  />
-                  <Label htmlFor={id} className="mr-1 shrink-0 font-medium text-slate-800">{EDGE_LABELS[side]}</Label>
-                  <EdgeTypeSelect
-                    disabled={!info.enabled}
-                    value={info.tipo}
-                    onChange={(tipo) => handleEdgeTypeChange(side, tipo)}
-                    className="h-9 w-[100px] text-sm"
-                  />
-                </div>
-              );
-            })}
-          </div>
-
           {/* botón de acción movido al header */}
-
-          <p className="mt-2 text-xs text-slate-500">Activa los lados que requieren canto</p>
         </form>
       </CardContent>
     </Card>

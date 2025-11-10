@@ -20,21 +20,60 @@ const getQuantity = (piece) => {
   return Number.isFinite(numeric) && numeric > 0 ? numeric : 1;
 };
 
+/**
+ * Expande las piezas en instancias individuales con su configuración de tapacantos específica
+ * Usa la misma lógica que EdgeBandingPanel para consistencia
+ */
+export const expandPiecesWithEdges = (pieces = []) => {
+  return pieces.flatMap((p) =>
+    Array.from({ length: getQuantity(p) }, (_, idx) => {
+      // Crear una pieza individual con configuración de tapacantos específica para esta instancia
+      const instanceKey = `${p.id}-${idx}`;
+      
+      // Si existe configuración específica para esta instancia, usarla; sino usar la configuración base
+      let instanceEdges;
+      if (p.instanceEdges && p.instanceEdges[idx]) {
+        instanceEdges = p.instanceEdges[idx];
+      } else {
+        // Para compatibilidad hacia atrás, usar la configuración base de la pieza
+        // Asegurar que siempre hay algo, aunque sea un objeto vacío
+        instanceEdges = p.edges || {};
+      }
+      
+
+      
+      return {
+        ...p,
+        id: instanceKey,
+        quantity: 1, // Cada instancia expandida tiene cantidad 1
+        edges: instanceEdges,
+        originalId: p.id,
+        originalInstance: idx,
+        units: p.units // Preservar las unidades originales
+      };
+    })
+  );
+};
+
 export const computeEdgeTotals = (pieces = []) => {
   /** @type {EdgeTotals} */
   const totals = {};
-  for (const rawPiece of Array.isArray(pieces) ? pieces : []) {
+  
+  // Las piezas ya vienen expandidas, no expandir de nuevo
+  for (const rawPiece of pieces) {
     const piece = normalizePiece(rawPiece, rawPiece?.units || undefined);
-    const quantity = getQuantity(rawPiece);
+    
     const edges = piece.edges;
     if (!edges) continue;
+    
     for (const side of EDGE_SIDES) {
       const edge = edges[side];
       if (!edge?.enabled) continue;
       const tipo = edge.tipo ?? 'General';
-      const lengthMm = sideLengthMm(piece, side) * quantity;
+      const lengthMm = sideLengthMm(piece, side);
       totals[tipo] = (totals[tipo] ?? 0) + lengthMm;
     }
   }
+  
   return totals;
 };

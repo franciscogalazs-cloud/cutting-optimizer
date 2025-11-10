@@ -55,10 +55,36 @@ export class GuillotineOptimizer {
       }
       return colorMap.get(key);
     };
+    
+    // Contador global para numerar todas las piezas individuales secuencialmente
+    let globalPieceNumber = 1;
+    
     for (const piece of pieces) {
       const key = (piece.label || piece.material || piece.id || '').toString();
       for (let i = 0; i < (Number(piece.quantity) || 1); i++) {
-        expanded.push({ ...piece, id: `${piece.id}_${i}`, color: getColor(key) });
+        // Obtener configuración de tapacantos específica para esta instancia
+        let instanceEdges;
+        if (piece.instanceEdges && piece.instanceEdges[i]) {
+          instanceEdges = piece.instanceEdges[i];
+        } else {
+          // Para compatibilidad hacia atrás, usar la configuración base de la pieza
+          instanceEdges = piece.edges || {};
+        }
+        
+        // Crear etiqueta numerada individualmente
+        const baseLabel = piece.label || 'Pieza';
+        const numberedLabel = piece.quantity > 1 ? `${baseLabel} #${i + 1}` : baseLabel;
+        
+        expanded.push({ 
+          ...piece, 
+          id: `${piece.id}_${i}`, 
+          label: numberedLabel,
+          edges: instanceEdges,
+          color: getColor(key),
+          originalId: piece.id,
+          originalInstance: i,
+          globalNumber: globalPieceNumber++
+        });
       }
     }
 
@@ -197,6 +223,8 @@ export class GuillotineOptimizer {
           label: piece.label,
           color: piece.color,
           edges: piece.edges,
+          originalId: piece.originalId,
+          originalInstance: piece.originalInstance,
         }));
 
         // actualizar cursores (usar clearance = kerf + separation entre piezas)
@@ -299,6 +327,8 @@ export class GuillotineOptimizer {
           label: piece.label,
           color: piece.color,
           edges: piece.edges,
+          originalId: piece.originalId,
+          originalInstance: piece.originalInstance,
         }));
 
         y += chosen.height;
